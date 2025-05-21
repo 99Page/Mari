@@ -2,12 +2,15 @@ import ProjectDescription
 
 let project = Project(
     name: "Mari",
+    packages: [
+        .remote(url: "https://github.com/firebase/firebase-ios-sdk", requirement: .exact("11.13.0"))
+    ],
     targets: [
         .target(
             name: "Mari",
             destinations: .iOS,
             product: .app,
-            bundleId: "io.tuist.Mari",
+            bundleId: "com.page.mari",
             infoPlist: .extendingDefault(
                 with: [
                     "UILaunchScreen": [
@@ -18,13 +21,18 @@ let project = Project(
             ),
             sources: ["Mari/Sources/**"],
             resources: ["Mari/Resources/**"],
-            dependencies: []
+            dependencies: [
+                .package(product: "FirebaseAnalytics"),
+                .package(product: "FirebaseStorage"),
+                .package(product: "FirebaseAuth"),
+                .package(product: "FirebaseCore")
+            ]
         ),
         .target(
             name: "MariTests",
             destinations: .iOS,
             product: .unitTests,
-            bundleId: "io.tuist.MariTests",
+            bundleId: "com.page.mari.tests",
             infoPlist: .default,
             sources: ["Mari/Tests/**"],
             resources: [],
