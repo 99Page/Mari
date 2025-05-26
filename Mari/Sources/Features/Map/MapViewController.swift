@@ -12,18 +12,36 @@ import CoreLocation
 import CoreLocation
 
 class MapViewController: UIViewController {
+    
     private lazy var mapView: NMFMapView = {
         let mapView = NMFMapView(frame: view.bounds)
         return mapView
     }()
-
+    
+    private let postButton = UIButton(type: .custom)
     private let locationManager = CLLocationManager()
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.addSubview(mapView)
-        mapView.addCameraDelegate(delegate: self)
+        makeConstraints()
         addOverlay()
+    }
+    
+    private func setupView() {
+        mapView.addCameraDelegate(delegate: self)
+    }
+    
+    private func makeConstraints() {
+        view.addSubview(mapView)
+        
+        let postButtonStyle = ButtonStyle(
+            image: UIImage(systemName: ""),
+            size: 20,
+            tintColor: .white,
+            backgroundColor: UIColor(resource: .main)
+        )
+        
+        postButton.design(<#T##style: ButtonStyle##ButtonStyle#>)
     }
 
     private func addOverlay() {

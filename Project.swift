@@ -5,7 +5,8 @@ let project = Project(
     packages: [
         .remote(url: "https://github.com/firebase/firebase-ios-sdk", requirement: .exact("11.13.0")),
         .remote(url: "https://github.com/SnapKit/SnapKit.git", requirement: .exact("5.7.1")),
-        .remote(url: "https://github.com/navermaps/SPM-NMapsMap", requirement: .exact("3.21.0"))
+        .remote(url: "https://github.com/navermaps/SPM-NMapsMap", requirement: .exact("3.21.0")),
+        .remote(url: "https://github.com/pointfreeco/swift-composable-architecture.git", requirement: .exact("1.20.1"))
     ],
     targets: [
         .target(
@@ -44,7 +45,8 @@ let project = Project(
                 .package(product: "FirebaseAuth"),
                 .package(product: "FirebaseCore"),
                 .package(product: "SnapKit"),
-                .package(product: "NMapsMap")
+                .package(product: "NMapsMap"),
+                .package(product: "ComposableArchitecture")
             ]
         ),
         .target(
