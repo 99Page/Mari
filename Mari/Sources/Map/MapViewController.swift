@@ -23,6 +23,7 @@ class MapViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.addSubview(mapView)
+        mapView.addCameraDelegate(delegate: self)
         addOverlay()
     }
 
