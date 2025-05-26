@@ -12,7 +12,6 @@ import CoreLocation
 import CoreLocation
 
 class MapViewController: UIViewController {
-
     private lazy var mapView: NMFMapView = {
         let mapView = NMFMapView(frame: view.bounds)
         return mapView
