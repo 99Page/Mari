@@ -9,7 +9,7 @@ import Foundation
 import UIKit
 import NMapsMap
 import CoreLocation
-import CoreLocation
+import Core
 
 class MapViewController: UIViewController {
     
@@ -35,13 +35,13 @@ class MapViewController: UIViewController {
         view.addSubview(mapView)
         
         let postButtonStyle = ButtonStyle(
-            image: UIImage(systemName: ""),
+            image: UIImage(systemName: "")!,
             size: 20,
             tintColor: .white,
             backgroundColor: UIColor(resource: .main)
         )
         
-        postButton.design(<#T##style: ButtonStyle##ButtonStyle#>)
+        postButton.design(postButtonStyle)
     }
 
     private func addOverlay() {
