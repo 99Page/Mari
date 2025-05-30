@@ -9,45 +9,31 @@
 import UIKit
 import SwiftUI
 
-public extension UIButton {
-    func design(_ style: ButtonStyle) {
-        self.setImage(style.image, for: .normal)
-        self.tintColor = style.tintColor
-        self.backgroundColor = style.backgroundColor
-    }
-}
-
-public struct ButtonStyle {
-    public let image: UIImage
-    public let size: CGFloat
-    public let tintColor: UIColor
-    public let backgroundColor: UIColor
+public func horizontal(_ content: (inout ([UIView]) -> Void)) -> UIStackView {
+    var views: [UIView] = []
     
-    public init(image: UIImage, size: CGFloat, tintColor: UIColor, backgroundColor: UIColor) {
-        self.image = image
-        self.size = size
-        self.tintColor = tintColor
-        self.backgroundColor = backgroundColor
+    let stack = UIStackView()
+    stack.axis = .horizontal
+    return stack
+}
+
+@dynamicMemberLookup
+public struct LabelBuilder {
+    private let label: UILabel
+
+    init(label: UILabel) {
+        self.label = label
+    }
+
+    subscript<T>(dynamicMember keyPath: ReferenceWritableKeyPath<UILabel, T>) -> T {
+        get { label[keyPath: keyPath] }
+        set { label[keyPath: keyPath] = newValue }
     }
 }
 
-private class CustomButton: UIButton, Previewable {
-    func configure() {
-        let style = ButtonStyle(
-            image: UIImage(systemName: "pencil")!,
-            size: 44,
-            tintColor: .blue,
-            backgroundColor: .clear
-        )
-        
-        self.design(style)
-        
-        
-    }
-}
-
-#Preview {
-    ViewPreview(fromY: \.centerY, toY: \.centerY) {
-        CustomButton()
-    }
+public func label(_ configure: (inout LabelBuilder) -> Void) -> UILabel {
+    let label = UILabel()
+    var builder = LabelBuilder(label: label)
+    configure(&builder)
+    return label
 }

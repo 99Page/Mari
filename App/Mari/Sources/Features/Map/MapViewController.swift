@@ -23,26 +23,64 @@ class MapViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        makeConstraints()
         addOverlay()
     }
     
     private func setupView() {
         mapView.addCameraDelegate(delegate: self)
-    }
-    
-    private func makeConstraints() {
-        view.addSubview(mapView)
         
-        let postButtonStyle = ButtonStyle(
-            image: UIImage(systemName: "")!,
-            size: 20,
-            tintColor: .white,
-            backgroundColor: UIColor(resource: .main)
-        )
+        scroll {
+            onScroll {
+                
+            }
+            
+            horizontal {
+                label {
+                    text = "Hello"
+                    textColor = .red
+                }
+            }
+        }
         
-        postButton.design(postButtonStyle)
+        
+        label {
+            text = "Hello"
+            textColor = .red
+        }
+        
+        let label = UILabel()
+        label.text = "Hello"
+        label.textColor = .red
+        
+        view.addSubview(label)
+        
+        label.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        
+
+//        ->
+//        
+//        let hstack = UIStackView()
+//        view.addSubview(hstack)
+//        hstack.axis = .horizontal
+//        hstack.spacing = 5
+//        
+//        hstack.snp.makeConstraints { make in
+//            make.edges.equalToSuperview()
+//        }
+//        
+//        let label = UILabel()
+//        hstack.addSubview(label)
+//        
+//        
+//        let text = UILabel()
+//        
+//        observe {
+//            
+//        }
     }
+  
 
     private func addOverlay() {
         locationManager.delegate = self
