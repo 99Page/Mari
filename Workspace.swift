@@ -11,5 +11,5 @@ import ProjectDescription
 
 let workspace = Workspace(
     name: "PageLog",
-    projects: ["App/**", "Core/**", "MacroKit/**"]
+    projects: ["App/**", "Core/**"]
 )

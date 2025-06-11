@@ -23,67 +23,37 @@ class MapViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        makeConstraint()
+        setupView()
         addOverlay()
+    }
+    
+    private func makeConstraint() {
+        view.addSubview(mapView)
+        view.addSubview(postButton)
+        
+        mapView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        
+        postButton.snp.makeConstraints { make in
+            make.trailing.equalToSuperview().offset(-16)
+            make.bottom.equalToSuperview().offset(-16)
+            make.width.height.equalTo(50)
+        }
     }
     
     private func setupView() {
         mapView.addCameraDelegate(delegate: self)
         
-        scroll {
-            onScroll {
-                
-            }
-            
-            horizontal {
-                label {
-                    text = "Hello"
-                    textColor = .red
-                }
-            }
-        }
-        
-        
-        label {
-            text = "Hello"
-            textColor = .red
-        }
-        
-        let label = UILabel()
-        label.text = "Hello"
-        label.textColor = .red
-        
-        view.addSubview(label)
-        
-        label.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
-        }
-        
-
-//        ->
-//        
-//        let hstack = UIStackView()
-//        view.addSubview(hstack)
-//        hstack.axis = .horizontal
-//        hstack.spacing = 5
-//        
-//        hstack.snp.makeConstraints { make in
-//            make.edges.equalToSuperview()
-//        }
-//        
-//        let label = UILabel()
-//        hstack.addSubview(label)
-//        
-//        
-//        let text = UILabel()
-//        
-//        observe {
-//            
-//        }
+        postButton.setImage(UIImage(systemName: "camera"), for: .normal)
     }
   
 
     private func addOverlay() {
         locationManager.delegate = self
+        
         switch locationManager.authorizationStatus {
         case .notDetermined:
             locationManager.requestWhenInUseAuthorization()
@@ -99,7 +69,6 @@ class MapViewController: UIViewController {
     }
 
     private func showLocationPermissionAlert() {
-        debugPrint("show permision!")
         let alert = UIAlertController(
             title: "위치 권한 필요",
             message: "현재 위치를 사용하려면 설정에서 위치 권한을 허용해주세요.",
