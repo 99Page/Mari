@@ -18,6 +18,7 @@ let target = Target.target(
     sources: ["Sources/**"],
     dependencies: [
         .package(product: "SnapKit"),
+        .package(product: "ComposableArchitecture")
     ]
 )
 
@@ -38,6 +39,7 @@ let project = Project(
     organizationName: "Page",
     packages: [
         .remote(url: "https://github.com/SnapKit/SnapKit.git", requirement: .exact("5.7.1")),
+        .remote(url: "https://github.com/pointfreeco/swift-composable-architecture.git", requirement: .exact("1.20.1"))
     ],
     targets: [target, testTarget]
 )

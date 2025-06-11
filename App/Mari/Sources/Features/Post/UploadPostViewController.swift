@@ -39,10 +39,12 @@ struct UploadPostFeature {
 class UploadPostViewController: UIViewController {
     let store: StoreOf<UploadPostFeature>
     
-    private let image: UIImageView
-    
     init(store: StoreOf<UploadPostFeature>) {
         self.store = store
-        self.image = image
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 }

@@ -15,9 +15,11 @@ let target = Target.target(
             "NSLocationAlwaysUsageDescription": "사용자의 위치 정보를 받습니다",
             "NSLocationWhenInUseUsageDescription": "사용자의 위치 정보를 받습니다",
             "NSCameraUsageDescription": "사진을 찍기 위해 카메라 접근이 필요합니다.",
+            
             "UIApplicationSceneManifest": [
                 "UIApplicationSupportsMultipleScenes": true,
                 "UISceneConfigurations": [
+                    // SceneDelegate가 동작하기 위해 필요한 키 값입니다.
                     "UIWindowSceneSessionRoleApplication": [
                         [
                             "UISceneConfigurationName": "Default Configuration",
@@ -36,7 +38,6 @@ let target = Target.target(
         .package(product: "FirebaseAuth"),
         .package(product: "FirebaseCore"),
         .package(product: "NMapsMap"),
-        .package(product: "ComposableArchitecture"),
         .project(target: "Core", path: "../Core"),
     ]
 )
@@ -46,8 +47,7 @@ let project = Project(
     name: "Mari",
     packages: [
         .remote(url: "https://github.com/firebase/firebase-ios-sdk", requirement: .exact("11.13.0")),
-        .remote(url: "https://github.com/navermaps/SPM-NMapsMap", requirement: .exact("3.21.0")),
-        .remote(url: "https://github.com/pointfreeco/swift-composable-architecture.git", requirement: .exact("1.20.1"))
+        .remote(url: "https://github.com/navermaps/SPM-NMapsMap", requirement: .exact("3.21.0"))
     ],
     targets: [
         target,
