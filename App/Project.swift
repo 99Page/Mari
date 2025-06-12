@@ -1,10 +1,10 @@
 import ProjectDescription
 
 let target = Target.target(
-    name: "Mari",
+    name: "Rim",
     destinations: .iOS,
     product: .app,
-    bundleId: "com.page.mari",
+    bundleId: "com.page.rim",
     infoPlist: .extendingDefault(
         with: [
             "NMFNcpKeyId": "s0lzvlyvnh", // https://navermaps.github.io/ios-map-sdk/guide-ko/1.html
@@ -30,8 +30,8 @@ let target = Target.target(
             ]
         ]
     ),
-    sources: ["Mari/Sources/**"],
-    resources: ["Mari/Resources/**"],
+    sources: ["Rim/Sources/**"],
+    resources: ["Rim/Resources/**"],
     dependencies: [
         .package(product: "FirebaseAnalytics"),
         .package(product: "FirebaseStorage"),
@@ -44,7 +44,7 @@ let target = Target.target(
 
 
 let project = Project(
-    name: "Mari",
+    name: "Rim",
     packages: [
         .remote(url: "https://github.com/firebase/firebase-ios-sdk", requirement: .exact("11.13.0")),
         .remote(url: "https://github.com/navermaps/SPM-NMapsMap", requirement: .exact("3.21.0"))
@@ -52,14 +52,14 @@ let project = Project(
     targets: [
         target,
         .target(
-            name: "MariTests",
+            name: "RimTests",
             destinations: .iOS,
             product: .unitTests,
-            bundleId: "com.page.mari.tests",
+            bundleId: "com.page.rim.tests",
             infoPlist: .default,
-            sources: ["Mari/Tests/**"],
+            sources: ["Rim/Tests/**"],
             resources: [],
-            dependencies: [.target(name: "Mari")]
+            dependencies: [.target(name: "Rim")]
         ),
     ]
 )
