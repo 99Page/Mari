@@ -63,7 +63,8 @@ class MapViewController: UIViewController {
         postButton.setImage(UIImage(systemName: "camera"), for: .normal)
         
         postButton.addAction(UIAction(handler: { [weak self] _ in
-            self?.traitCollection.push(state: MapNavigationStack.Path.State.uploadPost(.init(imageURL: "https://picsum.photos/200/300")))
+//            self?.traitCollection.push(state: MapNavigationStack.Path.State.uploadPost(.init(imageURL: "https://picsum.photos/200/300")))
+            self?.presentCamera()
         }), for: .touchUpInside)
     }
     
@@ -119,5 +120,38 @@ extension MapViewController: CLLocationManagerDelegate {
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         addOverlay()
+    }
+}
+
+private extension MapViewController {
+    func presentCamera() {
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+            print("Camera not available")
+            return
+        }
+
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.delegate = self
+        picker.allowsEditing = false
+        present(picker, animated: true)
+    }
+}
+
+extension MapViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        picker.dismiss(animated: true, completion: nil)
+
+        if let image = info[.originalImage] as? UIImage {
+            // TODO: handle the captured image here
+            print("📸 Captured image: \(image)")
+        }
+        
+        traitCollection.push(state: MapNavigationStack.Path.State.uploadPost(.init(imageURL: "https://picsum.photos/200/300")))
+        
+    }
+
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: false, completion: nil)
     }
 }

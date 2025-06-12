@@ -70,6 +70,7 @@ public class RimTextView: UIView {
         textView.backgroundColor = .clear
         textView.text = state.text
         textView.font = UIFont.systemFont(ofSize: Typography.userContent.size, weight: Typography.userContent.weight)
+        textView.isScrollEnabled = false
     }
     
     public struct State: Equatable {
