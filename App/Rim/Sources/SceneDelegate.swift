@@ -7,6 +7,7 @@
 
 import Foundation
 import UIKit
+import ComposableArchitecture
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
@@ -18,7 +19,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
 
         let window = UIWindow(windowScene: windowScene)
-        window.rootViewController = UINavigationController(rootViewController: MapViewController())
+        
+        let store = Store(initialState: MapNavigationStack.State()) {
+            MapNavigationStack()
+        }
+        
+        window.rootViewController = MapNavigationStackController(store: store)
         window.makeKeyAndVisible()
         self.window = window
     }

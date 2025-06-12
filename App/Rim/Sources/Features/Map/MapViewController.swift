@@ -10,8 +10,12 @@ import UIKit
 import NMapsMap
 import CoreLocation
 import Core
+import ComposableArchitecture
 
+@ViewAction(for: MapFeature.self)
 class MapViewController: UIViewController {
+    
+    let store: StoreOf<MapFeature>
     
     private lazy var mapView: NMFMapView = {
         let mapView = NMFMapView(frame: view.bounds)
@@ -20,7 +24,16 @@ class MapViewController: UIViewController {
     
     private let postButton = UIButton(type: .custom)
     private let locationManager = CLLocationManager()
-
+    
+    init(store: StoreOf<MapFeature>) {
+        self.store = store
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -48,9 +61,13 @@ class MapViewController: UIViewController {
         mapView.addCameraDelegate(delegate: self)
         
         postButton.setImage(UIImage(systemName: "camera"), for: .normal)
+        
+        postButton.addAction(UIAction(handler: { [weak self] _ in
+            self?.traitCollection.push(state: MapNavigationStack.Path.State.uploadPost(.init(imageURL: "https://picsum.photos/200/300")))
+        }), for: .touchUpInside)
     }
-  
-
+    
+    
     private func addOverlay() {
         locationManager.delegate = self
         
@@ -67,7 +84,7 @@ class MapViewController: UIViewController {
             break
         }
     }
-
+    
     private func showLocationPermissionAlert() {
         let alert = UIAlertController(
             title: "위치 권한 필요",

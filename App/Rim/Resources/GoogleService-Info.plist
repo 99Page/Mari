@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.page.mari</string>
+	<string>com.page.rim</string>
 	<key>PROJECT_ID</key>
 	<string>mari-4baca</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:944288474620:ios:607cfb4e1d69c0456a3e79</string>
+	<string>1:944288474620:ios:d28adca4aa385a386a3e79</string>
 </dict>
 </plist>
