@@ -50,15 +50,21 @@ private final class TouchInsideTrackingView: UIView {
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         isTouchInside = true
+        animateTouchDown()
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         if let point = touches.first?.location(in: self) {
-            isTouchInside = bounds.contains(point)
+            let inside = bounds.contains(point)
+            if isTouchInside != inside {
+                isTouchInside = inside
+                inside ? animateTouchDown() : animateTouchUp()
+            }
         }
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        animateTouchUp()
         if isTouchInside {
             action?()
         }
@@ -66,5 +72,20 @@ private final class TouchInsideTrackingView: UIView {
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         isTouchInside = false
+        animateTouchUp()
+    }
+
+    private func animateTouchDown() {
+        UIView.animate(withDuration: 0.3) {
+            self.superview?.transform = CGAffineTransform(scaleX: 0.96, y: 0.96)
+            self.superview?.alpha = 0.8
+        }
+    }
+
+    private func animateTouchUp() {
+        UIView.animate(withDuration: 0.3) {
+            self.superview?.transform = .identity
+            self.superview?.alpha = 1.0
+        }
     }
 }

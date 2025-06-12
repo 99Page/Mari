@@ -66,14 +66,14 @@ public class RimLabel: UIView {
 }
 
 public extension RimLabel {
-    struct State {
+    struct State: Equatable {
         var text: String
         var textColor: UIColor
         var alignment: NSTextAlignment
         
         var background: UIView.Background?
         
-        public init(text: String, textColor: UIColor, alignment: NSTextAlignment, background: UIView.Background? = nil) {
+        public init(text: String, textColor: UIColor, alignment: NSTextAlignment = .center, background: UIView.Background? = nil) {
             self.text = text
             self.textColor = textColor
             self.alignment = alignment

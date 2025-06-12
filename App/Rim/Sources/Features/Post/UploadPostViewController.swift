@@ -16,6 +16,12 @@ struct UploadPostFeature {
     @ObservableState
     struct State {
         var imageURL: String
+        
+        var postButton = RimLabel.State(
+            text: "공유하기",
+            textColor: .white,
+            background: .init(color: .systemBlue, cornerRadius: 16)
+        )
     }
     
     enum Action: ViewAction {
@@ -44,12 +50,16 @@ class UploadPostViewController: UIViewController {
     @UIBindable var store: StoreOf<UploadPostFeature>
     
     let scrollView = UIScrollView(frame: .zero)
+    
     let rimImage: RimImageView
     let postButton: RimLabel
+    let textView: UITextView
     
     init(store: StoreOf<UploadPostFeature>) {
         @UIBindable var binding = store
+        
         self.store = store
+        self.postButton = RimLabel(state: $binding.postButton)
         self.rimImage = RimImageView(imageURL: $binding.imageURL)
         super.init(nibName: nil, bundle: nil)
     }
@@ -69,19 +79,30 @@ class UploadPostViewController: UIViewController {
     private func setupView() {
         title = "포스트 올리기"
         view.backgroundColor = .white
+        
+        postButton.addAction(.touchUpInside({ debugPrint("button tapped") }))
     }
     
     private func configureSubviews() {
         rimImage.configure()
+        postButton.configure()
     }
     
     private func makeConstraint() {
         view.addSubview(scrollView)
+        view.addSubview(postButton)
         
         scrollView.addSubview(rimImage)
         
+        postButton.snp.makeConstraints { make in
+            make.leading.trailing.equalToSuperview().inset(16)
+            make.bottom.equalToSuperview().inset(32)
+            make.height.equalTo(50)
+        }
+        
         scrollView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
+            make.leading.trailing.top.equalToSuperview()
+            make.bottom.equalTo(postButton.snp.top).inset(16)
         }
         
         rimImage.snp.makeConstraints { make in

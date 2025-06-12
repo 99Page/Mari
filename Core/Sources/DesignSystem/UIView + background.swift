@@ -16,7 +16,7 @@ public extension UIView {
         layer.masksToBounds = true
     }
 
-    struct Background {
+    struct Background: Equatable {
         let color: UIColor
         let cornerRadius: CGFloat
 
