@@ -7,6 +7,7 @@
 
 import Foundation
 import UIKit
+import ComposableArchitecture
 
 struct Core {
     let title: String
@@ -18,7 +19,14 @@ struct Core {
             
             Core(title: "AddAction", viewController: AddActionViewController()),
             
-            Core(title: "Label", viewController: LabelViewController())
+            Core(title: "Label", viewController: LabelViewController()),
+            
+            Core(
+                title: "TextView",
+                viewController: TextViewController(store: Store(initialState: TextViewFeature.State(), reducer: {
+                    TextViewFeature()
+                }))
+            )
         ]
     }
 }

@@ -53,7 +53,6 @@ class UploadPostViewController: UIViewController {
     
     let rimImage: RimImageView
     let postButton: RimLabel
-    let textView: UITextView
     
     init(store: StoreOf<UploadPostFeature>) {
         @UIBindable var binding = store
