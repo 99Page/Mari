@@ -12,11 +12,26 @@ import SnapKit
 import ComposableArchitecture
 import SwiftUI
 
-class RimImageView: UIImageView, Previewable {
+public class RimImageView: UIImageView, Previewable {
+    
     @UIBinding var imageURL: String
     
-    init(imageURL: UIBinding<String>) {
+    private var lastLoadedImageURL: String?
+    
+    private var imageLoader: ImageLoader
+    
+    public init(imageURL: UIBinding<String>) {
         self._imageURL = imageURL
+        
+        let memoryLoader = MemoryCacheImageLoader()
+        let diskLoader = DiskCacheImageLoader()
+        let networkLoader = NetworkImageLoader()
+        
+        memoryLoader.next = diskLoader
+        diskLoader.next = networkLoader
+        
+        self.imageLoader = memoryLoader
+        
         super.init(frame: .zero)
     }
     
@@ -24,32 +39,28 @@ class RimImageView: UIImageView, Previewable {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func configure() {
-        makeConstraint()
+    public func configure() {
         updateView()
     }
     
-    private func makeConstraint() {
-        
-    }
-    
-    func updateView() {
+    private func updateView() {
         observe { [weak self] in
             guard let self else { return }
             loadImage()
         }
     }
     
-    func loadImage() {
-        guard let url = URL(string: imageURL) else { return }
+    private func loadImage() {
+        guard imageURL != lastLoadedImageURL else { return }
         
-        DispatchQueue.global().async {
-            if let data = try? Data(contentsOf: url),
-               let image = UIImage(data: data) {
-                DispatchQueue.main.async {
-                    self.image = image
-                }
+        do {
+            Task {
+                let loadedImage = try await imageLoader.loadImage(fromKey: imageURL)
+                self.image = loadedImage
+                lastLoadedImageURL = imageURL
             }
+        } catch {
+            
         }
     }
 }
