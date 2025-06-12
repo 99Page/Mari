@@ -18,15 +18,20 @@ struct State {
 
 class ImageViewController: UIViewController {
     
-    @UIBinding var url: String
+    @UIBinding var url: [String]
     
-    let image: RimImageView
+    let stackView = UIStackView()
+    var imageViews: [RimImageView] = []
+    private let button = UIButton(type: .custom)
     
-    init(url: String) {
-        @UIBinding var binding = url
+    init(url: [String]) {
         self.url = url
-        self.image = RimImageView(imageURL: $binding)
+        
         super.init(nibName: nil, bundle: nil)
+        
+        for index in self.url.indices {
+            imageViews.append(RimImageView(imageURL: $url[index]))
+        }
     }
     
     required init?(coder: NSCoder) {
@@ -35,21 +40,44 @@ class ImageViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         makeConstraints()
+        setupView()
         configure()
     }
     
+    private func setupView() {
+        stackView.axis = .vertical
+        stackView.spacing = 16
+        stackView.alignment = .center
+        stackView.distribution = .equalSpacing
+        
+        button.setTitle("set url", for: .normal)
+        button.setTitleColor(.black, for: .normal)
+        button.addAction(UIAction(handler: { _ in
+            self.url[1] = "https://picsum.photos/200/300"
+        }), for: .touchUpInside)
+    }
+    
     func configure() {
-        image.configure()
+        for imageView in imageViews {
+            imageView.configure()
+        }
     }
     
     func makeConstraints() {
-        view.addSubview(image)
+        view.addSubview(stackView)
         
-        image.snp.makeConstraints { make in
-            make.centerX.centerY.equalToSuperview()
-            make.width.height.equalTo(100)
+        imageViews.forEach { stackView.addArrangedSubview($0) }
+        stackView.addArrangedSubview(button)
+        
+        stackView.snp.makeConstraints { make in
+            make.center.equalToSuperview()
+        }
+        
+        stackView.arrangedSubviews.forEach {
+            $0.snp.makeConstraints { make in
+                make.width.height.equalTo(100)
+            }
         }
     }
 }
