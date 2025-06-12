@@ -10,6 +10,7 @@ import UIKit
 import ComposableArchitecture
 import SnapKit
 import Core
+import SwiftUI
 
 struct State {
     let url: String
@@ -50,5 +51,12 @@ class ImageViewController: UIViewController {
             make.centerX.centerY.equalToSuperview()
             make.width.height.equalTo(100)
         }
+    }
+}
+
+@available(iOS 17.0, *)
+#Preview {
+    ViewPreview(fromY: \.centerY, toY: \.centerY) {
+        ImagePlaceholderView(frame: .zero)
     }
 }

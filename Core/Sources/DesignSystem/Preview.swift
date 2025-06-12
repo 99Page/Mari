@@ -11,19 +11,19 @@ import UIKit
 import SwiftUI
 import SnapKit
 
-struct ViewControllerPreview<T: UIViewController>: UIViewControllerRepresentable {
+public struct ViewControllerPreview<T: UIViewController>: UIViewControllerRepresentable {
     private let viewController: T
     private var wrapInNavigation: Bool = false
 
-    init(_ builder: @escaping () -> T) {
+    public init(_ builder: @escaping () -> T) {
         self.viewController = builder()
     }
 
-    func makeUIViewController(context: Context) -> UIViewController {
+    public func makeUIViewController(context: Context) -> UIViewController {
         return wrapInNavigation ? UINavigationController(rootViewController: viewController) : viewController
     }
 
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+    public func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
 
     func dark() -> some View {
         self
@@ -39,19 +39,19 @@ struct ViewControllerPreview<T: UIViewController>: UIViewControllerRepresentable
 }
 
 /// UIView를 UIViewController에 넣어 SwiftUI에서 미리보기 위한 구조체
-struct ViewPreview<T: Previewable>: UIViewControllerRepresentable {
+public struct ViewPreview<T: Previewable>: UIViewControllerRepresentable {
     let view: T
     
     let from: KeyPath<ConstraintMaker, ConstraintMakerExtendable>
     let to: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>
     
-    init(fromY: KeyPath<ConstraintMaker, ConstraintMakerExtendable>, toY: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>, _ builder: @escaping () -> T) {
+    public init(fromY: KeyPath<ConstraintMaker, ConstraintMakerExtendable>, toY: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>, _ builder: @escaping () -> T) {
         self.view = builder()
         self.from = fromY
         self.to = toY
     }
 
-    func makeUIViewController(context: Context) -> UIViewController {
+    public func makeUIViewController(context: Context) -> UIViewController {
         let viewController = UIViewController()
         view.translatesAutoresizingMaskIntoConstraints = false
         viewController.view.addSubview(view)
@@ -66,9 +66,9 @@ struct ViewPreview<T: Previewable>: UIViewControllerRepresentable {
         return viewController
     }
 
-    func updateUIViewController(_ uiViewController: UIViewController, context: Context) { }
+    public func updateUIViewController(_ uiViewController: UIViewController, context: Context) { }
 }
 
-protocol Previewable: UIView {
+public protocol Previewable: UIView {
     func configure()
 }

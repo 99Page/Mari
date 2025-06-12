@@ -14,7 +14,7 @@ let target = Target.target(
     destinations: .iOS,
     product: .staticFramework,
     bundleId: "com.page.core",
-    deploymentTargets: .iOS("16.0"),
+    deploymentTargets: .iOS("17.0"),
     sources: ["Sources/**"],
     dependencies: [
         .package(product: "SnapKit"),
