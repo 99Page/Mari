@@ -14,7 +14,11 @@ struct Core {
     
     static func cores() -> [Core] {
         [
-            Core(title: "Image", viewController: ImageViewController(url: ["https://picsum.photos/200/300", ""]))
+            Core(title: "Image", viewController: ImageViewController(url: ["https://picsum.photos/200/300", ""])),
+            
+            Core(title: "AddAction", viewController: AddActionViewController()),
+            
+            Core(title: "Label", viewController: LabelViewController())
         ]
     }
 }

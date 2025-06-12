@@ -45,6 +45,7 @@ class UploadPostViewController: UIViewController {
     
     let scrollView = UIScrollView(frame: .zero)
     let rimImage: RimImageView
+    let postButton: RimLabel
     
     init(store: StoreOf<UploadPostFeature>) {
         @UIBindable var binding = store
