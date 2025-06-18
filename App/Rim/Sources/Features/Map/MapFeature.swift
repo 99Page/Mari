@@ -55,6 +55,10 @@ struct MapFeature {
             case .view(.binding(_)):
                 return .none
                 
+            case .uploadPost(.presented(.delegate(.uploadSucceeded))):
+                state.uploadPost = nil
+                return .none
+                
             case .uploadPost(_):
                 return .none
                 

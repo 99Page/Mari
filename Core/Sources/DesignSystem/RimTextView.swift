@@ -74,7 +74,7 @@ public class RimTextView: UIView {
     }
     
     public struct State: Equatable {
-        var text: String
+        public var text: String
         var placeholder: String
         
         var isPlaceholderHidden: Bool {

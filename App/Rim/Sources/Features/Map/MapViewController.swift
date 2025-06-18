@@ -46,7 +46,9 @@ class MapViewController: UIViewController {
         }
         
         present(item: $store.scope(state: \.uploadPost, action: \.uploadPost)) { store in
-            UploadPostViewController(store: store)
+            let viewController = UploadPostViewController(store: store)
+            viewController.modalPresentationStyle = .fullScreen
+            return viewController
         }
         
     }

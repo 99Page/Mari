@@ -10,6 +10,8 @@ import UIKit
 import ComposableArchitecture
 import SnapKit
 import Core
+import CoreLocation
+import FirebaseFirestore
 
 @Reducer
 struct UploadPostFeature {
@@ -31,22 +33,52 @@ struct UploadPostFeature {
     
     enum Action: ViewAction {
         case view(View)
+        case delegate(Delegate)
         
         enum View: BindableAction {
             case binding(BindingAction<State>)
             case uploadButtonTapped
         }
+        
+        enum Delegate {
+            case uploadSucceeded
+        }
     }
+    
+    @Dependency(\.postClient) var postClient
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
         
         Reduce<State, Action> { state, action in
             switch action {
+            case .delegate(_):
+                return .none
+                
             case .view(.binding(_)):
                 return .none
             case .view(.uploadButtonTapped):
-                return .none
+                let locationManager = CLLocationManager()
+                
+                guard let imageURL = state.imageURL else { return .none }
+                guard let location = locationManager.location else { return .none }
+                
+                let geoPoint = GeoPoint(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
+                
+                let request = PostRequest(
+                    content: state.contentText.text,
+                    creatorID: UUID().uuidString,
+                    imageUrl: imageURL,
+                    location: geoPoint,
+                    title: "Tmp title"
+                )
+                
+                return .run { send in
+                    try await postClient.post(request: request)
+                    await send(.delegate(.uploadSucceeded))
+                } catch: { error, send in
+                    debugPrint("post fail!")
+                }
             }
         }
     }
@@ -112,7 +144,7 @@ class UploadPostViewController: UIViewController {
         scrollView.addSubview(photoImage)
         scrollView.addSubview(contentTextView)
         
-        postButton.snp.makeConstraints { make in
+        postButton.withKeyboardAvoid(height: 50) { make in
             make.leading.trailing.equalToSuperview().inset(16)
             make.bottom.equalToSuperview().inset(32)
             make.height.equalTo(50)
@@ -120,7 +152,7 @@ class UploadPostViewController: UIViewController {
         
         scrollView.snp.makeConstraints { make in
             make.leading.trailing.top.equalToSuperview()
-            make.bottom.equalTo(postButton.snp.top).inset(16)
+            make.bottom.equalTo(postButton.snp.top).offset(-16)
         }
         
         photoImage.snp.makeConstraints { make in

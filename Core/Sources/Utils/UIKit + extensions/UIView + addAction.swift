@@ -31,7 +31,7 @@ public extension UIView {
             trackingView.translatesAutoresizingMaskIntoConstraints = false
             trackingView.backgroundColor = .clear
             trackingView.isUserInteractionEnabled = true
-
+            
             addSubview(trackingView)
             NSLayoutConstraint.activate([
                 trackingView.topAnchor.constraint(equalTo: topAnchor),

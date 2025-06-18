@@ -18,7 +18,7 @@ struct State {
 
 class ImageViewController: UIViewController {
     
-    @UIBinding var url: [String]
+    @UIBinding var url: [String?]
     
     let stackView = UIStackView()
     var imageViews: [RimImageView] = []
