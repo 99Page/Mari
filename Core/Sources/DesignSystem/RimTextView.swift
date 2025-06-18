@@ -8,7 +8,7 @@
 
 import Foundation
 import UIKit
-import ComposableArchitecture
+import SwiftNavigation
 import SnapKit
 
 public class RimTextView: UIView {

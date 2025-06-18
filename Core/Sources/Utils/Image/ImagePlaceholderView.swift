@@ -7,7 +7,7 @@
 //
 
 import UIKit
-import ComposableArchitecture
+import SwiftNavigation
 import SnapKit
 import SwiftUI
 

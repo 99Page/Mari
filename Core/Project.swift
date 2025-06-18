@@ -27,12 +27,13 @@ let testTarget = Target.target(
     destinations: .iOS,
     product: .unitTests,
     bundleId: "com.page.pageKit.tests",
-    deploymentTargets: .iOS("16.0"),
+    deploymentTargets: .iOS("17.0"),
     sources: ["Tests/**"],
     dependencies: [
         .target(name: projectName)
     ]
 )
+
 
 let project = Project(
     name: projectName,

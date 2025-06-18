@@ -9,10 +9,8 @@
 import Foundation
 import UIKit
 import SnapKit
-import ComposableArchitecture
+import SwiftNavigation
 import SwiftUI
-
-
 
 public class RimImageView: UIView, Previewable {
     

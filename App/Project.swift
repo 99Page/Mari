@@ -36,8 +36,9 @@ let target = Target.target(
         .package(product: "FirebaseAnalytics"),
         .package(product: "FirebaseAuth"),
         .package(product: "NMapsMap"),
-        .project(target: "Core", path: "../Core"),
-        .project(target: "Service", path: "../Service")
+        .package(product: "FirebaseStorage"),
+        .package(product: "FirebaseCore"),
+        .project(target: "Core", path: .relativeToRoot("Core")),
     ]
 )
 
@@ -45,7 +46,8 @@ let target = Target.target(
 let project = Project(
     name: "Rim",
     packages: [
-        .remote(url: "https://github.com/navermaps/SPM-NMapsMap", requirement: .exact("3.21.0"))
+        .remote(url: "https://github.com/navermaps/SPM-NMapsMap", requirement: .exact("3.21.0")),
+        .remote(url: "https://github.com/firebase/firebase-ios-sdk", requirement: .exact("11.13.0")),
     ],
     targets: [
         target,

@@ -34,7 +34,7 @@ let target = Target.target(
     sources: ["Sources/**"],
     resources: ["Resources/**"],
     dependencies: [
-        .project(target: "Core", path: "../Core")
+        .project(target: "Core", path: .relativeToRoot("Core"))
     ]
 )
 

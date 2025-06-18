@@ -6,10 +6,10 @@
 //
 
 import Foundation
-
 import ProjectDescription
 
 let workspace = Workspace(
     name: "PageLog",
     projects: ["App/**", "Core/**", "CoreApp/**"]
 )
+

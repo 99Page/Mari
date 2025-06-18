@@ -8,9 +8,9 @@
 
 import Foundation
 import UIKit
-import ComposableArchitecture
 import SnapKit
 import SwiftUI
+import SwiftNavigation
 
 public class RimLabel: UIView {
     @UIBinding var state: State
