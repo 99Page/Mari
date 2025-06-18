@@ -15,7 +15,7 @@ import Core
 struct UploadPostFeature {
     @ObservableState
     struct State {
-        var imageURL: String
+        var imageURL: String?
         
         var postButton = RimLabel.State(
             text: "공유하기",
@@ -127,6 +127,7 @@ class UploadPostViewController: UIViewController {
             make.top.equalToSuperview()
             make.centerX.equalToSuperview()
             make.width.equalTo(200)
+            make.height.equalTo(200)
         }
         
         contentTextView.snp.makeConstraints { make in

@@ -15,7 +15,7 @@ import ComposableArchitecture
 @ViewAction(for: MapFeature.self)
 class MapViewController: UIViewController {
     
-    let store: StoreOf<MapFeature>
+    @UIBindable var store: StoreOf<MapFeature>
     
     private lazy var mapView: NMFMapView = {
         let mapView = NMFMapView(frame: view.bounds)
@@ -40,6 +40,15 @@ class MapViewController: UIViewController {
         makeConstraint()
         setupView()
         addOverlay()
+        
+        present(item: $store.scope(state: \.alert, action: \.alert)) { store in
+            UIAlertController(store: store)
+        }
+        
+        present(item: $store.scope(state: \.uploadPost, action: \.uploadPost)) { store in
+            UploadPostViewController(store: store)
+        }
+        
     }
     
     private func makeConstraint() {
@@ -63,7 +72,6 @@ class MapViewController: UIViewController {
         postButton.setImage(UIImage(systemName: "camera"), for: .normal)
         
         postButton.addAction(UIAction(handler: { [weak self] _ in
-//            self?.traitCollection.push(state: MapNavigationStack.Path.State.uploadPost(.init(imageURL: "https://picsum.photos/200/300")))
             self?.presentCamera()
         }), for: .touchUpInside)
     }
@@ -135,23 +143,21 @@ private extension MapViewController {
         picker.delegate = self
         picker.allowsEditing = false
         present(picker, animated: true)
+
     }
 }
 
 extension MapViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-        picker.dismiss(animated: true, completion: nil)
-
+        
+        debugPrint("event called")
+        
         if let image = info[.originalImage] as? UIImage {
-            // TODO: handle the captured image here
-            print("📸 Captured image: \(image)")
+            send(.cameraButtonTapped(image))
         }
-        
-        traitCollection.push(state: MapNavigationStack.Path.State.uploadPost(.init(imageURL: "https://picsum.photos/200/300")))
-        
     }
 
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-        picker.dismiss(animated: false, completion: nil)
+
     }
 }

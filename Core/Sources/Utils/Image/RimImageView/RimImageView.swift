@@ -14,7 +14,7 @@ import SwiftUI
 
 public class RimImageView: UIView, Previewable {
     
-    @UIBinding var imageURL: String
+    @UIBinding var imageURL: String?
     
     private let imageView = UIImageView(frame: .zero)
     private let placeholder = ImagePlaceholderView()
@@ -22,7 +22,7 @@ public class RimImageView: UIView, Previewable {
     private var lastLoadedImageURL: String?
     private var imageLoader: ImageLoader
     
-    public init(imageURL: UIBinding<String>) {
+    public init(imageURL: UIBinding<String?>) {
         self._imageURL = imageURL
         
         let memoryLoader = MemoryCacheImageLoader()
@@ -69,6 +69,7 @@ public class RimImageView: UIView, Previewable {
     }
     
     private func loadImage() {
+        guard let imageURL else { return }
         guard imageURL != lastLoadedImageURL else { return }
         
         placeholder.isHidden = false
@@ -85,11 +86,16 @@ public class RimImageView: UIView, Previewable {
             }
         }
     }
+    
+    struct State: Equatable {
+        var imageURL: String?
+        var placeholderImage: UIImage?
+    }
 }
 
 @available(iOS 17.0, *)
 #Preview {
-    @Previewable @UIBinding var url = ""
+    @Previewable @UIBinding var url: String? = ""
     
     ViewPreview(fromY: \.centerY, toY: \.centerY) {
         RimImageView(imageURL: $url)
