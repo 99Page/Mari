@@ -40,6 +40,7 @@ let target = Target.target(
         .package(product: "FirebaseStorage"),
         .package(product: "FirebaseCore"),
         .package(product: "FirebaseFirestore"),
+        .package(product: "FirebaseFunctions"),
         .project(target: "Core", path: .relativeToRoot("Core")),
         .package(product: "ComposableArchitecture") // Core가 ComposableAchitecture를 의존 중입니다. -page 2025. 06. 18
     ]

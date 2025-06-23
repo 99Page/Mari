@@ -11,18 +11,16 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 
 // The Firebase Admin SDK to access Firestore.
-const {initializeApp} = require("firebase-admin/app");
+import { getFirestore } from "firebase-admin/firestore";
+import { initializeApp } from "firebase-admin/app";
+
+const app = initializeApp();
+const db = getFirestore(app, "mari-db");
 
 export const helloWorld = onRequest((request, response) => {
   logger.info("Hello logs!", { structuredData: true });
   response.send("Hello from Firebase!");
 });
-
-initializeApp();
-
-import * as admin from "firebase-admin";
-
-const db = admin.firestore();
 
 export const getPosts = onRequest(async (req, res) => {
   try {
