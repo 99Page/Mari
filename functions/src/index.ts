@@ -17,12 +17,12 @@ import { initializeApp } from "firebase-admin/app";
 const app = initializeApp();
 const db = getFirestore(app, "mari-db");
 
-export const helloWorld = onRequest((request, response) => {
+export const helloWorld = onRequest({ region: "asia-northeast3" }, (request, response) => {
   logger.info("Hello logs!", { structuredData: true });
   response.send("Hello from Firebase!");
 });
 
-export const getPosts = onRequest(async (req, res) => {
+export const getPosts = onRequest({ region: "asia-northeast3" }, async (req, res) => {
   try {
     const snapshot = await db.collectionGroup("posts").get();
     const posts = snapshot.docs.map(doc => ({

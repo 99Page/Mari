@@ -56,7 +56,8 @@ struct MapFeature {
                 
             case .view(.viewDidLoad):
                 return .run { send in
-                    try await postClient.fetchNearPosts()
+                    let posts = try await postClient.fetchNearPosts()
+                    debugPrint(posts)
                 }
                 
             case .view(.binding(_)):

@@ -13,21 +13,34 @@ enum HTTPMethod: String {
     // Extend as needed (PUT, DELETE, etc.)
 }
 
+protocol APITarget {
+    var method: HTTPMethod { get }
+    var body: Encodable? { get }
+    var headers: [String: String] { get }
+    var baseURLString: String { get }
+    var path: String { get }
+}
+
+extension APITarget {
+    var url: URL? {
+        URL(string: "\(baseURLString)\(path)")
+    }
+}
+
 class Client {
     static func request<T: Decodable>(
-        url: URL,
-        method: HTTPMethod = .get,
-        body: Encodable? = nil,
-        headers: [String: String] = [:]
+        target: APITarget
     ) async throws -> T {
+        guard let url = target.url else { throw ClientError.invalidURL }
+        
         var request = URLRequest(url: url)
-        request.httpMethod = method.rawValue
+        request.httpMethod = target.method.rawValue
 
-        headers.forEach { key, value in
+        target.headers.forEach { key, value in
             request.setValue(value, forHTTPHeaderField: key)
         }
 
-        if let body = body {
+        if let body = target.body {
             request.httpBody = try JSONEncoder().encode(body)
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
