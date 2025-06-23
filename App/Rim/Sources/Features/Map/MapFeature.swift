@@ -17,11 +17,11 @@ struct MapFeature {
         @Presents var alert: AlertState<Action.Alert>?
         @Presents var uploadPost: UploadPostFeature.State?
         
-        var posts: [PostSummaryView.State] = []
+        var posts: [PostSummaryState] = []
     }
     
     enum Action: ViewAction {
-        case setPosts([PostSummaryView.State])
+        case setPosts([PostSummaryState])
         case view(UIAction)
         case alert(PresentationAction<Alert>)
         case showImageUploadFailAlert
@@ -60,7 +60,7 @@ struct MapFeature {
             case .view(.viewDidLoad):
                 return .run { send in
                     let response = try await postClient.fetchNearPosts()
-                    let posts = response.map { PostSummaryView.State(dto: $0) }
+                    let posts = response.map { PostSummaryState(dto: $0) }
                     await send(.setPosts(posts))
                 }
                 

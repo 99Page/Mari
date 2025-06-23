@@ -12,21 +12,6 @@ import CoreLocation
 import Core
 import ComposableArchitecture
 
-@Reducer
-struct TmpFeature {
-    @ObservableState
-    struct State {
-    }
-    
-    enum Action { }
-    
-    @Dependency(\.postClient) var postClient
-    
-    var body: some ReducerOf<Self> {
-        EmptyReducer()
-    }
-}
-
 @ViewAction(for: MapFeature.self)
 class MapViewController: UIViewController {
     
@@ -85,8 +70,6 @@ class MapViewController: UIViewController {
     
     private func addNewMarkers() {
         for post in store.posts {
-            guard let url = post.imageURL else { continue }
-            
             let lat: Double = post.location.coordinate.latitude
             let lng: Double = post.location.coordinate.longitude
             
@@ -94,18 +77,17 @@ class MapViewController: UIViewController {
             let imageLoader = NetworkImageLoader.init()
             
             marker.touchHandler = { [weak self] (o: NMFOverlay) -> Bool in
-
-//                self?.traitCollection.push(state: MapNavigationStack.Path.State.postDetail(.init(postID: post.id)))
+                self?.traitCollection.push(state: MapNavigationStack.Path.State.postDetail(.init(postID: post.id)))
                 return true
             }
             
             Task {
                 do {
-                    let image = try await imageLoader.loadImage(fromKey: url)
+                    let image = try await imageLoader.loadImage(fromKey: post.imageURL)
                     
                     marker.width = 80
                     marker.height = 80
-                    marker.captionText = post.title.text
+                    marker.captionText = post.title
                     marker.iconImage = NMFOverlayImage(image: image)
                     marker.mapView = mapView
                     markers.append(marker)

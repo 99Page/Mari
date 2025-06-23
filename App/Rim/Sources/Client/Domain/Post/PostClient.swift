@@ -41,7 +41,7 @@ struct PostClient {
         var path: String {
             switch self {
             case .fetchNearPosts: "/getPosts"
-            case let .fetchPostByID(id): "/getPost/\(id)"
+            case let .fetchPostByID(id): "/getPostById?id=\(id)"
             }
         }
     }

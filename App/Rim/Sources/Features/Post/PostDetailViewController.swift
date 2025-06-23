@@ -15,6 +15,8 @@ import Core
 struct PostDetailFeature {
     @ObservableState
     struct State {
+        @Presents var alert: AlertState<Action.AlertAction>?
+        
         let postID: String
         var imageUrl: String?
         var title: RimLabel.State
@@ -30,13 +32,27 @@ struct PostDetailFeature {
     
     enum Action: ViewAction {
         
+        case setPostDetail(PostDTO)
+        case showFetchFailAlert
         case view(UIAction)
+        case alert(PresentationAction<AlertAction>)
+        case delegate(Delegate)
         
         enum UIAction: BindableAction {
             case viewDidLoad
             case binding(BindingAction<State>)
         }
+        
+        enum AlertAction {
+            case dismissButtonTapped
+        }
+        
+        enum Delegate {
+            case dismiss
+        }
     }
+    
+    @Dependency(\.postClient) var postClient
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
@@ -44,11 +60,41 @@ struct PostDetailFeature {
         Reduce<State, Action> { state, action in
             switch action {
             case .view(.viewDidLoad):
-                return .none
+                return .run { [id = state.postID] send in
+                    let response = try await postClient.fetchPostByID(id: id)
+                    await send(.setPostDetail(response))
+                } catch: { _, send in
+                    await send(.showFetchFailAlert)
+                }
+                
             case .view(.binding(_)):
+                return .none
+            
+            case let .setPostDetail(post):
+                state.imageUrl = post.imageUrl
+                state.title.text = post.title
+                state.description.text = post.content
+                return .none
+                
+            case .alert(_):
+                return .none
+                
+            case .showFetchFailAlert:
+                state.alert = AlertState {
+                    TextState("게시글을 조회할 수 없어요")
+                } actions: {
+                    ButtonState(role: .cancel, action: .dismissButtonTapped) {
+                        TextState("확인")
+                    }
+                }
+                
+                return .none
+                
+            case .delegate(.dismiss):
                 return .none
             }
         }
+        .ifLet(\.$alert, action: \.alert)
     }
 }
 
@@ -79,9 +125,20 @@ class PostDetailViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         makeConstraint()
+        setupView()
         configureSubviews()
+        
         send(.viewDidLoad)
+        
+        present(item: $store.scope(state: \.alert, action: \.alert)) { store in
+            UIAlertController(store: store)
+        }
+    }
+    
+    private func setupView() {
+        view.backgroundColor = .white
     }
     
     private func configureSubviews() {
@@ -92,7 +149,9 @@ class PostDetailViewController: UIViewController {
     
     private func makeConstraint() {
         view.addSubview(scrollView)
+        
         scrollView.addSubview(contentView)
+        
         contentView.addSubview(imageView)
         contentView.addSubview(titleLabel)
         contentView.addSubview(descriptionLabel)
@@ -122,5 +181,19 @@ class PostDetailViewController: UIViewController {
             make.leading.trailing.equalToSuperview().inset(16)
             make.bottom.equalToSuperview().offset(-32) // 스크롤 content 끝 정의
         }
+    }
+}
+
+#Preview("fetch fail") {
+    let store = Store(initialState: PostDetailFeature.State(postID: "")) {
+        PostDetailFeature()
+            ._printChanges()
+    } withDependencies: {
+        $0.postClient.fetchPostByID = { _ in throw ClientError.invalidURL }
+    }
+    
+    
+    ViewControllerPreview {
+        PostDetailViewController(store: store)
     }
 }

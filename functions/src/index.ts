@@ -49,20 +49,15 @@ export const getPostById = onRequest({ region: REGION }, async (req, res) => {
   }
 
   try {
-    const snapshot = await db.collectionGroup("posts")
-      .where("__name__", "==", postId)
-      .get();
+    const docRef = db.collection("posts").doc(postId);
+    const doc = await docRef.get();
 
-    if (snapshot.empty) {
+    if (!doc.exists) {
       res.status(404).send("Post not found");
       return;
     }
 
-    const doc = snapshot.docs[0];
-    res.status(200).json({
-      id: doc.id,
-      ...doc.data(),
-    });
+    res.status(200).json({ id: doc.id, ...doc.data() });
   } catch (error) {
     logger.error("Error fetching post by ID:", error);
     res.status(500).send("Failed to fetch post");
