@@ -15,13 +15,16 @@ import FirebaseFunctions
 struct PostClient {
     var post: (_ request: PostRequest) async throws -> Void
     var fetchNearPosts: () async throws -> [PostDTO]
+    var fetchPostByID: (_ id: String) async throws -> PostDTO
     
     enum PostAPI: APITarget {
         case fetchNearPosts
+        case fetchPostByID(id: String)
         
         var method: HTTPMethod {
             switch self {
             case .fetchNearPosts: .get
+            case .fetchPostByID: .get
             }
         }
         
@@ -38,6 +41,7 @@ struct PostClient {
         var path: String {
             switch self {
             case .fetchNearPosts: "/getPosts"
+            case let .fetchPostByID(id): "/getPost/\(id)"
             }
         }
     }
@@ -52,6 +56,8 @@ extension PostClient: DependencyKey {
             let ref = try await firestore.collection("posts").addDocument(data: data)
         } fetchNearPosts: {
             try await Client.request(target: PostAPI.fetchNearPosts)
+        } fetchPostByID: { id in
+            try await Client.request(target: PostAPI.fetchPostByID(id: id))
         }
     }
 }

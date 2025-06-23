@@ -15,9 +15,17 @@ import Core
 struct PostDetailFeature {
     @ObservableState
     struct State {
+        let postID: String
         var imageUrl: String?
         var title: RimLabel.State
         var description: RimLabel.State
+        
+        init(postID: String) {
+            self.postID = postID
+            self.imageUrl = nil
+            self.title = .init(text: "", textColor: .black)
+            self.description = .init(text: "", textColor: .black)
+        }
     }
     
     enum Action: ViewAction {

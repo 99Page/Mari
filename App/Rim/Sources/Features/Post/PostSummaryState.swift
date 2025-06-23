@@ -57,17 +57,20 @@ class PostSummaryView: UIView, Previewable {
     }
     
     struct State {
+        let id: String
         var title: RimLabel.State
         var imageURL: String?
         var location: CLLocation
         
-        init(title: RimLabel.State, imageURL: String? = nil, location: CLLocation) {
+        init(id: String, title: RimLabel.State, imageURL: String? = nil, location: CLLocation) {
+            self.id = id 
             self.title = title
             self.imageURL = imageURL
             self.location = location
         }
         
         init(dto: PostDTO) {
+            self.id = dto.id
             self.title = .init(text: dto.title, textColor: .black)
             self.imageURL = dto.imageUrl
             self.location = CLLocation(latitude: dto.location.latitude, longitude: dto.location.longitude)
@@ -79,7 +82,7 @@ class PostSummaryView: UIView, Previewable {
 @available(iOS 17.0, *)
 #Preview {
     @Previewable @UIBinding var state = PostSummaryView.State(
-        title: .init(text: "title", textColor: .black),
+        id: "id", title: .init(text: "title", textColor: .black),
         imageURL: "https://picsum.photos/200/300",
         location: CLLocation(latitude: 36.5, longitude: 127.5)
     )

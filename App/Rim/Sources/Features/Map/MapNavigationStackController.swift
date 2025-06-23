@@ -14,6 +14,8 @@ struct MapNavigationStack {
     @Reducer
     enum Path {
         case uploadPost(UploadPostFeature)
+        case postDetail(PostDetailFeature)
+        case tmp(TmpFeature)
     }
     
     @ObservableState
@@ -56,6 +58,10 @@ class MapNavigationStackController: NavigationStackController {
             switch store.case {
             case let .uploadPost(store):
                 UploadPostViewController(store: store)
+            case let .postDetail(store):
+                PostDetailViewController(store: store)
+            case let .tmp(store):
+                UIViewController()
             }
         }
         

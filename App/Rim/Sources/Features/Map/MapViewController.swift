@@ -12,6 +12,21 @@ import CoreLocation
 import Core
 import ComposableArchitecture
 
+@Reducer
+struct TmpFeature {
+    @ObservableState
+    struct State {
+    }
+    
+    enum Action { }
+    
+    @Dependency(\.postClient) var postClient
+    
+    var body: some ReducerOf<Self> {
+        EmptyReducer()
+    }
+}
+
 @ViewAction(for: MapFeature.self)
 class MapViewController: UIViewController {
     
@@ -79,7 +94,8 @@ class MapViewController: UIViewController {
             let imageLoader = NetworkImageLoader.init()
             
             marker.touchHandler = { [weak self] (o: NMFOverlay) -> Bool in
-                self?.navigationController?.pushViewController(UIViewController(), animated: true)
+
+//                self?.traitCollection.push(state: MapNavigationStack.Path.State.postDetail(.init(postID: post.id)))
                 return true
             }
             
