@@ -36,7 +36,6 @@ struct MapNavigationStack {
         Reduce<State, Action> { state, action in
             switch action {
             case .path(.element(id: _, action: .postDetail(.delegate(.dismiss)))):
-                let index = state.path.
                 return .none
             case .path(_):
                 return .none

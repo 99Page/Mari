@@ -52,6 +52,7 @@ struct PostDetailFeature {
         }
     }
     
+    @Dependency(\.dismiss) var dismiss
     @Dependency(\.postClient) var postClient
     
     var body: some ReducerOf<Self> {
@@ -76,7 +77,12 @@ struct PostDetailFeature {
                 state.description.text = post.content
                 return .none
                 
-            case .alert(_):
+            case .alert(.presented(.dismissButtonTapped)):
+                return .run { _ in
+                    await dismiss()
+                }
+                
+            case .alert(.dismiss):
                 return .none
                 
             case .showFetchFailAlert:
