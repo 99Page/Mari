@@ -121,7 +121,7 @@ public class RimLabel: UIView {
 
 public extension RimLabel {
     struct State: Equatable {
-        var text: String
+        public var text: String
         var textColor: UIColor
         var alignment: NSTextAlignment
         

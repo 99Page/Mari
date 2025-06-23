@@ -78,14 +78,19 @@ class MapViewController: UIViewController {
             let marker = NMFMarker(position: NMGLatLng(lat: lat, lng: lng))
             let imageLoader = NetworkImageLoader.init()
             
+            marker.touchHandler = { [weak self] (o: NMFOverlay) -> Bool in
+                self?.navigationController?.pushViewController(UIViewController(), animated: true)
+                return true
+            }
+            
             Task {
                 do {
                     let image = try await imageLoader.loadImage(fromKey: url)
-                    debugPrint("load success")
-                    let resized = UIGraphicsImageRenderer(size: CGSize(width: 44, height: 44)).image { _ in
-                        image.draw(in: CGRect(origin: .zero, size: CGSize(width: 44, height: 44)))
-                    }
-                    marker.iconImage = NMFOverlayImage(image: resized)
+                    
+                    marker.width = 80
+                    marker.height = 80
+                    marker.captionText = post.title.text
+                    marker.iconImage = NMFOverlayImage(image: image)
                     marker.mapView = mapView
                     markers.append(marker)
                 } catch {

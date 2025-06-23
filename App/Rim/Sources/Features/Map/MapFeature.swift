@@ -22,13 +22,13 @@ struct MapFeature {
     
     enum Action: ViewAction {
         case setPosts([PostSummaryView.State])
-        case view(View)
+        case view(UIAction)
         case alert(PresentationAction<Alert>)
         case showImageUploadFailAlert
         case showUploadPost(imageURL: String)
         case uploadPost(PresentationAction<UploadPostFeature.Action>)
         
-        enum View: BindableAction {
+        enum UIAction: BindableAction {
             case cameraButtonTapped(UIImage)
             case binding(BindingAction<State>)
             case viewDidLoad
@@ -51,7 +51,6 @@ struct MapFeature {
                 
             case let .view(.cameraButtonTapped(image)):
                 return .run { send in
-                    debugPrint("upload ongoing...")
                     let response = try await imageClient.uploadImage(image: image, fileName: UUID().uuidString)
                     await send(.showUploadPost(imageURL: response.imageURL))
                 } catch: { error, send in
@@ -101,6 +100,5 @@ struct MapFeature {
         .ifLet(\.$uploadPost, action: \.uploadPost) {
             UploadPostFeature()
         }
-        ._printChanges()
     }
 }
