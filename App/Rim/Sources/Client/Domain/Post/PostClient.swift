@@ -13,6 +13,7 @@ import FirebaseFirestore
 @DependencyClient
 struct PostClient {
     var post: (_ request: PostRequest) async throws -> Void
+    var fetchNearPosts: () async throws -> Void
 }
 
 extension PostClient: DependencyKey {
@@ -22,6 +23,15 @@ extension PostClient: DependencyKey {
             let data = try Firestore.Encoder().encode(request)
             
             let ref = try await firestore.collection("posts").addDocument(data: data)
+        } fetchNearPosts: {
+            let db = Firestore.firestore(database: "mari-db")
+
+            let snapshot = try await db.collection("posts").getDocuments()
+            
+            for doc in snapshot.documents {
+                debugPrint("title: \(doc.get("title") as? String ?? "")")
+                debugPrint("content: \(doc.get("content") as? String ?? "")")
+            }
         }
     }
 }

@@ -27,6 +27,7 @@ struct MapFeature {
         enum View: BindableAction {
             case cameraButtonTapped(UIImage)
             case binding(BindingAction<State>)
+            case viewDidLoad
         }
         
         enum Alert: Equatable {
@@ -35,6 +36,7 @@ struct MapFeature {
     }
     
     @Dependency(\.imageClient) var imageClient
+    @Dependency(\.postClient) var postClient
     
     var body: some ReducerOf<Self> {
         
@@ -50,6 +52,11 @@ struct MapFeature {
                     await send(.showUploadPost(imageURL: response.imageURL))
                 } catch: { error, send in
                     await send(.showImageUploadFailAlert)
+                }
+                
+            case .view(.viewDidLoad):
+                return .run { send in
+                    try await postClient.fetchNearPosts()
                 }
                 
             case .view(.binding(_)):
