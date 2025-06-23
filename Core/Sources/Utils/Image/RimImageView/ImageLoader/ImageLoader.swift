@@ -9,7 +9,7 @@
 import Foundation
 import UIKit
 
-protocol ImageLoader: AnyObject {
+public protocol ImageLoader: AnyObject {
     var next: ImageLoader? { get set }
     func loadImage(fromKey key: String) async throws -> UIImage
 }

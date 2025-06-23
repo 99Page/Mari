@@ -22,6 +22,7 @@ class MapViewController: UIViewController {
         return mapView
     }()
     
+    private var markers: [NMFMarker] = []
     private let postButton = UIButton(type: .custom)
     private let locationManager = CLLocationManager()
     
@@ -40,6 +41,7 @@ class MapViewController: UIViewController {
         makeConstraint()
         setupView()
         addOverlay()
+        updateView()
         
         send(.viewDidLoad)
         
@@ -52,7 +54,53 @@ class MapViewController: UIViewController {
             viewController.modalPresentationStyle = .fullScreen
             return viewController
         }
+    }
+    
+    private func updateView() {
+        observe { [weak self] in
+            guard let self else { return }
+            updateMarkers()
+        }
+    }
+    
+    private func updateMarkers() {
+        removePresentedMarkers()
+        addNewMarkers()
+    }
+    
+    private func addNewMarkers() {
+        for post in store.posts {
+            guard let url = post.imageURL else { continue }
+            
+            let lat: Double = post.location.coordinate.latitude
+            let lng: Double = post.location.coordinate.longitude
+            
+            let marker = NMFMarker(position: NMGLatLng(lat: lat, lng: lng))
+            let imageLoader = NetworkImageLoader.init()
+            
+            Task {
+                do {
+                    let image = try await imageLoader.loadImage(fromKey: url)
+                    debugPrint("load success")
+                    let resized = UIGraphicsImageRenderer(size: CGSize(width: 44, height: 44)).image { _ in
+                        image.draw(in: CGRect(origin: .zero, size: CGSize(width: 44, height: 44)))
+                    }
+                    marker.iconImage = NMFOverlayImage(image: resized)
+                    marker.mapView = mapView
+                    markers.append(marker)
+                } catch {
+                    debugPrint("load fail: \(error)")
+                }
+            }
+        }
+    }
+    
+    private func removePresentedMarkers() {
+        for marker in markers {
+            marker.mapView = nil
+        }
         
+        markers.removeAll()
     }
     
     private func makeConstraint() {
@@ -72,6 +120,10 @@ class MapViewController: UIViewController {
     
     private func setupView() {
         mapView.addCameraDelegate(delegate: self)
+        
+        // 추후 줌 기능을 추가합니다. 현재는 API 호출의 편의성을 위해 일시적으로
+        // 줌 기능을 막습니다 -page 2025. 06. 23
+        mapView.isZoomGestureEnabled = false
         
         postButton.setImage(UIImage(systemName: "camera"), for: .normal)
         
@@ -122,10 +174,6 @@ extension MapViewController: CLLocationManagerDelegate {
                               lng: location.coordinate.longitude)
 
         mapView.moveCamera(NMFCameraUpdate(scrollTo: coord))
-
-        let marker = NMFMarker(position: coord)
-        marker.iconImage = NMFOverlayImage(image: UIImage(resource: .mari))
-        marker.mapView = mapView
 
         locationManager.stopUpdatingLocation()
     }

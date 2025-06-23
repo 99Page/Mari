@@ -9,10 +9,12 @@
 import Foundation
 import UIKit
 
-final class NetworkImageLoader: ImageLoader {
-    var next: ImageLoader?
+public final class NetworkImageLoader: ImageLoader {
+    public var next: ImageLoader?
+    
+    public init() { }
 
-    func loadImage(fromKey key: String) async throws -> UIImage {
+    public func loadImage(fromKey key: String) async throws -> UIImage {
         guard let url = URL(string: key) else {
             throw ImageLoadingError.invalidURL
         }

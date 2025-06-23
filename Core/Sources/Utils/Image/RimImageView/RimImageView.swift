@@ -16,7 +16,7 @@ public class RimImageView: UIView, Previewable {
     
     @UIBinding var imageURL: String?
     
-    private let imageView = UIImageView(frame: .zero)
+    public let imageView = UIImageView(frame: .zero)
     private let placeholder = ImagePlaceholderView()
     
     private var lastLoadedImageURL: String?

@@ -8,6 +8,7 @@
 import Foundation
 import ComposableArchitecture
 import UIKit
+import Core
 
 @Reducer
 struct MapFeature {
@@ -15,9 +16,12 @@ struct MapFeature {
     struct State {
         @Presents var alert: AlertState<Action.Alert>?
         @Presents var uploadPost: UploadPostFeature.State?
+        
+        var posts: [PostSummaryView.State] = []
     }
     
     enum Action: ViewAction {
+        case setPosts([PostSummaryView.State])
         case view(View)
         case alert(PresentationAction<Alert>)
         case showImageUploadFailAlert
@@ -56,8 +60,9 @@ struct MapFeature {
                 
             case .view(.viewDidLoad):
                 return .run { send in
-                    let posts = try await postClient.fetchNearPosts()
-                    debugPrint(posts)
+                    let response = try await postClient.fetchNearPosts()
+                    let posts = response.map { PostSummaryView.State(dto: $0) }
+                    await send(.setPosts(posts))
                 }
                 
             case .view(.binding(_)):
@@ -85,6 +90,10 @@ struct MapFeature {
                 
             case let .showUploadPost(imageURL):
                 state.uploadPost = .init(imageURL: imageURL)
+                return .none
+                
+            case let .setPosts(posts):
+                state.posts = posts
                 return .none
             }
         }
