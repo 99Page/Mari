@@ -112,7 +112,8 @@ public class RimLabel: UIView {
         
         let attributes: [NSAttributedString.Key: Any] = [
             .foregroundColor: state.textColor,
-            .paragraphStyle: paragraphStyle
+            .paragraphStyle: paragraphStyle,
+            .font: UIFont(typography: state.typography)
         ]
         
         label.attributedText = NSAttributedString(string: state.text, attributes: attributes)
@@ -125,11 +126,13 @@ public extension RimLabel {
         var textColor: UIColor
         var alignment: NSTextAlignment
         
+        var typography: Typography
         var background: UIView.Background?
         
-        public init(text: String, textColor: UIColor, alignment: NSTextAlignment = .center, background: UIView.Background? = nil) {
+        public init(text: String, textColor: UIColor, typography: Typography = .contentDescription, alignment: NSTextAlignment = .center, background: UIView.Background? = nil) {
             self.text = text
             self.textColor = textColor
+            self.typography = typography
             self.alignment = alignment
             self.background = background
         }

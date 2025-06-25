@@ -64,6 +64,8 @@ public class RimImageView: UIView, Previewable {
     private func updateView() {
         observe { [weak self] in
             guard let self else { return }
+            imageView.contentMode = .scaleAspectFill
+            imageView.clipsToBounds = true
             loadImage()
         }
     }

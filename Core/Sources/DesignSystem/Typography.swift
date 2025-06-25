@@ -10,17 +10,26 @@ import Foundation
 import UIKit
 
 public enum Typography {
-    case userContent
+    case contentTitle
+    case contentDescription
     
     var size: CGFloat {
         switch self {
-        case .userContent: 18
+        case .contentTitle: 20
+        case .contentDescription: 16
         }
     }
     
     var weight: UIFont.Weight {
         switch self {
-        case .userContent: .regular
+        case .contentTitle: .semibold
+        case .contentDescription: .regular
         }
+    }
+}
+
+extension UIFont {
+    convenience init(typography: Typography) {
+        self.init(descriptor: UIFont.systemFont(ofSize: typography.size, weight: typography.weight).fontDescriptor, size: typography.size)
     }
 }

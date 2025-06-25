@@ -25,8 +25,8 @@ struct PostDetailFeature {
         init(postID: String) {
             self.postID = postID
             self.imageUrl = nil
-            self.title = .init(text: "", textColor: .black)
-            self.description = .init(text: "", textColor: .black)
+            self.title = .init(text: "", textColor: .black, typography: .contentTitle, alignment: .natural)
+            self.description = .init(text: "", textColor: .black, alignment: .natural)
         }
     }
     
@@ -167,14 +167,17 @@ class PostDetailViewController: UIViewController {
         }
         
         contentView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
-            make.width.equalTo(scrollView.snp.width)
+            make.top.equalTo(view.snp.top)
+            make.width.equalToSuperview()
+            make.leading.equalToSuperview()
+            make.bottom.equalTo(descriptionLabel.snp.bottom)
         }
         
         imageView.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(16)
+            make.top.equalToSuperview()
             make.centerX.equalToSuperview()
-            make.width.height.equalTo(100)
+            make.width.equalToSuperview()
+            make.height.equalTo(250)
         }
         
         titleLabel.snp.makeConstraints { make in
@@ -199,7 +202,36 @@ class PostDetailViewController: UIViewController {
     }
     
     
-    ViewControllerPreview {
-        PostDetailViewController(store: store)
+    NavigationStack {
+        ViewControllerPreview {
+            PostDetailViewController(store: store)
+        }
+        .ignoresSafeArea()
     }
 }
+
+#Preview("fetch success") {
+    let store = Store(initialState: PostDetailFeature.State(postID: "")) {
+        PostDetailFeature()
+            ._printChanges()
+    } withDependencies: {
+        $0.postClient.fetchPostByID = { _ in
+            PostDTO(
+                id: "",
+                title: "title",
+                content: "content",
+                imageUrl: "https://picsum.photos/200/300",
+                location: .init(latitude: 0, longitude: 0)
+            )
+        }
+    }
+    
+    
+    NavigationStack {
+        ViewControllerPreview {
+            PostDetailViewController(store: store)
+        }
+        .ignoresSafeArea()
+    }
+}
+

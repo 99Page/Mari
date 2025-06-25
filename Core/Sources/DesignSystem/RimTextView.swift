@@ -59,7 +59,7 @@ public class RimTextView: UIView {
         placeholderLabel.text = state.placeholder
         placeholderLabel.isHidden = state.isPlaceholderHidden
         placeholderLabel.textColor = .gray
-        placeholderLabel.font = UIFont.systemFont(ofSize: Typography.userContent.size, weight: Typography.userContent.weight)
+        placeholderLabel.font = UIFont.systemFont(ofSize: Typography.contentDescription.size, weight: Typography.contentDescription.weight)
         placeholderLabel.numberOfLines = 0
         placeholderLabel.contentMode = .top
     }
@@ -69,7 +69,7 @@ public class RimTextView: UIView {
         textView.textContainer.lineFragmentPadding = 0
         textView.backgroundColor = .clear
         textView.text = state.text
-        textView.font = UIFont.systemFont(ofSize: Typography.userContent.size, weight: Typography.userContent.weight)
+        textView.font = UIFont.systemFont(ofSize: Typography.contentDescription.size, weight: Typography.contentDescription.weight)
         textView.isScrollEnabled = false
     }
     
