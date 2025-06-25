@@ -40,7 +40,6 @@ class MapViewController: UIViewController {
         
         makeConstraint()
         setupView()
-        addOverlay()
         updateView()
         
         send(.viewDidLoad)
@@ -92,7 +91,7 @@ class MapViewController: UIViewController {
                     marker.mapView = mapView
                     markers.append(marker)
                 } catch {
-                    debugPrint("load fail: \(error)")
+                    
                 }
             }
         }
@@ -122,6 +121,7 @@ class MapViewController: UIViewController {
     }
     
     private func setupView() {
+        addOverlay()
         mapView.addCameraDelegate(delegate: self)
         
         // 추후 줌 기능을 추가합니다. 현재는 API 호출의 편의성을 위해 일시적으로
@@ -142,9 +142,7 @@ class MapViewController: UIViewController {
         switch locationManager.authorizationStatus {
         case .notDetermined:
             locationManager.requestWhenInUseAuthorization()
-            debugPrint("not detemined")
         case .authorizedWhenInUse, .authorizedAlways:
-            debugPrint("start updating")
             locationManager.startUpdatingLocation()
         case .restricted, .denied:
             showLocationPermissionAlert()
@@ -204,15 +202,8 @@ private extension MapViewController {
 
 extension MapViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-        
-        debugPrint("event called")
-        
         if let image = info[.originalImage] as? UIImage {
             send(.cameraButtonTapped(image))
         }
-    }
-
-    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-
     }
 }

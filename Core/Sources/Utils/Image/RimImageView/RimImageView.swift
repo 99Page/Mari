@@ -14,7 +14,7 @@ import SwiftUI
 
 public class RimImageView: UIView, Previewable {
     
-    @UIBinding var imageURL: String?
+    @UIBinding var state: State
     
     public let imageView = UIImageView(frame: .zero)
     private let placeholder = ImagePlaceholderView()
@@ -22,8 +22,8 @@ public class RimImageView: UIView, Previewable {
     private var lastLoadedImageURL: String?
     private var imageLoader: ImageLoader
     
-    public init(imageURL: UIBinding<String?>) {
-        self._imageURL = imageURL
+    public init(state: UIBinding<State>) {
+        self._state = state
         
         let memoryLoader = MemoryCacheImageLoader()
         let diskLoader = DiskCacheImageLoader()
@@ -66,22 +66,33 @@ public class RimImageView: UIView, Previewable {
             guard let self else { return }
             imageView.contentMode = .scaleAspectFill
             imageView.clipsToBounds = true
-            loadImage()
+            updateImage()
         }
     }
     
-    private func loadImage() {
-        guard let imageURL else { return }
-        guard imageURL != lastLoadedImageURL else { return }
+    private func updateImage() {
+        switch state.image {
+        case .resource:
+            break
+        case .custom(let url):
+            loadImage(from: url)
+        case .symbol:
+            break
+        }
+    }
+    
+    private func loadImage(from url: String?) {
+        guard let url = url else { return }
+        guard url != lastLoadedImageURL else { return }
         
         placeholder.isHidden = false
         
         Task {
             do {
-                let loadedImage = try await imageLoader.loadImage(fromKey: imageURL)
+                let loadedImage = try await imageLoader.loadImage(fromKey: url)
                 self.imageView.image = loadedImage
                 self.placeholder.isHidden = true
-                lastLoadedImageURL = imageURL
+                lastLoadedImageURL = url
             } catch {
                 self.imageView.image = UIImage(systemName: "photo")
                 self.placeholder.isHidden = true
@@ -89,17 +100,30 @@ public class RimImageView: UIView, Previewable {
         }
     }
     
-    struct State: Equatable {
-        var imageURL: String?
-        var placeholderImage: UIImage?
+    public struct State: Equatable {
+        public var image: ImageType
+        
+        public init(image: ImageType) {
+            self.image = image
+        }
+        
+        public enum ImageType: Equatable {
+            case resource(name: String)
+            case custom(url: String?)
+            case symbol(name: String)
+        }
+        
+        public static func == (lhs: RimImageView.State, rhs: RimImageView.State) -> Bool {
+            return lhs.image == rhs.image
+        }
     }
 }
 
 @available(iOS 17.0, *)
 #Preview {
-    @Previewable @UIBinding var url: String? = ""
+    @Previewable @UIBinding var state: RimImageView.State = .init(image: .custom(url: "https://picsum.photos/200/300"))
     
     ViewPreview(fromY: \.centerY, toY: \.centerY) {
-        RimImageView(imageURL: $url)
+        RimImageView(state: $state)
     }
 }

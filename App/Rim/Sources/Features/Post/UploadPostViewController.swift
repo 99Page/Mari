@@ -17,7 +17,7 @@ import FirebaseFirestore
 struct UploadPostFeature {
     @ObservableState
     struct State {
-        var imageURL: String?
+        var image: RimImageView.State
         
         var postButton = RimLabel.State(
             text: "공유하기",
@@ -25,10 +25,14 @@ struct UploadPostFeature {
             background: .init(color: .systemBlue, cornerRadius: 16)
         )
         
-        var contentText = RimTextView.State(
+        var descriptionText = RimTextView.State(
             text: "",
             placeholder: "어떤 이야기를 하고 싶으세요?"
         )
+        
+        init(imageURL: String) {
+            self.image = RimImageView.State(image: .custom(url: imageURL))
+        }
     }
     
     enum Action: ViewAction {
@@ -60,13 +64,14 @@ struct UploadPostFeature {
             case .view(.uploadButtonTapped):
                 let locationManager = CLLocationManager()
                 
-                guard let imageURL = state.imageURL else { return .none }
+                guard case let .custom(imageURL) = state.image.image else { return .none }
+                guard let imageURL else { return .none }
                 guard let location = locationManager.location else { return .none }
                 
                 let geoPoint = GeoPoint(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
                 
                 let request = PostRequest(
-                    content: state.contentText.text,
+                    content: state.descriptionText.text,
                     creatorID: UUID().uuidString,
                     imageUrl: imageURL,
                     location: geoPoint,
@@ -100,8 +105,8 @@ class UploadPostViewController: UIViewController {
         
         self.store = store
         self.postButton = RimLabel(state: $binding.postButton)
-        self.photoImage = RimImageView(imageURL: $binding.imageURL)
-        self.contentTextView = RimTextView(state: $binding.contentText)
+        self.photoImage = RimImageView(state: $binding.image)
+        self.contentTextView = RimTextView(state: $binding.descriptionText)
         
         super.init(nibName: nil, bundle: nil)
     }
@@ -167,9 +172,5 @@ class UploadPostViewController: UIViewController {
             make.top.equalTo(photoImage.snp.bottom).offset(16)
             make.bottom.equalToSuperview()
         }
-    }
-    
-    private func updateView() {
-        
     }
 }

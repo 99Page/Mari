@@ -18,13 +18,14 @@ struct PostDetailFeature {
         @Presents var alert: AlertState<Action.AlertAction>?
         
         let postID: String
-        var imageUrl: String?
+        
+        var image: RimImageView.State
         var title: RimLabel.State
         var description: RimLabel.State
         
         init(postID: String) {
             self.postID = postID
-            self.imageUrl = nil
+            self.image = .init(image: .custom(url: nil))
             self.title = .init(text: "", textColor: .black, typography: .contentTitle, alignment: .natural)
             self.description = .init(text: "", textColor: .black, alignment: .natural)
         }
@@ -72,7 +73,7 @@ struct PostDetailFeature {
                 return .none
             
             case let .setPostDetail(post):
-                state.imageUrl = post.imageUrl
+                state.image = .init(image: .custom(url: post.imageUrl))
                 state.title.text = post.title
                 state.description.text = post.content
                 return .none
@@ -121,7 +122,7 @@ class PostDetailViewController: UIViewController {
         self.store = store
         self.titleLabel = RimLabel(state: $binding.title)
         self.descriptionLabel = RimLabel(state: $binding.description)
-        self.imageView = RimImageView(imageURL: $binding.imageUrl)
+        self.imageView = RimImageView(state: $binding.image)
         super.init(nibName: nil, bundle: nil)
     }
     
