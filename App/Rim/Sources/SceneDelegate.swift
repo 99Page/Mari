@@ -14,13 +14,13 @@ struct SceneFeature {
     @ObservableState
     enum State {
         case login(LoginFeature.State)
-        case map(MapNavigationStack.State)
+        case tab(TabFeature.State)
     }
     
     enum Action: ViewAction {
         case view(UIAction)
         case login(LoginFeature.Action)
-        case map(MapNavigationStack.Action)
+        case tab(TabFeature.Action)
         
         enum UIAction: BindableAction {
             case binding(BindingAction<State>)
@@ -34,8 +34,8 @@ struct SceneFeature {
             LoginFeature()
         }
         
-        Scope(state: \.map, action: \.map) {
-            MapNavigationStack()
+        Scope(state: \.tab, action: \.tab) {
+            TabFeature()
         }
         
         Reduce<State, Action> { state, action in
@@ -43,11 +43,11 @@ struct SceneFeature {
             case .view(_):
                 return .none
             case .login(.delegate(.signInSucceeded)):
-                state = .map(.init())
+                state = .tab(.init())
                 return .none
             case .login(_):
                 return .none
-            case .map(_):
+            case .tab(_):
                 return .none
             }
         }
@@ -78,11 +78,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         observe { [weak self] in
             guard let self else { return }
             
+            // store의 모든 상태를 읽고 있기때문에, 아래 과정들은 반복 호출됩니다.
+            // 따라서 현재 뷰컨트롤러와 비교하는 과정이 필요합니다. -page 2025. 06. 26
             switch store.state {
             case .login:
                 selectLoginViewController()
-            case .map:
-                selectMapNaivgationStackController()
+            case .tab:
+                selectTabNavigationController()
             }
         }
     }
@@ -94,11 +96,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window?.rootViewController = loginVC
     }
     
-    private func selectMapNaivgationStackController() {
-        guard let mapStore = store.scope(state: \.map, action: \.map) else { return }
-        guard !isRootViewController(ofType: MapNavigationStackController.self) else { return }
-        let mapNavigationStack = MapNavigationStackController(store: mapStore)
-        window?.rootViewController = mapNavigationStack
+    private func selectTabNavigationController() {
+        guard let tabStore = store.scope(state: \.tab, action: \.tab) else { return }
+        guard !isRootViewController(ofType: RimTabViewController.self) else { return }
+        let tabVC = RimTabViewController(store: tabStore)
+        window?.rootViewController = tabVC
     }
     
     private func isRootViewController<T: UIViewController>(ofType type: T.Type) -> Bool {
