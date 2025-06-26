@@ -33,6 +33,7 @@ let target = Target.target(
     infoPlist: .extendingDefault(with: infoPlist),
     sources: ["Rim/Sources/**"],
     resources: ["Rim/Resources/**"],
+    entitlements: "SupportingFiles/Rim.entitlements",
     dependencies: [
         .package(product: "FirebaseAnalytics"),
         .package(product: "FirebaseAuth"),
@@ -43,7 +44,13 @@ let target = Target.target(
         .package(product: "FirebaseFunctions"),
         .project(target: "Core", path: .relativeToRoot("Core")),
         .package(product: "ComposableArchitecture") // Core가 ComposableAchitecture를 의존 중입니다. -page 2025. 06. 18
-    ]
+    ],
+    settings: .settings(
+        base: [
+            "CODE_SIGN_STYLE": "Automatic",
+            "DEVELOPMENT_TEAM": "MAU8HFALP8" // 개인 개발 계정 ✅ 공개 상관 없는 값
+        ]
+    )
 )
 
 

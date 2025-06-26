@@ -82,7 +82,7 @@ struct UploadPostFeature {
                     try await postClient.post(request: request)
                     await send(.delegate(.uploadSucceeded))
                 } catch: { error, send in
-                    debugPrint("post fail!")
+                    
                 }
             }
         }
