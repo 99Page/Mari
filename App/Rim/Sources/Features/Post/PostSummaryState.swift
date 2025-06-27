@@ -8,7 +8,7 @@
 import CoreLocation
 import Foundation
 
-struct PostSummaryState {
+struct PostSummaryState: Equatable {
     let id: String
     let imageURL: String
     let title: String

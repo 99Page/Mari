@@ -13,7 +13,7 @@ import Core
 @Reducer
 struct MapFeature {
     @ObservableState
-    struct State {
+    struct State: Equatable {
         @Presents var alert: AlertState<Action.Alert>?
         @Presents var uploadPost: UploadPostFeature.State?
         

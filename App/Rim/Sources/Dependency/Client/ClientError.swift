@@ -10,4 +10,5 @@ import Foundation
 enum ClientError: Error {
     case unwrappingFailed
     case invalidURL
+    case firebaseError
 }

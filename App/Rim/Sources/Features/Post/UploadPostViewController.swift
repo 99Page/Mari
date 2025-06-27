@@ -16,7 +16,7 @@ import FirebaseFirestore
 @Reducer
 struct UploadPostFeature {
     @ObservableState
-    struct State {
+    struct State: Equatable {
         var image: RimImageView.State
         
         var postButton = RimLabel.State(
@@ -82,7 +82,7 @@ struct UploadPostFeature {
                     try await postClient.post(request: request)
                     await send(.delegate(.uploadSucceeded))
                 } catch: { error, send in
-                    debugPrint("post fail!")
+                    
                 }
             }
         }
@@ -125,7 +125,7 @@ class UploadPostViewController: UIViewController {
     
     private func setupView() {
         title = "포스트 올리기"
-        view.backgroundColor = .white
+        view.backgroundColor = .systemBackground
         
         postButton.addAction(.touchUpInside({ [weak self] in
             self?.send(.uploadButtonTapped)

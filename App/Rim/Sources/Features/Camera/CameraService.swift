@@ -18,7 +18,6 @@ final class CameraService: NSObject {
 
     func presentCamera(completion: @escaping (UIImage) -> Void) {
         guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
-            debugPrint("❌ 카메라 사용 불가")
             return
         }
 
