@@ -23,20 +23,36 @@ struct SplashFeature {
     
     enum Action: ViewAction {
         case view(UIAction)
+        case delegate(Delegate)
         
         @CasePathable
         enum UIAction: BindableAction {
             case viewDidLoad
             case binding(BindingAction<State>)
         }
+        
+        @CasePathable
+        enum Delegate {
+            case loggedIn
+            case loggedOut
+        }
     }
+    
+    @Dependency(\.accountClient) var accountClient
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
         
         Reduce<State, Action> { state, action in
             switch action {
-            case .view:
+            case .view(.viewDidLoad):
+                let isLoggedIn = accountClient.isLoggedIn()
+                return .run { send in
+                    isLoggedIn ? await send(.delegate(.loggedIn)) : await send(.delegate(.loggedOut))
+                }
+            case .view(.binding):
+                return .none
+            case .delegate:
                 return .none
             }
         }
@@ -67,6 +83,8 @@ class SplashViewController: UIViewController {
         setupView()
         makeConstraint()
         configureSubview()
+        
+        send(.viewDidLoad)
     }
     
     private func configureSubview() {

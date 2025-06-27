@@ -17,6 +17,7 @@ import GoogleSignIn
 struct AccountClient {
     var loginUsingApple: (_ token: String, _ nonce: String) async throws -> Void
     var logout: () throws -> Void
+    var isLoggedIn: () -> Bool = { false }
 }
 
 extension AccountClient: DependencyKey {
@@ -44,6 +45,8 @@ extension AccountClient: DependencyKey {
             // https://firebase.google.com/docs/auth/ios/apple?hl=ko#next-steps
             let firebaseAuth = Auth.auth()
             try firebaseAuth.signOut()
+        } isLoggedIn: {
+            return Auth.auth().currentUser != nil
         }
     }
 }

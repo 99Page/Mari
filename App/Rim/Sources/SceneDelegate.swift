@@ -19,6 +19,7 @@ struct SceneFeature {
     }
     
     enum Action: ViewAction {
+        case changeState(to: SceneFeature.State)
         case view(UIAction)
         case login(LoginFeature.Action)
         case tab(TabFeature.Action)
@@ -28,6 +29,8 @@ struct SceneFeature {
             case binding(BindingAction<State>)
         }
     }
+    
+    @Dependency(\.continuousClock) var clock
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
@@ -63,10 +66,29 @@ struct SceneFeature {
             case .tab(_):
                 return .none
                 
+            case .splash(.delegate(.loggedIn)):
+                return .run { send in
+                    // 지연없이 바로 상태를 변경하면 observe { } 에서 제대로 관찰하지 못합니다. -page 2025. 06. 27
+                    try await clock.sleep(for: .seconds(1))
+                    await send(.changeState(to: .tab(.init())))
+                }
+                
+            case .splash(.delegate(.loggedOut)):
+                return .run { send in
+                    // 지연없이 바로 상태를 변경하면 observe { } 에서 제대로 관찰하지 못합니다. -page 2025. 06. 27
+                    try await clock.sleep(for: .seconds(1))
+                    await send(.changeState(to: .login(.init())))
+                }
+                
             case .splash:
+                return .none
+                
+            case let .changeState(value):
+                state = value
                 return .none
             }
         }
+        ._printChanges()
     }
 }
 
