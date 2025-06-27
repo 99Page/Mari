@@ -30,6 +30,7 @@ let target = Target.target(
     destinations: .iOS,
     product: .app,
     bundleId: "com.page.rim",
+    deploymentTargets: .iOS("17.0"),
     infoPlist: .extendingDefault(with: infoPlist),
     sources: ["Rim/Sources/**"],
     resources: ["Rim/Resources/**"],
@@ -48,7 +49,8 @@ let target = Target.target(
     settings: .settings(
         base: [
             "CODE_SIGN_STYLE": "Automatic",
-            "DEVELOPMENT_TEAM": "MAU8HFALP8" // 개인 개발 계정 ✅ 공개 상관 없는 값
+            "DEVELOPMENT_TEAM": "MAU8HFALP8", // 개인 개발 계정 ✅ 공개 상관 없는 값
+            "ENABLE_SWIFT_MACROS": "YES"
         ]
     )
 )
@@ -67,6 +69,7 @@ let project = Project(
             destinations: .iOS,
             product: .unitTests,
             bundleId: "com.page.rim.tests",
+            deploymentTargets: .iOS("17.0"),
             infoPlist: .default,
             sources: ["Rim/Tests/**"],
             resources: [],

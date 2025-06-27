@@ -12,10 +12,6 @@ import SnapKit
 import Core
 import SwiftUI
 
-struct State {
-    let url: String
-}
-
 class ImageViewController: UIViewController {
     
     @UIBinding var url: [String?]

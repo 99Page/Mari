@@ -15,7 +15,7 @@ import Core
 @Reducer
 struct UserAccountFeature {
     @ObservableState
-    struct State {
+    struct State: Equatable {
         
     }
     
@@ -41,7 +41,6 @@ struct UserAccountFeature {
             case .view(.logoutButtonTapped):
                 return .run { send in
                     try accountClient.logout()
-                    debugPrint("logout succedded")
                     await send(.delegate(.logoutSucceeded))
                 } catch: { error, send in
                     // 에러 처리

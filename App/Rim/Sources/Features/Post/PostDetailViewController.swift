@@ -14,7 +14,7 @@ import Core
 @Reducer
 struct PostDetailFeature {
     @ObservableState
-    struct State {
+    struct State: Equatable {
         @Presents var alert: AlertState<Action.AlertAction>?
         
         let postID: String

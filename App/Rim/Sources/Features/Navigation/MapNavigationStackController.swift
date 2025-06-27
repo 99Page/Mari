@@ -18,7 +18,7 @@ struct MapNavigationStack {
     }
     
     @ObservableState
-    struct State {
+    struct State: Equatable {
         var path = StackState<Path.State>()
         var root = MapFeature.State()
     }
@@ -35,8 +35,6 @@ struct MapNavigationStack {
         
         Reduce<State, Action> { state, action in
             switch action {
-            case .path(.element(id: _, action: .postDetail(.delegate(.dismiss)))):
-                return .none
             case .path(_):
                 return .none
             case .root(_):
@@ -46,6 +44,8 @@ struct MapNavigationStack {
         .forEach(\.path, action: \.path)
     }
 }
+
+extension MapNavigationStack.Path.State: Equatable { }
 
 class MapNavigationStackController: NavigationStackController {
     private var store: StoreOf<MapNavigationStack>!

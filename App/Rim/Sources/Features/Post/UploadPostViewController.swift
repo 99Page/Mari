@@ -16,7 +16,7 @@ import FirebaseFirestore
 @Reducer
 struct UploadPostFeature {
     @ObservableState
-    struct State {
+    struct State: Equatable {
         var image: RimImageView.State
         
         var postButton = RimLabel.State(

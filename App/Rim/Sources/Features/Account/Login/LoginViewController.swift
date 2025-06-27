@@ -22,8 +22,7 @@ import FirebaseAuth
 @Reducer
 struct LoginFeature {
     @ObservableState
-    struct State {
-        
+    struct State: Equatable {
         // Firebase 인증에는 해시되지 않은 값 사용
         var originNonce = ""
         

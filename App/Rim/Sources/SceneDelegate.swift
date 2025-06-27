@@ -12,7 +12,7 @@ import ComposableArchitecture
 @Reducer
 struct SceneFeature {
     @ObservableState
-    enum State {
+    enum State: Equatable {
         case login(LoginFeature.State)
         case tab(TabFeature.State)
     }

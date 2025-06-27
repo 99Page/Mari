@@ -11,7 +11,7 @@ import ComposableArchitecture
 @Reducer
 struct TabFeature {
     @ObservableState
-    struct State {
+    struct State: Equatable {
         var mapStack = MapNavigationStack.State()
         var userAccount = UserAccountFeature.State()
     }
@@ -62,7 +62,16 @@ final class RimTabViewController: UITabBarController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
+        setupView()
+        buildViewControllers()
+    }
+    
+    private func setupView() {
+        view.backgroundColor = .systemBackground
+    }
+    
+    private func buildViewControllers() {
         let mapStackStore = store.scope(state: \.mapStack, action: \.mapStack)
         let mapNavigationStackController = MapNavigationStackController(store: mapStackStore)
         let mapImage = UIImage(systemName: "map.fill")

@@ -13,7 +13,7 @@ import ComposableArchitecture
 @Reducer
 struct TextViewFeature {
     @ObservableState
-    struct State {
+    struct State: Equatable {
         var textView = RimTextView.State(text: "", placeholder: "placeholder")
     }
     
