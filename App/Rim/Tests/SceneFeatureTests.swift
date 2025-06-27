@@ -34,4 +34,34 @@ struct SceneFeatureTests {
             $0 = .tab(.init())
         }
     }
+    
+    @Test func showTabView_whenLoggedIn() async throws {
+        let store: TestStoreOf<SceneFeature> = TestStore(initialState: SceneFeature.State.splash(.init())) {
+            SceneFeature()
+        } withDependencies: {
+            $0.continuousClock = ImmediateClock()
+            $0.accountClient.isLoggedIn = { true }
+        }
+        
+        await store.send(.splash(.view(.viewDidLoad)))
+        await store.receive(\.splash.delegate.loggedIn)
+        await store.receive(\.changeState) {
+            $0 = .tab(.init())
+        }
+    }
+    
+    @Test func showLoginView_whenLoggedOut() async throws {
+        let store: TestStoreOf<SceneFeature> = TestStore(initialState: SceneFeature.State.splash(.init())) {
+            SceneFeature()
+        } withDependencies: {
+            $0.continuousClock = ImmediateClock()
+            $0.accountClient.isLoggedIn = { false }
+        }
+        
+        await store.send(.splash(.view(.viewDidLoad)))
+        await store.receive(\.splash.delegate.loggedOut)
+        await store.receive(\.changeState) {
+            $0 = .login(.init())
+        }
+    }
 }
