@@ -22,6 +22,15 @@ let infoPlist: [String: Plist.Value] = [
                 ]
             ]
         ]
+    ],
+    
+    "CFBundleURLTypes": [
+        [
+            "CFBundleURLName": "GoogleSignIn",
+            "CFBundleURLSchemes":
+                // GoogleService-Info.plist - REVERSED_CLIENT_ID 값
+                ["com.googleusercontent.apps.944288474620-7pbohckkv136fdhfr0s8bt1rf0d0qv9d"]
+        ]
     ]
 ]
 
@@ -36,6 +45,7 @@ let target = Target.target(
     resources: ["Rim/Resources/**"],
     entitlements: "SupportingFiles/Rim.entitlements",
     dependencies: [
+        .package(product: "GoogleSignIn"),
         .package(product: "FirebaseAnalytics"),
         .package(product: "FirebaseAuth"),
         .package(product: "NMapsMap"),
@@ -61,6 +71,8 @@ let project = Project(
     packages: [
         .remote(url: "https://github.com/navermaps/SPM-NMapsMap", requirement: .exact("3.21.0")),
         .remote(url: "https://github.com/firebase/firebase-ios-sdk", requirement: .exact("11.13.0")),
+        .remote(url: "https://github.com/google/GoogleSignIn-iOS", requirement: .exact("8.0.0"))
+        
     ],
     targets: [
         target,

@@ -8,11 +8,12 @@
 import Foundation
 import UIKit
 import SwiftUI
-import CryptoKit
 import SnapKit
 import ComposableArchitecture
 import AuthenticationServices
 import FirebaseAuth
+import GoogleSignIn
+import FirebaseCore
 
 
 /// 로그인 기능을 처리하기 위한 리듀서
@@ -37,6 +38,7 @@ struct LoginFeature {
         
         enum UIAction {
             case appleLoginSucceeded(identityToken: String)
+            case googleLoginSucceeded
             case appleLoginTapped
         }
         
@@ -62,9 +64,12 @@ struct LoginFeature {
                 state.hashedNonce = nonceGenerator.hash(origin: state.originNonce)
                 return .none
                 
+            case .view(.googleLoginSucceeded):
+                return .send(.delegate(.signInSucceeded))
+                
             case .delegate:
                 return .none
-            } 
+            }
         }
     }
 }
@@ -73,7 +78,9 @@ struct LoginFeature {
 class LoginViewController: UIViewController {
     
     let store: StoreOf<LoginFeature>
+    
     let appleLoginButton = ASAuthorizationAppleIDButton()
+    let googleLoginButton = GIDSignInButton()
     
     init(store: StoreOf<LoginFeature>) {
         self.store = store
@@ -92,18 +99,34 @@ class LoginViewController: UIViewController {
     
     private func makeConstraint() {
         view.addSubview(appleLoginButton)
+        view.addSubview(googleLoginButton)
         
-        appleLoginButton.snp.makeConstraints {
-            $0.centerX.equalToSuperview()
-            $0.bottom.equalTo(view.safeAreaLayoutGuide).inset(40)
-            $0.height.equalTo(50)
-            $0.width.equalTo(280)
+        appleLoginButton.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.bottom.equalTo(view.safeAreaLayoutGuide).inset(40)
+            make.height.equalTo(48)
+            make.width.equalTo(312)
+        }
+        
+        googleLoginButton.snp.makeConstraints { make in
+            make.centerX.equalToSuperview()
+            make.bottom.equalTo(appleLoginButton.snp.top).offset(-16)
+            make.height.equalTo(48)
+            make.width.equalTo(312)
         }
     }
     
     private func setupView() {
         view.backgroundColor = .systemBackground
-        appleLoginButton.addTarget(self, action: #selector(handleAppleSignIn), for: .touchUpInside)
+        
+        appleLoginButton.addAction(.touchUpInside({ [weak self] in
+            self?.handleAppleSignIn()
+        }))
+        
+        googleLoginButton.style = .wide
+        googleLoginButton.addAction(.touchUpInside({ [weak self] in
+            self?.handleGoogleSignIn()
+        }))
     }
     
     @objc private func handleAppleSignIn() {
@@ -118,6 +141,30 @@ class LoginViewController: UIViewController {
         controller.delegate = self
         controller.presentationContextProvider = self
         controller.performRequests()
+    }
+    
+    private func handleGoogleSignIn() {
+        // https://firebase.google.com/docs/auth/ios/google-signin?hl=ko&_gl=1*1lymcp3*_up*MQ..*_ga*OTE5NTA4MzAxLjE3NTA5ODMyNzE.*_ga_CW55HF8NVT*czE3NTA5ODMyNzEkbzEkZzAkdDE3NTA5ODMyNzEkajYwJGwwJGgw#implement_google_sign-in
+        guard let clientID = FirebaseApp.app()?.options.clientID else { return }
+        
+        // Create Google Sign In configuration object.
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+        
+        // Start the sign in flow!
+        GIDSignIn.sharedInstance.signIn(withPresenting: self) { [weak self] result, error in
+            guard error == nil else { return }
+            
+            guard let user = result?.user,
+                  let idToken = user.idToken?.tokenString
+            else { return }
+            
+            let credential = GoogleAuthProvider.credential(withIDToken: idToken,
+                                                           accessToken: user.accessToken.tokenString)
+            
+            Auth.auth().signIn(with: credential)
+            self?.send(.googleLoginSucceeded)
+        }
     }
 }
 

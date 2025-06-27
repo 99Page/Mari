@@ -20,7 +20,7 @@ struct SceneFeatureTests {
         }
         
         await store.send(.tab(.userAccount(.view(.logoutButtonTapped))))
-        await store.receive(\.tab.userAccount.delegate) {
+        await store.receive(\.tab.userAccount.delegate.logoutSucceeded) {
             $0 = .login(.init())
         }
     }

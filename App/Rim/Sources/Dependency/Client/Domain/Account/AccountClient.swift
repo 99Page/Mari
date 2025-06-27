@@ -10,6 +10,8 @@ import Dependencies
 import DependenciesMacros
 import UIKit
 import FirebaseAuth
+import FirebaseCore
+import GoogleSignIn
 
 @DependencyClient
 struct AccountClient {

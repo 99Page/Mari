@@ -23,10 +23,12 @@ struct UserAccountFeature {
         case view(UIAction)
         case delegate(Delegate)
         
+        @CasePathable
         enum UIAction {
             case logoutButtonTapped
         }
         
+        @CasePathable
         enum Delegate {
             case logoutSucceeded 
         }
