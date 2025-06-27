@@ -145,7 +145,7 @@ class PostDetailViewController: UIViewController {
     }
     
     private func setupView() {
-        view.backgroundColor = .white
+        view.backgroundColor = .systemBackground
     }
     
     private func configureSubviews() {
@@ -197,7 +197,6 @@ class PostDetailViewController: UIViewController {
 #Preview("fetch fail") {
     let store = Store(initialState: PostDetailFeature.State(postID: "")) {
         PostDetailFeature()
-            ._printChanges()
     } withDependencies: {
         $0.postClient.fetchPostByID = { _ in throw ClientError.invalidURL }
     }
@@ -214,7 +213,6 @@ class PostDetailViewController: UIViewController {
 #Preview("fetch success") {
     let store = Store(initialState: PostDetailFeature.State(postID: "")) {
         PostDetailFeature()
-            ._printChanges()
     } withDependencies: {
         $0.postClient.fetchPostByID = { _ in
             PostDTO(

@@ -37,7 +37,7 @@ struct LoginFeature {
         case delegate(Delegate)
         
         enum UIAction {
-            case appleLoginSuccedded(identityToken: String)
+            case appleLoginSucceeded(identityToken: String)
             case appleLoginTapped
         }
         
@@ -52,7 +52,7 @@ struct LoginFeature {
     var body: some ReducerOf<Self> {
         Reduce<State, Action> { state, action in
             switch action {
-            case let .view(.appleLoginSuccedded(identitiyToken)):
+            case let .view(.appleLoginSucceeded(identitiyToken)):
                 return .run { [nonce = state.originNonce] send in
                     try await accountClient.loginUsingApple(token: identitiyToken, nonce: nonce)
                     await send(.delegate(.signInSucceeded))
@@ -103,7 +103,7 @@ class LoginViewController: UIViewController {
     }
     
     private func setupView() {
-        view.backgroundColor = .white
+        view.backgroundColor = .systemBackground
         appleLoginButton.addTarget(self, action: #selector(handleAppleSignIn), for: .touchUpInside)
     }
     
@@ -135,7 +135,7 @@ extension LoginViewController: ASAuthorizationControllerDelegate, ASAuthorizatio
             return
         }
         
-        send(.appleLoginSuccedded(identityToken: identityTokenString))
+        send(.appleLoginSucceeded(identityToken: identityTokenString))
     }
     
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {

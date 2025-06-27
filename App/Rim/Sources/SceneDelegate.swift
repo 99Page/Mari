@@ -42,16 +42,22 @@ struct SceneFeature {
             switch action {
             case .view(_):
                 return .none
+                
             case .login(.delegate(.signInSucceeded)):
                 state = .tab(.init())
                 return .none
+                
             case .login(_):
                 return .none
+                
+            case .tab(.userAccount(.delegate(.logoutSucceeded))):
+                state = .login(.init())
+                return .none
+                
             case .tab(_):
                 return .none
             }
         }
-        ._printChanges()
     }
 }
 

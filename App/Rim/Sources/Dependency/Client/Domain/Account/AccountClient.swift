@@ -14,6 +14,7 @@ import FirebaseAuth
 @DependencyClient
 struct AccountClient {
     var loginUsingApple: (_ token: String, _ nonce: String) async throws -> Void
+    var logout: () throws -> Void
 }
 
 extension AccountClient: DependencyKey {
@@ -37,6 +38,10 @@ extension AccountClient: DependencyKey {
                     continuation.resume(returning: result)
                 }
             }
+        } logout: {
+            // https://firebase.google.com/docs/auth/ios/apple?hl=ko#next-steps
+            let firebaseAuth = Auth.auth()
+            try firebaseAuth.signOut()
         }
     }
 }

@@ -125,7 +125,7 @@ class UploadPostViewController: UIViewController {
     
     private func setupView() {
         title = "포스트 올리기"
-        view.backgroundColor = .white
+        view.backgroundColor = .systemBackground
         
         postButton.addAction(.touchUpInside({ [weak self] in
             self?.send(.uploadButtonTapped)
