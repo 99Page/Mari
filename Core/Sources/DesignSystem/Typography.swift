@@ -10,11 +10,16 @@ import Foundation
 import UIKit
 
 public enum Typography {
+    case logoTitle
+    case logoDescription
+    
     case contentTitle
     case contentDescription
     
     var size: CGFloat {
         switch self {
+        case .logoTitle: 40
+        case .logoDescription: 24
         case .contentTitle: 20
         case .contentDescription: 16
         }
@@ -22,6 +27,8 @@ public enum Typography {
     
     var weight: UIFont.Weight {
         switch self {
+        case .logoTitle: .bold
+        case .logoDescription: .bold
         case .contentTitle: .semibold
         case .contentDescription: .regular
         }

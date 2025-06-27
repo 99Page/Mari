@@ -72,8 +72,9 @@ public class RimImageView: UIView, Previewable {
     
     private func updateImage() {
         switch state.image {
-        case .resource:
-            break
+        case let .resource(resource):
+            self.imageView.image = UIImage(resource: resource)
+            self.placeholder.isHidden = true
         case .custom(let url):
             loadImage(from: url)
         case .symbol:
@@ -108,7 +109,7 @@ public class RimImageView: UIView, Previewable {
         }
         
         public enum ImageType: Equatable {
-            case resource(name: String)
+            case resource(imageResource: ImageResource)
             case custom(url: String?)
             case symbol(name: String)
         }
