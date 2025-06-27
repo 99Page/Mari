@@ -69,6 +69,11 @@ final class RimTabViewController: UITabBarController {
     
     private func setupView() {
         view.backgroundColor = .systemBackground
+        
+        tabBar.isTranslucent = false
+        tabBar.backgroundColor = .systemBackground
+        tabBar.barTintColor = .systemBackground
+        tabBar.scrollEdgeAppearance = tabBar.standardAppearance
     }
     
     private func buildViewControllers() {

@@ -197,7 +197,7 @@ extension LoginViewController: ASAuthorizationControllerDelegate, ASAuthorizatio
                 print("애플 로그인 실패: 요청이 처리되지 않음")
             case .unknown:
                 print("애플 로그인 실패: 알 수 없는 오류")
-            @unknown default:
+            default:
                 print("애플 로그인 실패: 처리되지 않은 오류")
             }
         } else {

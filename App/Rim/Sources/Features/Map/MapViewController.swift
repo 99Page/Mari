@@ -13,7 +13,7 @@ import Core
 import ComposableArchitecture
 
 @ViewAction(for: MapFeature.self)
-class MapViewController: UIViewController {
+class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     
     @UIBindable var store: StoreOf<MapFeature>
     
