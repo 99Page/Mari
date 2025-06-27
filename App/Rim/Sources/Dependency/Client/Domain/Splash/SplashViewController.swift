@@ -15,13 +15,10 @@ import Core
 @Reducer
 struct SplashFeature {
     @ObservableState
-    struct State {
+    struct State: Equatable {
         // ChatGPT가 내부 로고만 있는 svg 파일을 제대로 생성해주지 못해서 png 사용
         // -page 2025. 06. 27
-        var logo = RimImageView.State(image: .resource(imageResource: .rimLogo))
-        
-        var appName = RimLabel.State(text: "Rim", textColor: .white, typography: .logoTitle)
-        var appDescription = RimLabel.State(text: "지금, 우리 동네 이야기", textColor: .white, typography: .logoDescription)
+        var logo = RimImageView.State(image: .resource(imageResource: .rimWithBackground))
     }
     
     enum Action: ViewAction {
@@ -51,18 +48,12 @@ class SplashViewController: UIViewController {
     
     let store: StoreOf<SplashFeature>
     
-    let contentView = UIView()
-    
     let logoImageView: RimImageView
-    let appNameLabel: RimLabel
-    let appDescriptionlabel: RimLabel
     
     init(store: StoreOf<SplashFeature>) {
         @UIBindable var binding = store
         self.store = store
         self.logoImageView = RimImageView(state: $binding.logo)
-        self.appNameLabel = RimLabel(state: $binding.appName)
-        self.appDescriptionlabel = RimLabel(state: $binding.appDescription)
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -80,8 +71,6 @@ class SplashViewController: UIViewController {
     
     private func configureSubview() {
         logoImageView.configure()
-        appNameLabel.configure()
-        appDescriptionlabel.configure()
     }
     
     private func setupView() {
@@ -89,27 +78,11 @@ class SplashViewController: UIViewController {
     }
     
     private func makeConstraint() {
-        view.addSubview(contentView)
-        
-        contentView.addSubview(logoImageView)
-        contentView.addSubview(appNameLabel)
-        contentView.addSubview(appDescriptionlabel)
-        
-        contentView.addSubview
+        view.addSubview(logoImageView)
         
         logoImageView.snp.makeConstraints { make in
             make.centerX.centerY.equalToSuperview()
-            make.width.height.equalTo(250)
-        }
-        
-        appNameLabel.snp.makeConstraints { make in
-            make.centerX.equalToSuperview()
-            make.top.equalTo(logoImageView.snp.bottom).offset(16)
-        }
-        
-        appDescriptionlabel.snp.makeConstraints { make in
-            make.centerX.equalToSuperview()
-            make.top.equalTo(appNameLabel.snp.bottom).offset(16)
+            make.width.height.equalTo(150)
         }
     }
 }

@@ -18,7 +18,7 @@ public enum Typography {
     
     var size: CGFloat {
         switch self {
-        case .logoTitle: 40
+        case .logoTitle: 30
         case .logoDescription: 24
         case .contentTitle: 20
         case .contentDescription: 16
