@@ -135,7 +135,6 @@ class PostDetailViewController: UIViewController {
         
         makeConstraint()
         setupView()
-        configureSubviews()
         
         send(.viewDidLoad)
         
@@ -146,12 +145,6 @@ class PostDetailViewController: UIViewController {
     
     private func setupView() {
         view.backgroundColor = .systemBackground
-    }
-    
-    private func configureSubviews() {
-        imageView.configure()
-        titleLabel.configure()
-        descriptionLabel.configure()
     }
     
     private func makeConstraint() {
@@ -171,7 +164,6 @@ class PostDetailViewController: UIViewController {
             make.top.equalTo(view.snp.top)
             make.width.equalToSuperview()
             make.leading.equalToSuperview()
-            make.bottom.equalTo(descriptionLabel.snp.bottom)
         }
         
         imageView.snp.makeConstraints { make in

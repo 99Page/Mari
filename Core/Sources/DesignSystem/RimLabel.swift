@@ -25,6 +25,9 @@ public class RimLabel: UIView {
     public init(state: UIBinding<State>) {
         self._state = state
         super.init(frame: .zero)
+        makeConstraint()
+        updateView()
+        setupKeyboardObserver()
     }
     
     required init?(coder: NSCoder) {
@@ -39,12 +42,6 @@ public class RimLabel: UIView {
         self.height = height
         self.respondsToKeyboard = true
         self.keyboardAvoidClosure = closure
-    }
-    
-    public func configure() {
-        makeConstraint()
-        updateView()
-        setupKeyboardObserver()
     }
     
     private func makeConstraint() {

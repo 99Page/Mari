@@ -11,24 +11,25 @@ import SwiftNavigation
 import SnapKit
 import SwiftUI
 
-public class ImagePlaceholderView: UIView, Previewable {
+public class ImagePlaceholderView: UIView {
+    
     private let gradientLayer = CAGradientLayer()
+    private let placeholderView = UIView()
     
     public override init(frame: CGRect) {
         super.init(frame: frame)
+        makeConstraint()
+        setupShimmer()
     }
     
     required init?(coder: NSCoder) {
         super.init(coder: coder)
     }
-    
-    public func configure() {
-        makeConstraint()
-        setupShimmer()
-    }
-    
+
     private func makeConstraint() {
-        self.snp.makeConstraints { make in
+        self.addSubview(placeholderView)
+        
+        self.placeholderView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
     }

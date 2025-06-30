@@ -16,12 +16,15 @@ public enum Typography {
     case contentTitle
     case contentDescription
     
+    case hint
+    
     var size: CGFloat {
         switch self {
         case .logoTitle: 30
         case .logoDescription: 24
         case .contentTitle: 20
         case .contentDescription: 16
+        case .hint: 14
         }
     }
     
@@ -31,6 +34,7 @@ public enum Typography {
         case .logoDescription: .bold
         case .contentTitle: .semibold
         case .contentDescription: .regular
+        case .hint: .regular
         }
     }
 }

@@ -82,13 +82,8 @@ class SplashViewController: UIViewController {
         
         setupView()
         makeConstraint()
-        configureSubview()
         
         send(.viewDidLoad)
-    }
-    
-    private func configureSubview() {
-        logoImageView.configure()
     }
     
     private func setupView() {

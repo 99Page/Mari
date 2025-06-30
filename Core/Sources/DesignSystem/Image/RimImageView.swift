@@ -12,8 +12,7 @@ import SnapKit
 import SwiftNavigation
 import SwiftUI
 
-public class RimImageView: UIView, Previewable {
-    
+public class RimImageView: UIView {
     @UIBinding var state: State
     
     public let imageView = UIImageView(frame: .zero)
@@ -35,17 +34,13 @@ public class RimImageView: UIView, Previewable {
         self.imageLoader = memoryLoader
         
         super.init(frame: .zero)
+        
+        makeConstraint()
+        updateView()
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-    
-    public func configure() {
-        makeConstraint()
-        updateView()
-        
-        placeholder.configure()
     }
     
     private func makeConstraint() {

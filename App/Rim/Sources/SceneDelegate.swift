@@ -14,14 +14,14 @@ struct SceneFeature {
     @ObservableState
     enum State: Equatable {
         case splash(SplashFeature.State)
-        case login(LoginFeature.State)
+        case login(SignInFeature.State)
         case tab(TabFeature.State)
     }
     
     enum Action: ViewAction {
         case changeState(to: SceneFeature.State)
         case view(UIAction)
-        case login(LoginFeature.Action)
+        case login(SignInFeature.Action)
         case tab(TabFeature.Action)
         case splash(SplashFeature.Action)
         
@@ -36,7 +36,7 @@ struct SceneFeature {
         BindingReducer(action: \.view)
         
         Scope(state: \.login, action: \.login) {
-            LoginFeature()
+            SignInFeature()
         }
         
         Scope(state: \.tab, action: \.tab) {
@@ -88,7 +88,6 @@ struct SceneFeature {
                 return .none
             }
         }
-        ._printChanges()
     }
 }
 
@@ -120,7 +119,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             switch store.state {
             case .login:
                 if let loginStore = store.scope(state: \.login, action: \.login) {
-                    let loginVC = LoginViewController(store: loginStore)
+                    let loginVC = SignInViewController(store: loginStore)
                     selectViewController(viewController: loginVC)
                 }
             case .tab:

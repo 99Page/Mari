@@ -16,6 +16,7 @@ let target = Target.target(
     bundleId: "com.page.core",
     deploymentTargets: .iOS("17.0"),
     sources: ["Sources/**"],
+    resources: ["Resources/**"],
     dependencies: [
         .package(product: "SnapKit"),
         .package(product: "ComposableArchitecture")
