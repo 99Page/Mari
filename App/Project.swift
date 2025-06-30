@@ -42,7 +42,7 @@ let target = Target.target(
     deploymentTargets: .iOS("17.0"),
     infoPlist: .extendingDefault(with: infoPlist),
     sources: ["Rim/Sources/**"],
-    resources: ["Rim/Resources/**"],
+    resources: ["../Core/Resources/**"],
     entitlements: "SupportingFiles/Rim.entitlements",
     dependencies: [
         .package(product: "GoogleSignIn"),

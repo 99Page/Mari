@@ -37,15 +37,14 @@ public class ProgressViewController: UIViewController {
     }
     
     private func setupView() {
-        view.backgroundColor = .clear
-        
-        activityIndicator.color = UIColor(resource: .main)
+        view.backgroundColor = UIColor.black.withAlphaComponent(0.1)
+        activityIndicator.color = UIColor(resource: .init(name: "main", bundle: .module))
         activityIndicator.startAnimating()
     }
     
     private func makeConstraint() {
         view.addSubview(activityIndicator)
-
+        
         activityIndicator.snp.makeConstraints { make in
             make.width.height.equalTo(33)
             make.center.equalToSuperview()
