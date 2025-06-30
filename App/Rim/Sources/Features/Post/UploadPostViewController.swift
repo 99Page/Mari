@@ -137,8 +137,6 @@ class UploadPostViewController: UIViewController {
     }
     
     private func configureSubviews() {
-        photoImage.configure()
-        postButton.configure()
         contentTextView.configure()
     }
     

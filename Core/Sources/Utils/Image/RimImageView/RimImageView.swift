@@ -34,17 +34,13 @@ public class RimImageView: UIView {
         self.imageLoader = memoryLoader
         
         super.init(frame: .zero)
+        
+        makeConstraint()
+        updateView()
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-
-    public override func layoutSubviews() {
-        super.layoutSubviews()
-        makeConstraint()
-        updateView()
-        placeholder.configure()
     }
     
     private func makeConstraint() {

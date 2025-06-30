@@ -106,8 +106,6 @@ class SignInViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        appleSignInButton.configure()
-        googleSignInButton.configure()
         setupView()
         makeConstraint()
     }

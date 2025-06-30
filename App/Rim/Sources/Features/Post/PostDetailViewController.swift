@@ -149,7 +149,6 @@ class PostDetailViewController: UIViewController {
     }
     
     private func configureSubviews() {
-        imageView.configure()
         titleLabel.configure()
         descriptionLabel.configure()
     }
