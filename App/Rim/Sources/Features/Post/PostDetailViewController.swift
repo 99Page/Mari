@@ -135,7 +135,6 @@ class PostDetailViewController: UIViewController {
         
         makeConstraint()
         setupView()
-        configureSubviews()
         
         send(.viewDidLoad)
         
@@ -146,11 +145,6 @@ class PostDetailViewController: UIViewController {
     
     private func setupView() {
         view.backgroundColor = .systemBackground
-    }
-    
-    private func configureSubviews() {
-        titleLabel.configure()
-        descriptionLabel.configure()
     }
     
     private func makeConstraint() {

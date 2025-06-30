@@ -120,7 +120,6 @@ class UploadPostViewController: UIViewController {
         
         makeConstraint()
         setupView()
-        configureSubviews()
     }
     
     private func setupView() {
@@ -134,10 +133,6 @@ class UploadPostViewController: UIViewController {
     
     private func send() {
         send(.uploadButtonTapped)
-    }
-    
-    private func configureSubviews() {
-        contentTextView.configure()
     }
     
     private func makeConstraint() {
