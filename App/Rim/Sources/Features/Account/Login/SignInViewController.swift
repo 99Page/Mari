@@ -31,6 +31,8 @@ struct SignInFeature {
         // 애플 인증에는 해시된 값 사용
         var hashedNonce = ""
         
+        var rimLogo = RimImageView.State(image: .resource(imageResource: .rimWithBackground))
+        var signInLabel = RimLabel.State(text: "로그인하기", textColor: UIColor(.gray), typography: .hint)
         var appleSignIn = RimImageView.State(image: .resource(imageResource: .appleCircleLogo))
         var googleSignIn = RimImageView.State(image: .resource(imageResource: .googleCircleLogo))
     }
@@ -89,14 +91,19 @@ class SignInViewController: UIViewController {
     
     let store: StoreOf<SignInFeature>
     
-    let appleSignInButton: RimImageView
-    let googleSignInButton: RimImageView
+    private let rimLogoImageView: RimImageView
+    private let signInLabel: RimLabel
+    private let appleSignInButton: RimImageView
+    private let googleSignInButton: RimImageView
+    private let signInStackView = UIStackView()
     
     init(store: StoreOf<SignInFeature>) {
         @UIBindable var binding = store
         self.store = store
         self.appleSignInButton = RimImageView(state: $binding.appleSignIn)
         self.googleSignInButton = RimImageView(state: $binding.googleSignIn)
+        self.signInLabel = RimLabel(state: $binding.signInLabel)
+        self.rimLogoImageView = RimImageView(state: $binding.rimLogo)
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -110,31 +117,45 @@ class SignInViewController: UIViewController {
         makeConstraint()
     }
     
-    override func viewWillLayoutSubviews() {
-        super.viewWillLayoutSubviews()
-//        appleSignInButton.configure()
-//        googleSignInButton.configure()
-    }
-    
     private func makeConstraint() {
-        view.addSubview(appleSignInButton)
-        view.addSubview(googleSignInButton)
+        view.addSubview(rimLogoImageView)
+        view.addSubview(signInLabel)
+        view.addSubview(signInStackView)
         
-        appleSignInButton.snp.makeConstraints { make in
+        signInStackView.addArrangedSubview(appleSignInButton)
+        signInStackView.addArrangedSubview(googleSignInButton)
+        
+        rimLogoImageView.snp.makeConstraints { make in
+            make.centerY.equalToSuperview()
+            make.centerX.equalToSuperview()
+            make.width.height.equalTo(128)
+        }
+        
+        signInLabel.snp.makeConstraints { make in
+            make.bottom.equalTo(signInStackView.snp.top).offset(-24)
+            make.centerX.equalToSuperview()
+        }
+        
+        signInStackView.snp.makeConstraints { make in
             make.centerX.equalToSuperview()
             make.bottom.equalTo(view.safeAreaLayoutGuide).inset(40)
+        }
+        
+        appleSignInButton.snp.makeConstraints { make in
             make.width.height.equalTo(44)
         }
         
         googleSignInButton.snp.makeConstraints { make in
-            make.centerX.equalToSuperview()
-            make.bottom.equalTo(appleSignInButton.snp.top).offset(-16)
             make.width.height.equalTo(44)
         }
     }
     
     private func setupView() {
-        view.backgroundColor = UIColor(resource: .main)
+        view.backgroundColor = .systemBackground
+        
+        signInStackView.axis = .horizontal
+        signInStackView.distribution = .fillEqually
+        signInStackView.spacing = 16
 
         appleSignInButton.addAction(.touchUpInside({ [weak self] in
             self?.handleAppleSignIn()
