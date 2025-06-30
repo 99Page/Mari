@@ -14,6 +14,7 @@ import AuthenticationServices
 import FirebaseAuth
 import GoogleSignIn
 import FirebaseCore
+import Core
 
 
 /// 로그인 기능을 처리하기 위한 리듀서
@@ -21,7 +22,7 @@ import FirebaseCore
 ///
 /// [Firebase - Apple로 로그인](https://firebase.google.com/docs/auth/ios/apple?hl=ko)
 @Reducer
-struct LoginFeature {
+struct SignInFeature {
     @ObservableState
     struct State: Equatable {
         // Firebase 인증에는 해시되지 않은 값 사용
@@ -29,6 +30,9 @@ struct LoginFeature {
         
         // 애플 인증에는 해시된 값 사용
         var hashedNonce = ""
+        
+        var appleSignIn = RimImageView.State(image: .resource(imageResource: .appleCircleLogo))
+        var googleSignIn = RimImageView.State(image: .resource(imageResource: .googleCircleLogo))
     }
     
     enum Action: ViewAction {
@@ -36,10 +40,11 @@ struct LoginFeature {
         case view(UIAction)
         case delegate(Delegate)
         
-        enum UIAction {
+        enum UIAction: BindableAction {
             case appleLoginSucceeded(identityToken: String)
             case googleLoginSucceeded
             case appleLoginTapped
+            case binding(BindingAction<State>)
         }
         
         enum Delegate {
@@ -51,6 +56,8 @@ struct LoginFeature {
     @Dependency(\.nonceGenerator) var nonceGenerator
     
     var body: some ReducerOf<Self> {
+        BindingReducer(action: \.view)
+        
         Reduce<State, Action> { state, action in
             switch action {
             case let .view(.appleLoginSucceeded(identitiyToken)):
@@ -67,6 +74,9 @@ struct LoginFeature {
             case .view(.googleLoginSucceeded):
                 return .send(.delegate(.signInSucceeded))
                 
+            case .view(.binding(_)):
+                return .none
+                
             case .delegate:
                 return .none
             }
@@ -74,16 +84,19 @@ struct LoginFeature {
     }
 }
 
-@ViewAction(for: LoginFeature.self)
-class LoginViewController: UIViewController {
+@ViewAction(for: SignInFeature.self)
+class SignInViewController: UIViewController {
     
-    let store: StoreOf<LoginFeature>
+    let store: StoreOf<SignInFeature>
     
-    let appleLoginButton = ASAuthorizationAppleIDButton()
-    let googleLoginButton = GIDSignInButton()
+    let appleSignInButton: RimImageView
+    let googleSignInButton: RimImageView
     
-    init(store: StoreOf<LoginFeature>) {
+    init(store: StoreOf<SignInFeature>) {
+        @UIBindable var binding = store
         self.store = store
+        self.appleSignInButton = RimImageView(state: $binding.appleSignIn)
+        self.googleSignInButton = RimImageView(state: $binding.googleSignIn)
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -93,38 +106,43 @@ class LoginViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        appleSignInButton.configure()
+        googleSignInButton.configure()
         setupView()
         makeConstraint()
     }
     
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+//        appleSignInButton.configure()
+//        googleSignInButton.configure()
+    }
+    
     private func makeConstraint() {
-        view.addSubview(appleLoginButton)
-        view.addSubview(googleLoginButton)
+        view.addSubview(appleSignInButton)
+        view.addSubview(googleSignInButton)
         
-        appleLoginButton.snp.makeConstraints { make in
+        appleSignInButton.snp.makeConstraints { make in
             make.centerX.equalToSuperview()
             make.bottom.equalTo(view.safeAreaLayoutGuide).inset(40)
-            make.height.equalTo(48)
-            make.width.equalTo(312)
+            make.width.height.equalTo(44)
         }
         
-        googleLoginButton.snp.makeConstraints { make in
+        googleSignInButton.snp.makeConstraints { make in
             make.centerX.equalToSuperview()
-            make.bottom.equalTo(appleLoginButton.snp.top).offset(-16)
-            make.height.equalTo(48)
-            make.width.equalTo(312)
+            make.bottom.equalTo(appleSignInButton.snp.top).offset(-16)
+            make.width.height.equalTo(44)
         }
     }
     
     private func setupView() {
-        view.backgroundColor = .systemBackground
-        
-        appleLoginButton.addAction(.touchUpInside({ [weak self] in
+        view.backgroundColor = UIColor(resource: .main)
+
+        appleSignInButton.addAction(.touchUpInside({ [weak self] in
             self?.handleAppleSignIn()
         }))
         
-        googleLoginButton.style = .wide
-        googleLoginButton.addAction(.touchUpInside({ [weak self] in
+        googleSignInButton.addAction(.touchUpInside({ [weak self] in
             self?.handleGoogleSignIn()
         }))
     }
@@ -168,7 +186,7 @@ class LoginViewController: UIViewController {
     }
 }
 
-extension LoginViewController: ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
+extension SignInViewController: ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
         return self.view.window!
     }
@@ -203,5 +221,15 @@ extension LoginViewController: ASAuthorizationControllerDelegate, ASAuthorizatio
         } else {
             print("애플 로그인 실패: \(error.localizedDescription)")
         }
+    }
+}
+
+#Preview {
+    let store = Store(initialState: SignInFeature.State()) {
+        SignInFeature()
+    }
+    
+    ViewControllerPreview {
+        SignInViewController(store: store)
     }
 }

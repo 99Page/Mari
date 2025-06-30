@@ -39,13 +39,13 @@ public struct ViewControllerPreview<T: UIViewController>: UIViewControllerRepres
 }
 
 /// UIView를 UIViewController에 넣어 SwiftUI에서 미리보기 위한 구조체
-public struct ViewPreview<T: Previewable>: UIViewControllerRepresentable {
-    let view: T
+public struct ViewPreview: UIViewControllerRepresentable {
+    let view: UIView
     
     let from: KeyPath<ConstraintMaker, ConstraintMakerExtendable>
     let to: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>
     
-    public init(fromY: KeyPath<ConstraintMaker, ConstraintMakerExtendable>, toY: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>, _ builder: @escaping () -> T) {
+    public init(fromY: KeyPath<ConstraintMaker, ConstraintMakerExtendable>, toY: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>, _ builder: @escaping () -> UIView) {
         self.view = builder()
         self.from = fromY
         self.to = toY
@@ -60,8 +60,6 @@ public struct ViewPreview<T: Previewable>: UIViewControllerRepresentable {
             make.leading.trailing.equalToSuperview()
             make[keyPath: from].equalTo(viewController.view.safeAreaLayoutGuide.snp[keyPath: to])
         }
-        
-        view.configure()
         
         return viewController
     }
