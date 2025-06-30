@@ -37,6 +37,13 @@ struct SignInFeature {
         var googleSignIn = RimImageView.State(image: .resource(imageResource: .googleCircleLogo))
         
         var isProgressPresented = false
+        
+        @Presents var alert: AlertState<AlertAction>?
+    }
+    
+    @CasePathable
+    enum AlertAction: Equatable {
+        
     }
     
     enum Action: ViewAction {
@@ -44,9 +51,11 @@ struct SignInFeature {
         case view(UIAction)
         case delegate(Delegate)
         case dismissProgressView
+        case alert(PresentationAction<AlertAction>)
         
         enum UIAction: BindableAction {
             case appleLoginSucceeded(identityToken: String)
+            case loginFailed
             case googleLoginSucceeded
             case appleLoginTapped
             case binding(BindingAction<State>)
@@ -85,14 +94,28 @@ struct SignInFeature {
             case .view(.binding(_)):
                 return .none
                 
+            case .view(.loginFailed):
+                state.alert = AlertState {
+                    TextState("로그인에 실패했어요")
+                } actions: {
+                    ButtonState(role: .cancel) {
+                        TextState("확인")
+                    }
+                }
+                return .none
+                
             case .delegate:
                 return .none
                 
             case .dismissProgressView:
                 state.isProgressPresented = false
                 return .none
+                
+            case .alert(_):
+                return .none
             }
         }
+        .ifLet(\.$alert, action: \.alert)
     }
 }
 
@@ -128,6 +151,10 @@ class SignInViewController: UIViewController {
         
         present(isPresented: $store.isProgressPresented) {
             ProgressViewController()
+        }
+        
+        present(item: $store.scope(state: \.alert, action: \.alert)) { store in
+            UIAlertController(store: store)
         }
     }
     
@@ -199,23 +226,15 @@ extension SignInViewController: ASAuthorizationControllerDelegate, ASAuthorizati
     }
     
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
-        if let authError = error as? ASAuthorizationError {
-            switch authError.code {
-            case .canceled:
-                print("사용자가 애플 로그인을 취소함")
-            case .failed:
-                print("애플 로그인 실패: 일반적인 오류 발생")
-            case .invalidResponse:
-                print("애플 로그인 실패: 응답이 유효하지 않음")
-            case .notHandled:
-                print("애플 로그인 실패: 요청이 처리되지 않음")
-            case .unknown:
-                print("애플 로그인 실패: 알 수 없는 오류")
-            default:
-                print("애플 로그인 실패: 처리되지 않은 오류")
-            }
-        } else {
-            print("애플 로그인 실패: \(error.localizedDescription)")
+        guard let authError = error as? ASAuthorizationError else { return }
+        
+        switch authError.code {
+        case .canceled:
+            break
+        case .notHandled:
+            break
+        default:
+            send(.loginFailed)
         }
     }
     
@@ -248,7 +267,11 @@ extension SignInViewController {
         
         // Start the sign in flow!
         GIDSignIn.sharedInstance.signIn(withPresenting: self) { [weak self] result, error in
-            guard error == nil else { return }
+            
+            guard error == nil else {
+                self?.send(.loginFailed)
+                return
+            }
             
             guard let user = result?.user,
                   let idToken = user.idToken?.tokenString else {
