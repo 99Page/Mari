@@ -1,4 +1,4 @@
-/**
+/****
  * Import function triggers from their respective submodules:
  *
  * import {onCall} from "firebase-functions/v2/https";
@@ -9,6 +9,8 @@
 
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
+import * as admin from "firebase-admin";
+import * as geohash from "ngeohash";
 
 // The Firebase Admin SDK to access Firestore.
 import { getFirestore } from "firebase-admin/firestore";
@@ -61,5 +63,51 @@ export const getPostById = onRequest({ region: REGION }, async (req, res) => {
   } catch (error) {
     logger.error("Error fetching post by ID:", error);
     res.status(500).send("Failed to fetch post");
+  }
+});
+
+export const createPost = onRequest({ region: REGION }, async (req, res) => {
+  try {
+    const body = req.body;
+
+    if (!body || typeof body !== "object") {
+      res.status(400).send("Invalid request body");
+      return;
+    }
+
+    const { title, content, latitude, longitude, creatorID, imageUrl } = body;
+
+    if (!title || !content || latitude == null || longitude == null || !creatorID || !imageUrl) {
+      res.status(400).send("Missing required fields");
+      return;
+    }
+
+    const geohashFields: Record<string, string> = {};
+    for (let p = 1; p <= 10; p++) {
+      geohashFields[`geohash_${p}`] = geohash.encode(latitude, longitude, p);
+    }
+
+    const newPost = {
+      title,
+      content,
+      latitude,
+      longitude,
+      location: new admin.firestore.GeoPoint(latitude, longitude),
+      creatorID,
+      imageUrl,
+      dailyScore: 0,
+      weeklyScore: 0,
+      monthlyScore: 0,
+      viewCount: 0,
+      createdAt: new Date().toISOString(),
+      ...geohashFields
+    };
+
+    const postRef = await db.collection("posts").add(newPost);
+
+    res.status(201).json({ id: postRef.id, ...newPost });
+  } catch (error) {
+    logger.error("Error creating post:", error);
+    res.status(500).send("Failed to create post");
   }
 });
