@@ -66,7 +66,3 @@ public struct ViewPreview: UIViewControllerRepresentable {
 
     public func updateUIViewController(_ uiViewController: UIViewController, context: Context) { }
 }
-
-public protocol Previewable: UIView {
-    func configure()
-}

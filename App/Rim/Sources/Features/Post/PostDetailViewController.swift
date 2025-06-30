@@ -164,7 +164,6 @@ class PostDetailViewController: UIViewController {
             make.top.equalTo(view.snp.top)
             make.width.equalToSuperview()
             make.leading.equalToSuperview()
-            make.bottom.equalTo(descriptionLabel.snp.bottom)
         }
         
         imageView.snp.makeConstraints { make in

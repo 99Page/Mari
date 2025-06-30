@@ -35,12 +35,15 @@ struct SignInFeature {
         var signInLabel = RimLabel.State(text: "로그인하기", textColor: UIColor(.gray), typography: .hint)
         var appleSignIn = RimImageView.State(image: .resource(imageResource: .appleCircleLogo))
         var googleSignIn = RimImageView.State(image: .resource(imageResource: .googleCircleLogo))
+        
+        var isProgressPresented = false
     }
     
     enum Action: ViewAction {
         
         case view(UIAction)
         case delegate(Delegate)
+        case dismissProgressView
         
         enum UIAction: BindableAction {
             case appleLoginSucceeded(identityToken: String)
@@ -63,8 +66,10 @@ struct SignInFeature {
         Reduce<State, Action> { state, action in
             switch action {
             case let .view(.appleLoginSucceeded(identitiyToken)):
+                state.isProgressPresented = true
                 return .run { [nonce = state.originNonce] send in
                     try await accountClient.loginUsingApple(token: identitiyToken, nonce: nonce)
+                    await send(.dismissProgressView)
                     await send(.delegate(.signInSucceeded))
                 }
                 
@@ -74,12 +79,17 @@ struct SignInFeature {
                 return .none
                 
             case .view(.googleLoginSucceeded):
+                state.isProgressPresented = false
                 return .send(.delegate(.signInSucceeded))
                 
             case .view(.binding(_)):
                 return .none
                 
             case .delegate:
+                return .none
+                
+            case .dismissProgressView:
+                state.isProgressPresented = false
                 return .none
             }
         }
@@ -89,7 +99,7 @@ struct SignInFeature {
 @ViewAction(for: SignInFeature.self)
 class SignInViewController: UIViewController {
     
-    let store: StoreOf<SignInFeature>
+    @UIBindable var store: StoreOf<SignInFeature>
     
     private let rimLogoImageView: RimImageView
     private let signInLabel: RimLabel
@@ -115,6 +125,10 @@ class SignInViewController: UIViewController {
         super.viewDidLoad()
         setupView()
         makeConstraint()
+        
+        present(isPresented: $store.isProgressPresented) {
+            ProgressViewController()
+        }
     }
     
     private func makeConstraint() {
@@ -165,46 +179,9 @@ class SignInViewController: UIViewController {
             self?.handleGoogleSignIn()
         }))
     }
-    
-    @objc private func handleAppleSignIn() {
-        send(.appleLoginTapped)
-        
-        let provider = ASAuthorizationAppleIDProvider()
-        let request = provider.createRequest()
-        request.requestedScopes = [.fullName, .email]
-        request.nonce = store.hashedNonce
-        
-        let controller = ASAuthorizationController(authorizationRequests: [request])
-        controller.delegate = self
-        controller.presentationContextProvider = self
-        controller.performRequests()
-    }
-    
-    private func handleGoogleSignIn() {
-        // https://firebase.google.com/docs/auth/ios/google-signin?hl=ko&_gl=1*1lymcp3*_up*MQ..*_ga*OTE5NTA4MzAxLjE3NTA5ODMyNzE.*_ga_CW55HF8NVT*czE3NTA5ODMyNzEkbzEkZzAkdDE3NTA5ODMyNzEkajYwJGwwJGgw#implement_google_sign-in
-        guard let clientID = FirebaseApp.app()?.options.clientID else { return }
-        
-        // Create Google Sign In configuration object.
-        let config = GIDConfiguration(clientID: clientID)
-        GIDSignIn.sharedInstance.configuration = config
-        
-        // Start the sign in flow!
-        GIDSignIn.sharedInstance.signIn(withPresenting: self) { [weak self] result, error in
-            guard error == nil else { return }
-            
-            guard let user = result?.user,
-                  let idToken = user.idToken?.tokenString
-            else { return }
-            
-            let credential = GoogleAuthProvider.credential(withIDToken: idToken,
-                                                           accessToken: user.accessToken.tokenString)
-            
-            Auth.auth().signIn(with: credential)
-            self?.send(.googleLoginSucceeded)
-        }
-    }
 }
 
+// MARK: Sign In with Apple
 extension SignInViewController: ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
         return self.view.window!
@@ -239,6 +216,51 @@ extension SignInViewController: ASAuthorizationControllerDelegate, ASAuthorizati
             }
         } else {
             print("애플 로그인 실패: \(error.localizedDescription)")
+        }
+    }
+    
+    @objc func handleAppleSignIn() {
+        send(.appleLoginTapped)
+        
+        let provider = ASAuthorizationAppleIDProvider()
+        let request = provider.createRequest()
+        request.requestedScopes = [.fullName, .email]
+        request.nonce = store.hashedNonce
+        
+        let controller = ASAuthorizationController(authorizationRequests: [request])
+        controller.delegate = self
+        controller.presentationContextProvider = self
+        controller.performRequests()
+    }
+}
+
+// MARK: Sign In with Google
+extension SignInViewController {
+    func handleGoogleSignIn() {
+        // https://firebase.google.com/docs/auth/ios/google-signin?hl=ko&_gl=1*1lymcp3*_up*MQ..*_ga*OTE5NTA4MzAxLjE3NTA5ODMyNzE.*_ga_CW55HF8NVT*czE3NTA5ODMyNzEkbzEkZzAkdDE3NTA5ODMyNzEkajYwJGwwJGgw#implement_google_sign-in
+        guard let clientID = FirebaseApp.app()?.options.clientID else { return }
+        
+        // Create Google Sign In configuration object.
+        let config = GIDConfiguration(clientID: clientID)
+        GIDSignIn.sharedInstance.configuration = config
+        
+        store.isProgressPresented = true
+        
+        // Start the sign in flow!
+        GIDSignIn.sharedInstance.signIn(withPresenting: self) { [weak self] result, error in
+            guard error == nil else { return }
+            
+            guard let user = result?.user,
+                  let idToken = user.idToken?.tokenString else {
+                self?.store.isProgressPresented = false
+                return
+            }
+            
+            let credential = GoogleAuthProvider.credential(withIDToken: idToken,
+                                                           accessToken: user.accessToken.tokenString)
+            
+            Auth.auth().signIn(with: credential)
+            self?.send(.googleLoginSucceeded)
         }
     }
 }
