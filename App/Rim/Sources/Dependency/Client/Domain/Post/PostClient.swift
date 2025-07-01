@@ -13,11 +13,12 @@ import FirebaseFunctions
 
 @DependencyClient
 struct PostClient {
-    var post: (_ request: PostRequest) async throws -> Void
+    var createPost: (_ request: CreatePostRequest) async throws -> PostDTO
     var fetchNearPosts: () async throws -> [PostDTO]
     var fetchPostByID: (_ id: String) async throws -> PostDTO
     
     enum PostAPI: APITarget {
+        case createPost(request: CreatePostRequest)
         case fetchNearPosts
         case fetchPostByID(id: String)
         
@@ -25,21 +26,40 @@ struct PostClient {
             switch self {
             case .fetchNearPosts: .get
             case .fetchPostByID: .get
+            case .createPost: .post
             }
         }
         
         var body: (any Encodable)? {
-            nil
+            switch self {
+            case .createPost(let request): request
+            case .fetchNearPosts: nil
+            case .fetchPostByID: nil
+            }
         }
         
         var headers: [String : String] {
-            return [:]
+            var headers: [String: String] = [:]
+            
+            @Dependency(\.keychain) var keychain
+            
+            switch self {
+            case .createPost:
+                let idToken = try? keychain.load(service: .firebase, account: .idToken)
+                headers["Authorization"] = "Bearer \(idToken ?? "")"
+            case .fetchNearPosts:
+                break
+            case .fetchPostByID:
+                break
+            }
+            return headers
         }
         
         var baseURLString: String { functionsURL }
         
         var path: String {
             switch self {
+            case .createPost: "/createPost"
             case .fetchNearPosts: "/getPosts"
             case let .fetchPostByID(id): "/getPostById?id=\(id)"
             }
@@ -50,10 +70,7 @@ struct PostClient {
 extension PostClient: DependencyKey {
     static var liveValue: PostClient {
         PostClient { request in
-            let firestore = Firestore.firestore(database: "mari-db")
-            let data = try Firestore.Encoder().encode(request)
-            
-            let ref = try await firestore.collection("posts").addDocument(data: data)
+            try await Client.request(target: PostAPI.createPost(request: request))
         } fetchNearPosts: {
             try await Client.request(target: PostAPI.fetchNearPosts)
         } fetchPostByID: { id in

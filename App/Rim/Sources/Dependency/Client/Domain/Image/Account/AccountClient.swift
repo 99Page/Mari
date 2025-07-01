@@ -15,38 +15,43 @@ import GoogleSignIn
 
 @DependencyClient
 struct AccountClient {
-    var loginUsingApple: (_ token: String, _ nonce: String) async throws -> Void
+    var loginUsingApple: (_ token: String, _ nonce: String) async throws -> AuthDataResult
     var logout: () throws -> Void
     var isLoggedIn: () -> Bool = { false }
+    var signInFirebase: (_ credential: AuthCredential) async throws -> AuthDataResult
 }
 
 extension AccountClient: DependencyKey {
     static var liveValue: AccountClient {
-        AccountClient { token, nonce in
-            // https://firebase.google.com/docs/auth/ios/apple?hl=ko
+        let signIn: (_ credential: AuthCredential) async throws -> AuthDataResult = { credential in
+            let authData: AuthDataResult? = try await withCheckedThrowingContinuation { continuation in
+                Auth.auth().signIn(with: credential) { result, error in
+                    if let error = error {
+                        continuation.resume(throwing: error)
+                        return
+                    }
+                    continuation.resume(returning: result)
+                }
+            }
+            guard let authData else { throw ClientError.emptyValue }
+            return authData
+        }
+        
+        return AccountClient { token, nonce in
             let credential = OAuthProvider.credential(
                 providerID: .apple,
                 idToken: token,
                 rawNonce: nonce,
                 accessToken: nil
             )
-            
-            let _: AuthDataResult? = try await withCheckedThrowingContinuation { continuation in
-                Auth.auth().signIn(with: credential) { result, error in
-                    if let error = error {
-                        continuation.resume(throwing: error)
-                        return
-                    }
-                    
-                    continuation.resume(returning: result)
-                }
-            }
+            return try await signIn(credential)
         } logout: {
-            // https://firebase.google.com/docs/auth/ios/apple?hl=ko#next-steps
             let firebaseAuth = Auth.auth()
             try firebaseAuth.signOut()
         } isLoggedIn: {
             return Auth.auth().currentUser != nil
+        } signInFirebase: { credential in
+            try await signIn(credential)
         }
     }
 }

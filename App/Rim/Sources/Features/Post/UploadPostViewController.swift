@@ -68,21 +68,21 @@ struct UploadPostFeature {
                 guard let imageURL else { return .none }
                 guard let location = locationManager.location else { return .none }
                 
-                let geoPoint = GeoPoint(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
-                
-                let request = PostRequest(
-                    content: state.descriptionText.text,
+                let request = CreatePostRequest(
+                    title: "title",
+                    content: "content",
+                    latitude: location.coordinate.latitude,
+                    longitude: location.coordinate.longitude,
                     creatorID: UUID().uuidString,
-                    imageUrl: imageURL,
-                    location: geoPoint,
-                    title: "Tmp title"
+                    imageUrl: imageURL
                 )
                 
                 return .run { send in
-                    try await postClient.post(request: request)
+                    try await postClient.createPost(request: request)
+                    debugPrint("success")
                     await send(.delegate(.uploadSucceeded))
                 } catch: { error, send in
-                    
+                    debugPrint("fail \(error)")
                 }
             }
         }
