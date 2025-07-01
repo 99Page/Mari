@@ -10,7 +10,7 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
-import * as geohash from "ngeohash";
+// import * as geohash from "ngeohash";
 
 // The Firebase Admin SDK to access Firestore.
 import { getFirestore } from "firebase-admin/firestore";
@@ -68,6 +68,22 @@ export const getPostById = onRequest({ region: REGION }, async (req, res) => {
 
 export const createPost = onRequest({ region: REGION }, async (req, res) => {
   try {
+    const authHeader = req.headers.authorization;
+    const idToken = authHeader?.startsWith("Bearer ") ? authHeader.split("Bearer ")[1] : null;
+
+    if (!idToken) {
+      res.status(401).send("Missing or invalid Authorization header");
+      return;
+    }
+
+    try {
+      await admin.auth().verifyIdToken(idToken);
+    } catch (error) {
+      logger.error("Token verification failed:", error);
+      res.status(401).send("Unauthorized");
+      return;
+    }
+
     const body = req.body;
 
     if (!body || typeof body !== "object") {
@@ -82,10 +98,24 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       return;
     }
 
-    const geohashFields: Record<string, string> = {};
-    for (let p = 1; p <= 10; p++) {
-      geohashFields[`geohash_${p}`] = geohash.encode(latitude, longitude, p);
+    if (
+      typeof latitude !== "number" || isNaN(latitude) ||
+      typeof longitude !== "number" || isNaN(longitude)
+    ) {
+      res.status(400).send("Invalid latitude or longitude");
+      return;
     }
+
+    // let geohashFields: Record<string, string> = {};
+    // try {
+    //   for (let p = 1; p <= 10; p++) {
+    //     geohashFields[`geohash_${p}`] = geohash.encode(latitude, longitude, p);
+    //   }
+    // } catch (e) {
+    //   logger.error("GeoHash encoding failed:", e);
+    //   res.status(500).send("GeoHash encoding error");
+    //   return;
+    // }
 
     const newPost = {
       title,
@@ -99,8 +129,8 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       weeklyScore: 0,
       monthlyScore: 0,
       viewCount: 0,
-      createdAt: new Date().toISOString(),
-      ...geohashFields
+      createdAt: new Date().toISOString()
+      // ...geohashFields
     };
 
     const postRef = await db.collection("posts").add(newPost);

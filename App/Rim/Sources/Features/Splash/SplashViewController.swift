@@ -11,6 +11,7 @@ import SnapKit
 import SwiftUI
 import UIKit
 import Core
+import FirebaseAuth
 
 @Reducer
 struct SplashFeature {
@@ -48,6 +49,11 @@ struct SplashFeature {
             case .view(.viewDidLoad):
                 let isLoggedIn = accountClient.isLoggedIn()
                 return .run { send in
+                    Auth.auth().currentUser?.getIDTokenForcingRefresh(true) { idToken, error in
+                        if let idToken = idToken {
+                            print("🔥 ID Token for Firebase:", idToken)
+                        }
+                    }
                     isLoggedIn ? await send(.delegate(.loggedIn)) : await send(.delegate(.loggedOut))
                 }
             case .view(.binding):
