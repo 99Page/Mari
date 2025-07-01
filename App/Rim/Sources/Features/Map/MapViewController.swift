@@ -14,7 +14,6 @@ import ComposableArchitecture
 
 @ViewAction(for: MapFeature.self)
 class MapViewController: UIViewController, NMFMapViewCameraDelegate {
-    
     @UIBindable var store: StoreOf<MapFeature>
     
     private lazy var mapView: NMFMapView = {
@@ -87,6 +86,11 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
                     marker.width = 80
                     marker.height = 80
                     marker.captionText = post.title
+                    
+                    // Map에 추가할 수 있는 이미지의 크기는 제한되어 있습니다.
+                    // 이미지의 용량이 클 경우, 마커가 표시되지 않습니다.
+                    // 이미지의 크기를 최소화해야 이미지가 포함된 마커를 여러개 표시할 수 있습니다.
+                    // -page, 2025. 07. 01
                     let resized = resizedImage(image, size: CGSize(width: 80, height: 80))
                     marker.iconImage = NMFOverlayImage(image: resized)
                     marker.mapView = mapView
@@ -150,6 +154,12 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         @unknown default:
             break
         }
+    }
+    
+
+    // 카메라 이동이 모두 끝났을 때 호출됩니다. -page 2025. 07. 01
+    func mapViewCameraIdle(_ mapView: NMFMapView) {
+        store.zoomLevel = mapView.cameraPosition.zoom
     }
     
     private func showLocationPermissionAlert() {

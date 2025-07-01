@@ -7,7 +7,6 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import Geohash from "latlon-geohash";
@@ -15,6 +14,8 @@ import Geohash from "latlon-geohash";
 // The Firebase Admin SDK to access Firestore.
 import { getFirestore } from "firebase-admin/firestore";
 import { initializeApp } from "firebase-admin/app";
+import { onRequest } from "firebase-functions/v2/https";
+
 
 const app = initializeApp();
 const db = getFirestore(app, "mari-db");
@@ -27,8 +28,49 @@ export const helloWorld = onRequest({ region: REGION }, (request, response) => {
 });
 
 export const getPosts = onRequest({ region: REGION }, async (req, res) => {
+  const lat = parseFloat(req.query.latitude as string);
+  const lng = parseFloat(req.query.longitude as string);
+  const precision = parseInt(req.query.precision as string, 10); // 10진법으로 변환
+
+  if (isNaN(lat) || isNaN(lng)) {
+    res.status(400).send("Missing or invalid 'latitude' or 'longitude' query parameters");
+    return;
+  }
+
+  if (isNaN(precision) || precision < 1 || precision > 10) {
+    res.status(400).send("Missing or invalid 'precision' query parameter. Must be between 1 and 10.");
+    return;
+  }
+
+  logger.info("Query Params", { latitude: lat, longitude: lng, precision });
+
+  // 현재 위치 값 해싱 (정확한 geohash만 쿼리)
+  const geohash = Geohash.encode(lat, lng, precision);
+  logger.info(`GeoHash(${precision}): ${geohash}`);
+
   try {
-    const snapshot = await db.collectionGroup("posts").get();
+    const geohashBlocks = [
+      geohash,
+      Geohash.adjacent(geohash, "N"),
+      Geohash.adjacent(Geohash.adjacent(geohash, "N"), "E"),  // NE
+      Geohash.adjacent(geohash, "E"),
+      Geohash.adjacent(Geohash.adjacent(geohash, "S"), "E"),  // SE
+      Geohash.adjacent(geohash, "S"),
+      Geohash.adjacent(Geohash.adjacent(geohash, "S"), "W"),  // SW
+      Geohash.adjacent(geohash, "W"),
+      Geohash.adjacent(Geohash.adjacent(geohash, "N"), "W"),  // NW
+    ];
+
+    const geohashField = `geohash_${precision}`;
+    logger.info("Fetching posts with geohash:", geohash, "Field:", geohashField, "block:", geohashBlocks);
+    const snapshot = await db
+      .collectionGroup("posts")
+      .where(geohashField, "in", geohashBlocks) // 복합 인덱스가 설정되어야함
+      .orderBy("createdAt", "desc")
+      .get();
+
+    logger.info(`Fetched ${snapshot.size} posts`);
+
     const posts = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()

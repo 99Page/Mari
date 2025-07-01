@@ -17,6 +17,9 @@ struct MapFeature {
         @Presents var alert: AlertState<Action.Alert>?
         @Presents var uploadPost: UploadPostFeature.State?
         
+        // 기본 줌 레벨.
+        // 줌 레벨의 최대값 22, 최솟값은 약 0.67
+        var zoomLevel: Double = 14.0
         var posts: [PostSummaryState] = []
     }
     
