@@ -59,16 +59,14 @@ final class KeychainHelper {
         throw ClientError.emptyValue
     }
 
-    @discardableResult
-    static func delete(service: KeychainService, account: KeychainAccount) -> Bool {
+    static func delete(service: KeychainService, account: KeychainAccount) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service.rawValue,
             kSecAttrAccount as String: account.rawValue
         ]
 
-        let status = SecItemDelete(query as CFDictionary)
-        return status == errSecSuccess
+        let _ = SecItemDelete(query as CFDictionary)
     }
 }
 
@@ -76,7 +74,7 @@ final class KeychainHelper {
 struct KeychainClient {
     var save: (_ value: String, _ service: KeychainService, _ account: KeychainAccount) throws -> Void = { _, _, _ in }
     var load: (_ service: KeychainService, _ account: KeychainAccount) throws -> String
-    var delete: (_ service: KeychainService, _ account: KeychainAccount) throws -> Void = { _, _ in }
+    var delete: (_ service: KeychainService, _ account: KeychainAccount) -> Void = { _, _ in }
 }
 
 extension KeychainClient: DependencyKey {

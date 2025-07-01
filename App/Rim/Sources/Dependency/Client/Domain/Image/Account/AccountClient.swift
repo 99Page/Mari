@@ -46,8 +46,10 @@ extension AccountClient: DependencyKey {
             )
             return try await signIn(credential)
         } logout: {
+            @Dependency(\.keychain) var keychain
             let firebaseAuth = Auth.auth()
             try firebaseAuth.signOut()
+            keychain.delete(service: .firebase, account: .idToken)
         } isLoggedIn: {
             return Auth.auth().currentUser != nil
         } signInFirebase: { credential in

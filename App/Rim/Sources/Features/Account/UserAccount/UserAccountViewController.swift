@@ -43,6 +43,7 @@ struct UserAccountFeature {
             case .view(.logoutButtonTapped):
                 return .run { send in
                     try accountClient.logout()
+                    
                     await send(.delegate(.logoutSucceeded))
                 } catch: { error, send in
                     // 에러 처리
