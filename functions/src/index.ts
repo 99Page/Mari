@@ -10,7 +10,7 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
-// import * as geohash from "ngeohash";
+import Geohash from "latlon-geohash";
 
 // The Firebase Admin SDK to access Firestore.
 import { getFirestore } from "firebase-admin/firestore";
@@ -68,6 +68,7 @@ export const getPostById = onRequest({ region: REGION }, async (req, res) => {
 
 export const createPost = onRequest({ region: REGION }, async (req, res) => {
   try {
+    // 클라이언트에서 전달된 Firebase 인증 토큰을 확인
     const authHeader = req.headers.authorization;
     const idToken = authHeader?.startsWith("Bearer ") ? authHeader.split("Bearer ")[1] : null;
 
@@ -84,6 +85,7 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       return;
     }
 
+    // 요청 본문에서 필요한 필드 추출 및 유효성 검사
     const body = req.body;
 
     if (!body || typeof body !== "object") {
@@ -106,17 +108,22 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       return;
     }
 
-    // let geohashFields: Record<string, string> = {};
-    // try {
-    //   for (let p = 1; p <= 10; p++) {
-    //     geohashFields[`geohash_${p}`] = geohash.encode(latitude, longitude, p);
-    //   }
-    // } catch (e) {
-    //   logger.error("GeoHash encoding failed:", e);
-    //   res.status(500).send("GeoHash encoding error");
-    //   return;
-    // }
+    // GeoHash는 위치 기반 검색 최적화를 위해 사용됨
+    // precision 값이 작을수록 더 넓은 범위를 커버하고, 클수록 정밀도가 높아짐
+    // 예) precision 1 → 약 수천 km / precision 10 → 약 1m 단위의 위치 구분 가능
+    // precision 1~10까지의 다양한 정밀도로 인코딩된 값들을 생성하여 저장
+    let geohashFields: Record<string, string> = {};
+    try {
+      for (let p = 1; p <= 10; p++) {
+        geohashFields[`geohash_${p}`] = Geohash.encode(latitude, longitude, p);
+      }
+    } catch (e) {
+      logger.error("GeoHash encoding failed:", e);
+      res.status(500).send("GeoHash encoding error");
+      return;
+    }
 
+    // Firestore에 저장할 새로운 포스트 객체 구성
     const newPost = {
       title,
       content,
@@ -129,10 +136,11 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       weeklyScore: 0,
       monthlyScore: 0,
       viewCount: 0,
-      createdAt: new Date().toISOString()
-      // ...geohashFields
+      createdAt: new Date().toISOString(),
+      ...geohashFields
     };
 
+    // Firestore의 "posts" 컬렉션에 문서 추가
     const postRef = await db.collection("posts").add(newPost);
 
     res.status(201).json({ id: postRef.id, ...newPost });
