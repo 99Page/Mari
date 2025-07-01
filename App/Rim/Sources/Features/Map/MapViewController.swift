@@ -87,7 +87,8 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
                     marker.width = 80
                     marker.height = 80
                     marker.captionText = post.title
-                    marker.iconImage = NMFOverlayImage(image: image)
+                    let resized = resizedImage(image, size: CGSize(width: 80, height: 80))
+                    marker.iconImage = NMFOverlayImage(image: resized)
                     marker.mapView = mapView
                     markers.append(marker)
                 } catch {
@@ -204,6 +205,15 @@ extension MapViewController: UIImagePickerControllerDelegate, UINavigationContro
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         if let image = info[.originalImage] as? UIImage {
             send(.cameraButtonTapped(image))
+        }
+    }
+}
+
+private extension MapViewController {
+    func resizedImage(_ image: UIImage, size: CGSize) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
         }
     }
 }
