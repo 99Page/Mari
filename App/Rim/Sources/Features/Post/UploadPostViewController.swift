@@ -69,7 +69,7 @@ struct UploadPostFeature {
                 guard let location = locationManager.location else { return .none }
                 
                 let request = CreatePostRequest(
-                    title: "title",
+                    title: state.descriptionText.text,
                     content: "content",
                     latitude: location.coordinate.latitude,
                     longitude: location.coordinate.longitude,

@@ -14,12 +14,12 @@ import FirebaseFunctions
 @DependencyClient
 struct PostClient {
     var createPost: (_ request: CreatePostRequest) async throws -> PostDTO
-    var fetchNearPosts: () async throws -> [PostDTO]
+    var fetchNearPosts: (_ request: FetchNearPostsRequest) async throws -> [PostDTO]
     var fetchPostByID: (_ id: String) async throws -> PostDTO
     
     enum PostAPI: APITarget {
         case createPost(request: CreatePostRequest)
-        case fetchNearPosts
+        case fetchNearPosts(request: FetchNearPostsRequest)
         case fetchPostByID(id: String)
         
         var method: HTTPMethod {
@@ -60,7 +60,8 @@ struct PostClient {
         var path: String {
             switch self {
             case .createPost: "/createPost"
-            case .fetchNearPosts: "/getPosts"
+            case let .fetchNearPosts(request):
+                "/getPosts/?latitude=\(request.latitude)&longitude=\(request.longitude)&precision=\(request.precision)"
             case let .fetchPostByID(id): "/getPostById?id=\(id)"
             }
         }
@@ -71,8 +72,8 @@ extension PostClient: DependencyKey {
     static var liveValue: PostClient {
         PostClient { request in
             try await Client.request(target: PostAPI.createPost(request: request))
-        } fetchNearPosts: {
-            try await Client.request(target: PostAPI.fetchNearPosts)
+        } fetchNearPosts: { request in
+            try await Client.request(target: PostAPI.fetchNearPosts(request: request))
         } fetchPostByID: { id in
             try await Client.request(target: PostAPI.fetchPostByID(id: id))
         }

@@ -9,6 +9,7 @@ import Foundation
 import ComposableArchitecture
 import UIKit
 import Core
+import CoreLocation
 
 @Reducer
 struct MapFeature {
@@ -17,10 +18,18 @@ struct MapFeature {
         @Presents var alert: AlertState<Action.Alert>?
         @Presents var uploadPost: UploadPostFeature.State?
         
-        // 기본 줌 레벨.
+        // 기본 줌 레벨 14
         // 줌 레벨의 최대값 22, 최솟값은 약 0.67
         var zoomLevel: Double = 14.0
         var posts: [PostSummaryState] = []
+        
+        var precision: Double {
+            if zoomLevel <= 14 {
+                return 6
+            } else {
+                return 6
+            }
+        }
     }
     
     enum Action: ViewAction {
@@ -61,10 +70,21 @@ struct MapFeature {
                 }
                 
             case .view(.viewDidLoad):
+                let locationManager = CLLocationManager()
+                guard let location = locationManager.location else { return .none }
+                
+                let request = FetchNearPostsRequest(
+                    latitude: location.coordinate.latitude,
+                    longitude: location.coordinate.longitude,
+                    precision: state.precision
+                )
+                
                 return .run { send in
-                    let response = try await postClient.fetchNearPosts()
+                    let response = try await postClient.fetchNearPosts(request)
                     let posts = response.map { PostSummaryState(dto: $0) }
                     await send(.setPosts(posts))
+                } catch: { error, send in
+                    debugPrint("fetch fail")
                 }
                 
             case .view(.binding(_)):

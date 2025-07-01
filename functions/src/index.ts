@@ -49,32 +49,51 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
   logger.info(`GeoHash(${precision}): ${geohash}`);
 
   try {
+
+    // 5x3 총 15개 구역에서 조회
     const geohashBlocks = [
-      geohash,
-      Geohash.adjacent(geohash, "N"),
-      Geohash.adjacent(Geohash.adjacent(geohash, "N"), "E"),  // NE
-      Geohash.adjacent(geohash, "E"),
-      Geohash.adjacent(Geohash.adjacent(geohash, "S"), "E"),  // SE
-      Geohash.adjacent(geohash, "S"),
-      Geohash.adjacent(Geohash.adjacent(geohash, "S"), "W"),  // SW
-      Geohash.adjacent(geohash, "W"),
-      Geohash.adjacent(Geohash.adjacent(geohash, "N"), "W"),  // NW
+      Geohash.adjacent(Geohash.adjacent(Geohash.adjacent(geohash, "N"), "N"), "W"), // NNW
+      Geohash.adjacent(Geohash.adjacent(geohash, "N"), "N"), // NN
+      Geohash.adjacent(Geohash.adjacent(Geohash.adjacent(geohash, "N"), "N"), "E"), // NNE
+
+      Geohash.adjacent(Geohash.adjacent(geohash, "N"), "W"), // NW
+      Geohash.adjacent(geohash, "N"),                       // N
+      Geohash.adjacent(Geohash.adjacent(geohash, "N"), "E"), // NE
+
+      Geohash.adjacent(geohash, "W"),                       // W
+      geohash,                                              // 현재위치
+      Geohash.adjacent(geohash, "E"),                       // E
+
+      Geohash.adjacent(Geohash.adjacent(geohash, "S"), "W"), // SW
+      Geohash.adjacent(geohash, "S"),                       // S
+      Geohash.adjacent(Geohash.adjacent(geohash, "S"), "E"), // SE
+      
+      Geohash.adjacent(Geohash.adjacent(Geohash.adjacent(geohash, "S"), "S"), "W"), // SSW
+      Geohash.adjacent(Geohash.adjacent(geohash, "S"), "S"), // SE
+      Geohash.adjacent(Geohash.adjacent(Geohash.adjacent(geohash, "S"), "S"), "E"), // SSE
     ];
 
     const geohashField = `geohash_${precision}`;
     logger.info("Fetching posts with geohash:", geohash, "Field:", geohashField, "block:", geohashBlocks);
-    const snapshot = await db
-      .collectionGroup("posts")
-      .where(geohashField, "in", geohashBlocks) // 복합 인덱스가 설정되어야함
-      .orderBy("createdAt", "desc")
-      .get();
 
-    logger.info(`Fetched ${snapshot.size} posts`);
+    // 각 geohash 블록별로 최대 1개씩만 반환
+    const posts: any[] = [];
 
-    const posts = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    for (const hash of geohashBlocks) {
+      const snapshot = await db
+        .collectionGroup("posts")
+        .where(geohashField, "==", hash)
+        .orderBy("createdAt", "desc")
+        .limit(1)
+        .get();
+
+      logger.info(`Fetched ${snapshot.size} posts for hash ${hash}`);
+
+      if (!snapshot.empty) {
+        const doc = snapshot.docs[0];
+        posts.push({ id: doc.id, ...doc.data() });
+      }
+    }
 
     res.status(200).json(posts);
   } catch (error) {
