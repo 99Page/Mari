@@ -71,3 +71,4 @@ Tuist/.build
 
 ### Firebase ###
 node_modules/
+*.log
