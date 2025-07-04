@@ -26,6 +26,7 @@ struct MapFeature {
         
         var posts: [PostSummaryState] = []
         var retrievedGeoHashes: Set<String> = []
+        var centerPosition = NMGLatLng(lat: 0, lng: 0)
         
         var precision: Geohash.Precision {
             if zoomLevel <= 14 {
@@ -37,6 +38,7 @@ struct MapFeature {
     }
     
     enum Action: ViewAction {
+        case fetchPosts
         case setPosts(FetchNearPostsResponse)
         case view(UIAction)
         case alert(PresentationAction<Alert>)
@@ -75,30 +77,21 @@ struct MapFeature {
                 }
                 
             case let .view(.cameraDidMove(zoomLevel, cameraPosition)):
-                state.zoomLevel = zoomLevel
                 let centerGeoHash = Geohash.encode(latitude: cameraPosition.lat, longitude: cameraPosition.lng, precision: state.precision)
                 
                 guard !state.retrievedGeoHashes.contains(centerGeoHash) else { return .none}
                 
-                let request = FetchNearPostsRequest(
-                    latitude: cameraPosition.lat,
-                    longitude: cameraPosition.lng,
-                    precision: state.precision.rawValue
-                )
+                state.zoomLevel = zoomLevel
+                state.centerPosition = cameraPosition
                 
-                return .run { send in
-                    let response = try await postClient.fetchNearPosts(request)
-                    await send(.setPosts(response))
-                } catch: { error, send in
-                    debugPrint("fetch fail")
-                }
+                return .send(.fetchPosts)
                 
             case .view(.binding(_)):
                 return .none
                 
             case .uploadPost(.presented(.delegate(.uploadSucceeded))):
                 state.uploadPost = nil
-                return .none
+                return .send(.fetchPosts)
                 
             case .uploadPost(_):
                 return .none
@@ -134,6 +127,23 @@ struct MapFeature {
                     }
                 }
                 return .none
+                
+            case .fetchPosts:
+                let lat = state.centerPosition.lat
+                let lng = state.centerPosition.lng
+                
+                let request = FetchNearPostsRequest(
+                    latitude: lat,
+                    longitude: lng,
+                    precision: state.precision.rawValue
+                )
+                
+                return .run { send in
+                    let response = try await postClient.fetchNearPosts(request)
+                    await send(.setPosts(response))
+                } catch: { error, send in
+                    await send(.showFetchFailAlert)
+                }
             }
         }
         .ifLet(\.$alert, action: \.alert)
