@@ -14,7 +14,6 @@ import ComposableArchitecture
 
 @ViewAction(for: MapFeature.self)
 class MapViewController: UIViewController, NMFMapViewCameraDelegate {
-    
     @UIBindable var store: StoreOf<MapFeature>
     
     private lazy var mapView: NMFMapView = {
@@ -41,8 +40,6 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         makeConstraint()
         setupView()
         updateView()
-        
-        send(.viewDidLoad)
         
         present(item: $store.scope(state: \.alert, action: \.alert)) { store in
             UIAlertController(store: store)
@@ -87,7 +84,13 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
                     marker.width = 80
                     marker.height = 80
                     marker.captionText = post.title
-                    marker.iconImage = NMFOverlayImage(image: image)
+                    
+                    // Map에 추가할 수 있는 이미지의 크기는 제한되어 있습니다.
+                    // 이미지의 용량이 클 경우, 마커가 표시되지 않습니다.
+                    // 이미지의 크기를 최소화해야 이미지가 포함된 마커를 여러개 표시할 수 있습니다.
+                    // -page, 2025. 07. 01
+                    let resized = resizedImage(image, size: CGSize(width: 80, height: 80))
+                    marker.iconImage = NMFOverlayImage(image: resized)
                     marker.mapView = mapView
                     markers.append(marker)
                 } catch {
@@ -151,6 +154,13 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         }
     }
     
+    // 카메라 이동이 모두 끝났을 때 호출됩니다. -page 2025. 07. 01
+    func mapViewCameraIdle(_ mapView: NMFMapView) {
+        let zoomLevel = mapView.zoomLevel
+        let centerPosition = mapView.cameraPosition
+        send(.cameraDidMove(zoomLevel: mapView.zoomLevel, centerPosition: centerPosition.target))
+    }
+    
     private func showLocationPermissionAlert() {
         let alert = UIAlertController(
             title: "위치 권한 필요",
@@ -204,6 +214,15 @@ extension MapViewController: UIImagePickerControllerDelegate, UINavigationContro
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         if let image = info[.originalImage] as? UIImage {
             send(.cameraButtonTapped(image))
+        }
+    }
+}
+
+private extension MapViewController {
+    func resizedImage(_ image: UIImage, size: CGSize) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
         }
     }
 }

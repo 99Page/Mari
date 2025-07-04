@@ -52,12 +52,13 @@ struct SignInFeature {
         case delegate(Delegate)
         case dismissProgressView
         case alert(PresentationAction<AlertAction>)
+        case firebaseSignInSucceeded(AuthDataResult)
         
         enum UIAction: BindableAction {
-            case appleLoginSucceeded(identityToken: String)
-            case loginFailed
-            case googleLoginSucceeded
-            case appleLoginTapped
+            case appleSignInSucceeded(identityToken: String)
+            case signInFailed
+            case googleCredentialCreated(credential: AuthCredential)
+            case appleSignInTapped
             case binding(BindingAction<State>)
         }
         
@@ -68,33 +69,37 @@ struct SignInFeature {
     
     @Dependency(\.accountClient) var accountClient
     @Dependency(\.nonceGenerator) var nonceGenerator
+    @Dependency(\.keychain) var keychain
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
         
         Reduce<State, Action> { state, action in
             switch action {
-            case let .view(.appleLoginSucceeded(identitiyToken)):
+            case let .view(.appleSignInSucceeded(identitiyToken)):
                 state.isProgressPresented = true
                 return .run { [nonce = state.originNonce] send in
-                    try await accountClient.loginUsingApple(token: identitiyToken, nonce: nonce)
-                    await send(.dismissProgressView)
-                    await send(.delegate(.signInSucceeded))
+                    let authData = try await accountClient.loginUsingApple(token: identitiyToken, nonce: nonce)
+                    await send(.firebaseSignInSucceeded(authData))
+                } catch: { error, send in
+                    await send(.view(.signInFailed))
                 }
                 
-            case .view(.appleLoginTapped):
+            case .view(.appleSignInTapped):
                 state.originNonce = nonceGenerator.generateNonce(length: 32)
                 state.hashedNonce = nonceGenerator.hash(origin: state.originNonce)
                 return .none
                 
-            case .view(.googleLoginSucceeded):
-                state.isProgressPresented = false
-                return .send(.delegate(.signInSucceeded))
+            case let .view(.googleCredentialCreated(credential)):
+                return .run { send in
+                    let authData = try await accountClient.signInFirebase(credential: credential)
+                    await send(.firebaseSignInSucceeded(authData))
+                }
                 
             case .view(.binding(_)):
                 return .none
                 
-            case .view(.loginFailed):
+            case .view(.signInFailed):
                 state.alert = AlertState {
                     TextState("로그인에 실패했어요")
                 } actions: {
@@ -113,6 +118,14 @@ struct SignInFeature {
                 
             case .alert(_):
                 return .none
+                
+            case let .firebaseSignInSucceeded(authData):
+                return .run { send in
+                    let idToken = try await authData.user.getIDToken()
+                    try keychain.save(value: idToken, service: .firebase, account: .idToken)
+                    await send(.dismissProgressView)
+                    await send(.delegate(.signInSucceeded))
+                }
             }
         }
         .ifLet(\.$alert, action: \.alert)
@@ -222,7 +235,7 @@ extension SignInViewController: ASAuthorizationControllerDelegate, ASAuthorizati
             return
         }
         
-        send(.appleLoginSucceeded(identityToken: identityTokenString))
+        send(.appleSignInSucceeded(identityToken: identityTokenString))
     }
     
     func authorizationController(controller: ASAuthorizationController, didCompleteWithError error: Error) {
@@ -234,12 +247,12 @@ extension SignInViewController: ASAuthorizationControllerDelegate, ASAuthorizati
         case .notHandled:
             break
         default:
-            send(.loginFailed)
+            send(.signInFailed)
         }
     }
     
     @objc func handleAppleSignIn() {
-        send(.appleLoginTapped)
+        send(.appleSignInTapped)
         
         let provider = ASAuthorizationAppleIDProvider()
         let request = provider.createRequest()
@@ -269,7 +282,7 @@ extension SignInViewController {
         GIDSignIn.sharedInstance.signIn(withPresenting: self) { [weak self] result, error in
             
             guard error == nil else {
-                self?.send(.loginFailed)
+                self?.send(.signInFailed)
                 return
             }
             
@@ -282,8 +295,7 @@ extension SignInViewController {
             let credential = GoogleAuthProvider.credential(withIDToken: idToken,
                                                            accessToken: user.accessToken.tokenString)
             
-            Auth.auth().signIn(with: credential)
-            self?.send(.googleLoginSucceeded)
+            self?.send(.googleCredentialCreated(credential: credential))
         }
     }
 }

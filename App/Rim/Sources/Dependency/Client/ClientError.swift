@@ -11,4 +11,6 @@ enum ClientError: Error {
     case unwrappingFailed
     case invalidURL
     case firebaseError
+    case emptyValue
+    case emptyToken
 }

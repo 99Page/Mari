@@ -14,15 +14,29 @@ struct TabFeature {
     struct State: Equatable {
         var mapStack = MapNavigationStack.State()
         var userAccount = UserAccountFeature.State()
+        
+        @Presents var alert: AlertState<AlertAction>?
     }
     
     enum Action: ViewAction {
         case mapStack(MapNavigationStack.Action)
         case userAccount(UserAccountFeature.Action)
         case view(UIAction)
+        case alert(PresentationAction<AlertAction>)
+        case showRefreshFailAlert
         
-        enum UIAction { }
+        enum UIAction {
+            case viewDidLoad
+        }
     }
+    
+    @CasePathable
+    enum AlertAction: Equatable {
+        case showSignIn
+    }
+    
+    @Dependency(\.continuousClock) var clock
+    @Dependency(\.accountClient) var accountClient
     
     var body: some ReducerOf<Self> {
         Scope(state: \.mapStack, action: \.mapStack) {
@@ -39,17 +53,40 @@ struct TabFeature {
                 return .none
             case .userAccount:
                 return .none
-            case .view:
+            case .view(.viewDidLoad):
+                return .run { send in
+                    // https://firebase.google.com/docs/auth/admin/manage-sessions?utm_source=chatgpt.com&hl=ko
+                    // id 토큰은 1시간동안 지속됩니다.
+                    // 주기적으로 갱신해야합니다. -page, 2025. 07. 04
+                    for await _ in clock.timer(interval: .seconds(60 * 50)) {
+                        try await accountClient.refreshIdToken()
+                    }
+                } catch: { error, send in
+                    await send(.showRefreshFailAlert)
+                }
+                
+            case .alert:
+                return .none
+                
+            case .showRefreshFailAlert:
+                state.alert = AlertState {
+                    TextState("로그인 정보가 만료됐어요")
+                } actions: {
+                    ButtonState(role: .cancel, action: .showSignIn) {
+                        TextState("확인")
+                    }
+                }
                 return .none
             }
         }
+        .ifLet(\.$alert, action: \.alert)
     }
 }
 
 @ViewAction(for: TabFeature.self)
 final class RimTabViewController: UITabBarController {
 
-    let store: StoreOf<TabFeature>
+    @UIBindable var store: StoreOf<TabFeature>
     
     init(store: StoreOf<TabFeature>) {
         self.store = store
@@ -65,6 +102,12 @@ final class RimTabViewController: UITabBarController {
         
         setupView()
         buildViewControllers()
+        
+        send(.viewDidLoad)
+        
+        present(item: $store.scope(state: \.alert, action: \.alert)) { store in
+            UIAlertController(store: store)
+        }
     }
     
     private func setupView() {

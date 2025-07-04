@@ -30,7 +30,7 @@ struct UserAccountFeature {
         
         @CasePathable
         enum Delegate {
-            case logoutSucceeded 
+            case logout
         }
     }
     
@@ -39,13 +39,9 @@ struct UserAccountFeature {
     var body: some ReducerOf<Self> {
         Reduce<State, Action> { state, action in
             switch action {
-                
             case .view(.logoutButtonTapped):
                 return .run { send in
-                    try accountClient.logout()
-                    await send(.delegate(.logoutSucceeded))
-                } catch: { error, send in
-                    // 에러 처리
+                    await send(.delegate(.logout))
                 }
                 
             case .delegate:

@@ -53,6 +53,7 @@ let target = Target.target(
         .package(product: "FirebaseCore"),
         .package(product: "FirebaseFirestore"),
         .package(product: "FirebaseFunctions"),
+        .package(product: "Geohash"),
         .project(target: "Core", path: .relativeToRoot("Core")),
         .package(product: "ComposableArchitecture") // Core가 ComposableAchitecture를 의존 중입니다. -page 2025. 06. 18
     ],
@@ -71,7 +72,8 @@ let project = Project(
     packages: [
         .remote(url: "https://github.com/navermaps/SPM-NMapsMap", requirement: .exact("3.21.0")),
         .remote(url: "https://github.com/firebase/firebase-ios-sdk", requirement: .exact("11.13.0")),
-        .remote(url: "https://github.com/google/GoogleSignIn-iOS", requirement: .exact("8.0.0"))
+        .remote(url: "https://github.com/google/GoogleSignIn-iOS", requirement: .exact("8.0.0")),
+        .remote(url: "https://github.com/nh7a/Geohash.git", requirement: .exact("1.0.0"))
         
     ],
     targets: [

@@ -10,15 +10,11 @@ import FirebaseCore
 import CoreLocation
 import FirebaseFirestore
 
-struct PostRequest: Encodable {
-    let content: String
-    let createdAt = Timestamp(date: .now)
-    let creatorID: String
-    let dailyScore = 0
-    let imageUrl: String
-    let location: GeoPoint
-    let monthlyScore = 0
+struct CreatePostRequest: Encodable {
     let title: String
-    let viewCount = 0
-    let weeklyScore = 0
+    let content: String
+    let latitude: Double
+    let longitude: Double
+    let creatorID: String
+    let imageUrl: String
 }
