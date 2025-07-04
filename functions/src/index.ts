@@ -7,6 +7,7 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
+import * as functions from 'firebase-functions'
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import Geohash from "latlon-geohash";
@@ -214,3 +215,83 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
     res.status(500).send("Failed to create post");
   }
 });
+
+// 5분 내 중복 조회 방지용 (선택)
+const VIEW_DUPLICATION_LIMIT_MS = 5 * 60 * 1000 // 5분
+
+export const increasePostViewCount = functions.https.onRequest(
+  { region: REGION },
+  async (req, res) => {
+    if (req.method !== 'POST') {
+      res.status(405).send('Method Not Allowed');
+      return;
+    }
+
+    // 🔒 Firebase ID 토큰 확인
+    const authHeader = req.headers.authorization;
+    const idToken = authHeader?.startsWith("Bearer ")
+      ? authHeader.split("Bearer ")[1]
+      : null;
+
+    if (!idToken) {
+      res.status(401).send("Missing or invalid Authorization header");
+      return;
+    }
+
+    let decodedToken: admin.auth.DecodedIdToken;
+    try {
+      decodedToken = await admin.auth().verifyIdToken(idToken);
+    } catch (error) {
+      logger.error("Token verification failed:", error);
+      res.status(401).send("Unauthorized");
+      return;
+    }
+
+    const uid = decodedToken.uid;
+    const postId = req.path.split('/')[2]; // e.g. /posts/{postId}/views
+
+    if (!postId) {
+      res.status(400).json({ error: 'Missing postId' });
+      return;
+    }
+
+    // 현재 시간 기준 날짜 & 시각 블럭 계산
+    const now = new Date();
+    const koreaOffset = 9 * 60 * 60 * 1000;
+    const kst = new Date(now.getTime() + koreaOffset);
+    const yyyyMMdd = kst.toISOString().slice(0, 10); // "2025-07-04"
+    const hour = kst.getUTCHours().toString().padStart(2, '0'); // "14"
+
+    // 🔁 중복 조회 여부 체크
+    const historyRef = db.collection('post_view_history').doc(`${uid}_${postId}`);
+    const historySnap = await historyRef.get();
+
+    const lastViewedAt = historySnap.exists
+      ? historySnap.data()?.lastViewedAt?.toDate?.()
+      : null;
+
+    if (lastViewedAt && now.getTime() - lastViewedAt.getTime() < VIEW_DUPLICATION_LIMIT_MS) {
+      res.status(200).json({ message: 'View ignored (too recent)' });
+      return;
+    }
+
+    // 📈 시간 단위 조회수 증가
+    const hourlyRef = db
+      .collection("post_view_blocks")
+      .doc(yyyyMMdd)
+      .collection("hours")
+      .doc(hour)
+      .collection("posts")
+      .doc(postId);
+
+    await hourlyRef.set(
+      { viewCount: admin.firestore.FieldValue.increment(1) },
+      { merge: true }
+    );
+
+    // 🕓 조회 기록 저장
+    await historyRef.set({ lastViewedAt: now }, { merge: true });
+
+    res.status(200).json({ message: 'View recorded', block: `${yyyyMMdd}/hours/${hour}` });
+  }
+);
