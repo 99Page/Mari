@@ -10,6 +10,8 @@ import ComposableArchitecture
 import UIKit
 import Core
 import CoreLocation
+import NMapsMap
+import Geohash
 
 @Reducer
 struct MapFeature {
@@ -21,29 +23,32 @@ struct MapFeature {
         // 기본 줌 레벨 14
         // 줌 레벨의 최대값 22, 최솟값은 약 0.67
         var zoomLevel: Double = 14.0
-        var posts: [PostSummaryState] = []
         
-        var precision: Double {
+        var posts: [PostSummaryState] = []
+        var retrievedGeoHashes: Set<String> = []
+        
+        var precision: Geohash.Precision {
             if zoomLevel <= 14 {
-                return 6
+                return .sixHundredTenMeters
             } else {
-                return 6
+                return .sixHundredTenMeters // 현재는 줌 기능이 없어서 같은 값을 사용합니다. -page, 2025. 07. 04
             }
         }
     }
     
     enum Action: ViewAction {
-        case setPosts([PostSummaryState])
+        case setPosts(FetchNearPostsResponse)
         case view(UIAction)
         case alert(PresentationAction<Alert>)
         case showImageUploadFailAlert
+        case showFetchFailAlert
         case showUploadPost(imageURL: String)
         case uploadPost(PresentationAction<UploadPostFeature.Action>)
         
         enum UIAction: BindableAction {
             case cameraButtonTapped(UIImage)
             case binding(BindingAction<State>)
-            case viewDidLoad
+            case cameraDidMove(zoomLevel: Double, centerPosition: NMGLatLng)
         }
         
         enum Alert: Equatable {
@@ -69,20 +74,21 @@ struct MapFeature {
                     await send(.showImageUploadFailAlert)
                 }
                 
-            case .view(.viewDidLoad):
-                let locationManager = CLLocationManager()
-                guard let location = locationManager.location else { return .none }
+            case let .view(.cameraDidMove(zoomLevel, cameraPosition)):
+                state.zoomLevel = zoomLevel
+                let centerGeoHash = Geohash.encode(latitude: cameraPosition.lat, longitude: cameraPosition.lng, precision: state.precision)
+                
+                guard !state.retrievedGeoHashes.contains(centerGeoHash) else { return .none}
                 
                 let request = FetchNearPostsRequest(
-                    latitude: location.coordinate.latitude,
-                    longitude: location.coordinate.longitude,
-                    precision: state.precision
+                    latitude: cameraPosition.lat,
+                    longitude: cameraPosition.lng,
+                    precision: state.precision.rawValue
                 )
                 
                 return .run { send in
                     let response = try await postClient.fetchNearPosts(request)
-                    let posts = response.map { PostSummaryState(dto: $0) }
-                    await send(.setPosts(posts))
+                    await send(.setPosts(response))
                 } catch: { error, send in
                     debugPrint("fetch fail")
                 }
@@ -102,7 +108,7 @@ struct MapFeature {
                 
             case .showImageUploadFailAlert:
                 state.alert = AlertState {
-                    TextState("이미지 업로드에 실패했어요.")
+                    TextState("이미지 업로드에 실패했어요")
                 } actions: {
                     ButtonState(role: .cancel) {
                       TextState("확인")
@@ -114,8 +120,19 @@ struct MapFeature {
                 state.uploadPost = .init(imageURL: imageURL)
                 return .none
                 
-            case let .setPosts(posts):
-                state.posts = posts
+            case let .setPosts(response):
+                state.posts = response.posts.map { PostSummaryState(dto: $0) }
+                state.retrievedGeoHashes = Set(response.geohashBlocks)
+                return .none
+                
+            case .showFetchFailAlert:
+                state.alert = AlertState {
+                    TextState("주위 정보를 가져오지 못했어요")
+                } actions: {
+                    ButtonState(role: .cancel) {
+                      TextState("확인")
+                    }
+                }
                 return .none
             }
         }

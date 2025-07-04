@@ -80,7 +80,6 @@ struct TabFeature {
             }
         }
         .ifLet(\.$alert, action: \.alert)
-        ._printChanges()
     }
 }
 

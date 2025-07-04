@@ -12,6 +12,7 @@ import UIKit
 import FirebaseAuth
 import FirebaseCore
 import GoogleSignIn
+import Core
 
 @DependencyClient
 struct AccountClient {
@@ -59,6 +60,7 @@ extension AccountClient: DependencyKey {
             let idToken = try await Auth.auth().currentUser?.getIDToken(forcingRefresh: true)
             @Dependency(\.keychain) var keychain
             guard let idToken else { throw ClientError.emptyToken }
+            Logger.debug("idToken: \(idToken)", category: .auth)
             try keychain.save(value: idToken, service: .firebase, account: .idToken)
         }
     }

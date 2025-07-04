@@ -41,8 +41,6 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         setupView()
         updateView()
         
-        send(.viewDidLoad)
-        
         present(item: $store.scope(state: \.alert, action: \.alert)) { store in
             UIAlertController(store: store)
         }
@@ -156,10 +154,11 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         }
     }
     
-
     // 카메라 이동이 모두 끝났을 때 호출됩니다. -page 2025. 07. 01
     func mapViewCameraIdle(_ mapView: NMFMapView) {
-        store.zoomLevel = mapView.cameraPosition.zoom
+        let zoomLevel = mapView.zoomLevel
+        let centerPosition = mapView.cameraPosition
+        send(.cameraDidMove(zoomLevel: mapView.zoomLevel, centerPosition: centerPosition.target))
     }
     
     private func showLocationPermissionAlert() {

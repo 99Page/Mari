@@ -95,7 +95,11 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
       }
     }
 
-    res.status(200).json(posts);
+    res.status(200).json({
+      posts,
+      geohashBlocks,
+    });
+    
   } catch (error) {
     logger.error("Error fetching posts:", error);
     res.status(500).send("Failed to fetch posts");

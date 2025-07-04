@@ -1,5 +1,5 @@
 {
-  "originHash" : "f60fbe6ec2c60bf433e9823550a35dc0854a2b534f63dffaedab5078a58b5d4a",
+  "originHash" : "cb6669a98d0ed98b2c0b0d0e89aea4a4aa30e0b165b58ff94f090ec2ef110404",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -44,6 +44,15 @@
       "state" : {
         "revision" : "3663b1aa6c7a1bed67ee80fd09dc6d0f9c3bb660",
         "version" : "11.13.0"
+      }
+    },
+    {
+      "identity" : "geohash",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/nh7a/Geohash.git",
+      "state" : {
+        "revision" : "e34bbddb04c65317c45f951e5b40cc2f78caf8ae",
+        "version" : "1.0.0"
       }
     },
     {

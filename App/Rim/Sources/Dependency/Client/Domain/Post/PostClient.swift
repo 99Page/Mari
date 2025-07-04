@@ -14,7 +14,7 @@ import FirebaseFunctions
 @DependencyClient
 struct PostClient {
     var createPost: (_ request: CreatePostRequest) async throws -> PostDTO
-    var fetchNearPosts: (_ request: FetchNearPostsRequest) async throws -> [PostDTO]
+    var fetchNearPosts: (_ request: FetchNearPostsRequest) async throws -> FetchNearPostsResponse
     var fetchPostByID: (_ id: String) async throws -> PostDTO
     
     enum PostAPI: APITarget {
