@@ -19,6 +19,7 @@ struct AccountClient {
     var logout: () throws -> Void
     var isLoggedIn: () -> Bool = { false }
     var signInFirebase: (_ credential: AuthCredential) async throws -> AuthDataResult
+    var refreshIdToken: () async throws -> Void
 }
 
 extension AccountClient: DependencyKey {
@@ -54,6 +55,11 @@ extension AccountClient: DependencyKey {
             return Auth.auth().currentUser != nil
         } signInFirebase: { credential in
             try await signIn(credential)
+        } refreshIdToken: {
+            let idToken = try await Auth.auth().currentUser?.getIDToken(forcingRefresh: true)
+            @Dependency(\.keychain) var keychain
+            guard let idToken else { throw ClientError.emptyToken }
+            try keychain.save(value: idToken, service: .firebase, account: .idToken)
         }
     }
 }

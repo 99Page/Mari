@@ -12,4 +12,5 @@ enum ClientError: Error {
     case invalidURL
     case firebaseError
     case emptyValue
+    case emptyToken
 }

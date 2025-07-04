@@ -8,6 +8,7 @@
 import Foundation
 import UIKit
 import ComposableArchitecture
+import Core
 
 @Reducer
 struct SceneFeature {
@@ -24,12 +25,14 @@ struct SceneFeature {
         case login(SignInFeature.Action)
         case tab(TabFeature.Action)
         case splash(SplashFeature.Action)
+        case logout
         
         enum UIAction: BindableAction {
             case binding(BindingAction<State>)
         }
     }
     
+    @Dependency(\.accountClient) var accountClient
     @Dependency(\.continuousClock) var clock
     
     var body: some ReducerOf<Self> {
@@ -59,21 +62,33 @@ struct SceneFeature {
             case .login(_):
                 return .none
                 
-            case .tab(.userAccount(.delegate(.logoutSucceeded))):
-                state = .login(.init())
-                return .none
+            case .tab(.userAccount(.delegate(.logout))):
+                return .send(.logout)
+                
+            case .tab(.alert(.presented(.showSignIn))):
+                return .send(.logout)
                 
             case .tab(_):
                 return .none
                 
-            case .splash(.delegate(.loggedIn)):
+            case .logout:
+                do {
+                    try accountClient.logout()
+                    state = .login(.init())
+                } catch {
+                    Logger.error("키체인 에러", category: .auth)
+                }
+                
+                return .none
+                
+            case .splash(.delegate(.showTab)):
                 return .run { send in
                     // 지연없이 바로 상태를 변경하면 observe { } 에서 제대로 관찰하지 못합니다. -page 2025. 06. 27
                     try await clock.sleep(for: .seconds(1))
                     await send(.changeState(to: .tab(.init())))
                 }
                 
-            case .splash(.delegate(.loggedOut)):
+            case .splash(.delegate(.showSignIn)):
                 return .run { send in
                     // 지연없이 바로 상태를 변경하면 observe { } 에서 제대로 관찰하지 못합니다. -page 2025. 06. 27
                     try await clock.sleep(for: .seconds(1))
