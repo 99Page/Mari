@@ -88,11 +88,9 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     private func addNewMarkers() {
         for post in store.posts {
             let lat: Double = post.location.coordinate.latitude
-            let lng: Double = post.location.coordinate.longitude
-            
+            let lng: Double = post.location.coordinate.longitude            
             let marker = NMFMarker(position: NMGLatLng(lat: lat, lng: lng))
-            let imageLoader = NetworkImageLoader.init()
-            
+
             marker.touchHandler = { [weak self] (o: NMFOverlay) -> Bool in
                 self?.traitCollection.push(state: MapNavigationStack.Path.State.postDetail(.init(postID: post.id)))
                 return true
@@ -101,25 +99,12 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
             marker.captionText = post.title
             marker.width = 80
             marker.height = 80
-            marker.iconImage = NMFOverlayImage(image: UIImage(resource: .placeholder))
+            
+            let iconImage = post.image ?? UIImage(resource: .placeholder)
+            marker.iconImage = NMFOverlayImage(image: iconImage)
             marker.mapView = mapView
             
             markers.append(marker)
-            
-            Task {
-                do {
-                    let image = try await imageLoader.loadImage(fromKey: post.imageURL)
-                    
-                    // Map에 추가할 수 있는 이미지의 크기는 제한되어 있습니다.
-                    // 이미지의 용량이 클 경우, 마커가 표시되지 않습니다.
-                    // 이미지의 크기를 최소화해야 이미지가 포함된 마커를 여러개 표시할 수 있습니다.
-                    // -page, 2025. 07. 01
-                    let resized = resizedImage(image, size: CGSize(width: 80, height: 80))
-                    marker.iconImage = NMFOverlayImage(image: resized)
-                } catch {
-                    
-                }
-            }
         }
     }
     

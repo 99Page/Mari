@@ -25,7 +25,7 @@ struct MapFeature {
         // 값이 커질수록 확대됩니다 -page, 2025. 07. 04
         var zoomLevel: Double = 17.0
         
-        var posts: [PostSummaryState] = []
+        var posts = IdentifiedArrayOf<PostSummaryState>()
         var retrievedGeoHashes: Set<String> = []
         var centerPosition = NMGLatLng(lat: 0, lng: 0)
         
@@ -87,6 +87,7 @@ struct MapFeature {
         case showUploadPost(imageURL: String)
         case uploadPost(PresentationAction<UploadPostFeature.Action>)
         case dismissProgress
+        case setImage(postID: String, image: UIImage)
         
         enum UIAction: BindableAction {
             case cameraButtonTapped(UIImage)
@@ -184,8 +185,25 @@ struct MapFeature {
                 return .none
                 
             case let .setPosts(response):
-                state.posts = response.posts.map { PostSummaryState(dto: $0) }
+                state.posts = IdentifiedArray(uniqueElements: response.posts.map { PostSummaryState(dto: $0) })
                 state.retrievedGeoHashes = Set(response.geohashBlocks)
+                
+                return .run { [posts = state.posts] send in
+                    for post in posts {
+                        Task.detached {
+                            do {
+                                let imageSize = CGSize(width: 80, height: 80)
+                                let image = try await imageClient.loadImage(url: post.imageURL, size: imageSize)
+                                await send(.setImage(postID: post.id, image: image))
+                            } catch {
+                                // 실패 무시 or 처리
+                            }
+                        }
+                    }
+                }
+                
+            case let .setImage(postID, image):
+                state.posts[id: postID]?.image = image
                 return .none
                 
             case .showFetchFailAlert:

@@ -7,12 +7,14 @@
 
 import CoreLocation
 import Foundation
+import UIKit
 
-struct PostSummaryState: Equatable {
+struct PostSummaryState: Equatable, Identifiable {
     let id: String
     let imageURL: String
     let title: String
     let location: CLLocation
+    var image: UIImage?
     
     init(id: String, imageURL: String, title: String, coordinate: CLLocation) {
         self.id = id
