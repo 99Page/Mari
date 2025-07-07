@@ -66,7 +66,7 @@ struct MapFeature {
         }
     }
     
-    enum Filter {
+    enum Filter: String {
         case latest
         case popular
     }
@@ -102,6 +102,11 @@ struct MapFeature {
     var body: some ReducerOf<Self> {
         
         BindingReducer(action: \.view)
+            .onChange(of: \.selectedFilter) { oldValue, newValue in
+                Reduce { state, action in
+                    return .send(.fetchPosts)
+                }
+            }
         
         Reduce<State, Action> { state, action in
             switch action {
@@ -195,6 +200,7 @@ struct MapFeature {
                 let lng = state.centerPosition.lng
                 
                 let request = FetchNearPostsRequest(
+                    type: state.selectedFilter.rawValue,
                     latitude: lat,
                     longitude: lng,
                     precision: state.precision.rawValue
@@ -213,7 +219,6 @@ struct MapFeature {
         .ifLet(\.$uploadPost, action: \.uploadPost) {
             UploadPostFeature()
         }
-        ._printChanges()
     }
 }
 
