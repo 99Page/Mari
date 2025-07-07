@@ -30,6 +30,8 @@ struct MapFeature {
         var centerPosition = NMGLatLng(lat: 0, lng: 0)
         
         var latestFilter = RimLabel.State(text: "최신순", textColor: .black)
+        var isProgressPresented = false
+        
         var latestBackground = RimView.State(
             borderColor: UIColor(resource: .main),
             borderWidth: 1.2,
@@ -84,6 +86,7 @@ struct MapFeature {
         case showFetchFailAlert
         case showUploadPost(imageURL: String)
         case uploadPost(PresentationAction<UploadPostFeature.Action>)
+        case dismissProgress
         
         enum UIAction: BindableAction {
             case cameraButtonTapped(UIImage)
@@ -195,22 +198,26 @@ struct MapFeature {
                 }
                 return .none
                 
-            case .fetchPosts:
-                let lat = state.centerPosition.lat
-                let lng = state.centerPosition.lng
+            case .dismissProgress:
+                state.isProgressPresented = false
+                return .none
                 
+            case .fetchPosts:
+                state.isProgressPresented = true
                 let request = FetchNearPostsRequest(
                     type: state.selectedFilter.rawValue,
-                    latitude: lat,
-                    longitude: lng,
+                    latitude: state.centerPosition.lat,
+                    longitude: state.centerPosition.lng,
                     precision: state.precision.rawValue
                 )
                 
                 return .run { send in
                     let response = try await postClient.fetchNearPosts(request)
                     await send(.setPosts(response))
+                    await send(.dismissProgress)
                 } catch: { error, send in
                     await send(.showFetchFailAlert)
+                    await send(.dismissProgress)
                 }
                     .debounce(id: DebounceID.fetchPosts, for: .seconds(1), scheduler: RunLoop.main)
             }

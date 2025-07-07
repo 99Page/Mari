@@ -32,6 +32,8 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     private let popularBackgroundView: RimView
     private let popularLabel: RimLabel
     
+    private let progressView = UIActivityIndicatorView(style: .medium)
+    
     init(store: StoreOf<MapFeature>) {
         @UIBindable var binding = store
         self.store = store
@@ -70,7 +72,12 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         observe { [weak self] in
             guard let self else { return }
             updateMarkers()
+            updateProgressView()
         }
+    }
+    
+    private func updateProgressView() {
+        store.isProgressPresented ? progressView.startAnimating() : progressView.stopAnimating()
     }
     
     private func updateMarkers() {
@@ -91,13 +98,17 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
                 return true
             }
             
+            marker.captionText = post.title
+            marker.width = 80
+            marker.height = 80
+            marker.iconImage = NMFOverlayImage(image: UIImage(resource: .placeholder))
+            marker.mapView = mapView
+            
+            markers.append(marker)
+            
             Task {
                 do {
                     let image = try await imageLoader.loadImage(fromKey: post.imageURL)
-                    
-                    marker.width = 80
-                    marker.height = 80
-                    marker.captionText = post.title
                     
                     // Map에 추가할 수 있는 이미지의 크기는 제한되어 있습니다.
                     // 이미지의 용량이 클 경우, 마커가 표시되지 않습니다.
@@ -105,8 +116,6 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
                     // -page, 2025. 07. 01
                     let resized = resizedImage(image, size: CGSize(width: 80, height: 80))
                     marker.iconImage = NMFOverlayImage(image: resized)
-                    marker.mapView = mapView
-                    markers.append(marker)
                 } catch {
                     
                 }
@@ -123,10 +132,15 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     }
     
     private func makeConstraint() {
+        let filterContainerView = UIView()
+        
         view.addSubview(mapView)
         view.addSubview(postButton)
-        view.addSubview(latestBackgroundView)
-        view.addSubview(popularBackgroundView)
+        view.addSubview(filterContainerView)
+        
+        filterContainerView.addSubview(latestBackgroundView)
+        filterContainerView.addSubview(popularBackgroundView)
+        filterContainerView.addSubview(progressView)
         
         let filterBgInsets = UIEdgeInsets(top: 5, left: 8, bottom: 5, right: 8)
         
@@ -134,16 +148,28 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
             make.edges.equalToSuperview()
         }
         
+        filterContainerView.snp.makeConstraints { make in
+            make.bottom.equalToSuperview().offset(-16)
+            make.trailing.equalToSuperview().offset(-16)
+        }
+        
+        progressView.snp.makeConstraints { make in
+            make.centerY.equalToSuperview()
+            make.height.width.equalTo(20)
+            make.leading.equalToSuperview()
+        }
+        
         latestLabel.background(latestBackgroundView, insets: filterBgInsets)
         latestLabel.snpTarget.makeConstraints { make in
-            make.top.equalTo(view.safeAreaLayoutGuide.snp.top)
-            make.leading.equalToSuperview().offset(16)
+            make.top.bottom.equalToSuperview()
+            make.leading.equalTo(progressView.snp.trailing).offset(6)
         }
         
         popularLabel.background(popularBackgroundView, insets: filterBgInsets)
         popularLabel.snpTarget.makeConstraints { make in
-            make.top.equalTo(latestLabel.containerView.snp.top)
-            make.leading.equalTo(latestLabel.containerView.snp.trailing).offset(6)
+            make.centerY.equalToSuperview()
+            make.leading.equalTo(latestLabel.snpTarget.trailing).offset(6)
+            make.trailing.equalToSuperview()
         }
         
         postButton.snp.makeConstraints { make in
@@ -174,6 +200,9 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         popularBackgroundView.addAction(.touchUpInside({ [weak self] in
             self?.store.selectedFilter = .popular
         }))
+        
+        progressView.startAnimating()
+        progressView.color = .gray
     }
     
     
