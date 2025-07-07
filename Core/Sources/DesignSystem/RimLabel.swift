@@ -12,8 +12,8 @@ import SnapKit
 import SwiftUI
 import SwiftNavigation
 
-public class RimLabel: UIView {
-    @UIBinding var state: State
+public class RimLabel: RimView {
+    @UIBinding var labelState: State
     
     let label = UILabel(frame: .zero)
     
@@ -23,8 +23,8 @@ public class RimLabel: UIView {
     private var keyboardAvoidClosure: ((_ make: ConstraintMaker) -> Void)?
     
     public init(state: UIBinding<State>) {
-        self._state = state
-        super.init(frame: .zero)
+        self._labelState = state
+        super.init(state: state.appearance)
         makeConstraint()
         updateView()
         setupKeyboardObserver()
@@ -48,7 +48,10 @@ public class RimLabel: UIView {
         addSubview(label)
         
         label.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
+            make.top.equalToSuperview()
+            make.bottom.equalToSuperview()
+            make.leading.equalToSuperview()
+            make.trailing.equalToSuperview()
         }
     }
     
@@ -56,7 +59,6 @@ public class RimLabel: UIView {
         observe { [weak self] in
             guard let self else { return }
             updateAttributedString()
-            updateBackground()
         }
     }
     
@@ -98,22 +100,23 @@ public class RimLabel: UIView {
         }
     }
     
-    private func updateBackground() {
-        guard let background = state.background else { return }
-        self.background(background)
-    }
-    
     private func updateAttributedString() {
         let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = state.alignment
+        paragraphStyle.alignment = labelState.alignment
+        paragraphStyle.lineSpacing = 0
+        paragraphStyle.minimumLineHeight = labelState.typography.size
+        paragraphStyle.maximumLineHeight = labelState.typography.size
         
         let attributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: state.textColor,
+            .foregroundColor: labelState.textColor,
             .paragraphStyle: paragraphStyle,
-            .font: UIFont(typography: state.typography)
+            .font: UIFont(typography: labelState.typography),
+            .baselineOffset: 0
+            
         ]
         
-        label.attributedText = NSAttributedString(string: state.text, attributes: attributes)
+        label.attributedText = NSAttributedString(string: labelState.text, attributes: attributes)
+//        label.baselineAdjustment = .alignCenters
     }
 }
 
@@ -124,14 +127,14 @@ public extension RimLabel {
         var alignment: NSTextAlignment
         
         var typography: Typography
-        var background: UIView.Background?
         
-        public init(text: String, textColor: UIColor, typography: Typography = .contentDescription, alignment: NSTextAlignment = .center, background: UIView.Background? = nil) {
+        var appearance = RimView.State()
+        
+        public init(text: String, textColor: UIColor, typography: Typography = .contentDescription, alignment: NSTextAlignment = .center) {
             self.text = text
             self.textColor = textColor
             self.typography = typography
             self.alignment = alignment
-            self.background = background
         }
         
     }

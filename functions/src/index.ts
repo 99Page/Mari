@@ -16,6 +16,7 @@ import Geohash from "latlon-geohash";
 import { getFirestore } from "firebase-admin/firestore";
 import { initializeApp } from "firebase-admin/app";
 import { onRequest } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 
 
 const app = initializeApp();
@@ -277,7 +278,7 @@ export const increasePostViewCount = functions.https.onRequest(
 
     // 📈 시간 단위 조회수 증가
     const hourlyRef = db
-      .collection("post_view_blocks")
+      .collection("post_view_stats")
       .doc(yyyyMMdd)
       .collection("hours")
       .doc(hour)
@@ -293,5 +294,131 @@ export const increasePostViewCount = functions.https.onRequest(
     await historyRef.set({ lastViewedAt: now }, { merge: true });
 
     res.status(200).json({ message: 'View recorded', block: `${yyyyMMdd}/hours/${hour}` });
+  }
+);
+
+// 랭킹 집계 자동화
+export const scheduleAggregateLast6HoursRanking = onSchedule(
+  {
+    region: REGION,
+    schedule: "every 180 minutes",
+    timeZone: "Asia/Seoul",
+  },
+  async () => {
+    const now = new Date();
+    const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+    const yyyyMMdd = kstNow.toISOString().slice(0, 10);
+    const currentHour = kstNow.getUTCHours(); // 0~23 숫자
+
+    const postViews: Record<string, number> = {};
+
+    for (let i = 6; i >= 1; i--) {
+      const hour = (currentHour - i + 24) % 24;
+      const hourStr = hour.toString().padStart(2, "0");
+
+      const path = `post_view_stats/${yyyyMMdd}/hours/${hourStr}/posts`;
+      const snapshot = await db.collection(path).get();
+
+      snapshot.forEach((doc) => {
+        const postId = doc.id;
+        const count = doc.data()?.viewCount || 0;
+        if (postViews[postId]) {
+          postViews[postId] += count;
+        } else {
+          postViews[postId] = count;
+        }
+      });
+    }
+
+    // postId + 누적 조회수로 배열 변환 및 정렬
+    const topRanking = Object.entries(postViews)
+      .map(([postId, viewCount]) => ({ postId, viewCount }))
+      .sort((a, b) => b.viewCount - a.viewCount)
+      .slice(0, 50);
+
+    const cachePath = `post_ranking_cache/${yyyyMMdd}_last6hours_hour${currentHour.toString().padStart(2, "0")}`;
+    await db.doc(cachePath).set({
+      ranking: topRanking,
+      fromHour: currentHour - 6 < 0 ? currentHour + 18 : currentHour - 6,
+      toHour: currentHour - 1,
+      updatedAt: new Date().toISOString(),
+    });
+
+    logger.info(`✅ Aggregated 6-hour ranking at hour ${currentHour}`);
+  }
+);
+
+// 랭킹 집계
+async function aggregateLast6HoursRanking() {
+  const now = new Date();
+  const kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);
+  const yyyyMMdd = kstNow.toISOString().slice(0, 10);
+  const currentHour = kstNow.getUTCHours(); // 0~23 숫자
+
+  const postViews: Record<string, number> = {};
+
+  for (let i = 6; i >= 1; i--) {
+    const hour = (currentHour - i + 24) % 24;
+    const hourStr = hour.toString().padStart(2, "0");
+
+    const path = `post_view_stats/${yyyyMMdd}/hours/${hourStr}/posts`;
+    const snapshot = await db.collection(path).get();
+
+    snapshot.forEach((doc) => {
+      const postId = doc.id;
+      const count = doc.data()?.viewCount || 0;
+      postViews[postId] = (postViews[postId] || 0) + count;
+    });
+  }
+
+  const topRanking = Object.entries(postViews)
+    .map(([postId, viewCount]) => ({ postId, viewCount }))
+    .sort((a, b) => b.viewCount - a.viewCount)
+    .slice(0, 50);
+
+  const cachePath = `post_ranking_cache/${yyyyMMdd}_last6hours_hour${currentHour.toString().padStart(2, "0")}`;
+  await db.doc(cachePath).set({
+    ranking: topRanking,
+    fromHour: currentHour - 6 < 0 ? currentHour + 18 : currentHour - 6,
+    toHour: currentHour - 1,
+    updatedAt: new Date().toISOString(),
+  });
+
+  logger.info(`✅ Aggregated 6-hour ranking at hour ${currentHour}`);
+}
+
+// 수동 랭킹 집계
+export const testAggregateLast6HoursRanking = onRequest(
+  { region: REGION },
+  async (req, res) => {
+    if (req.method !== 'POST') {
+      res.status(405).send('Method Not Allowed');
+      return;
+    }
+
+    // 🔒 Firebase ID 토큰 확인
+    const authHeader = req.headers.authorization;
+    const idToken = authHeader?.startsWith("Bearer ") ? authHeader.split("Bearer ")[1] : null;
+
+    if (!idToken) {
+      res.status(401).send("Missing or invalid Authorization header");
+      return;
+    }
+
+    try {
+      await admin.auth().verifyIdToken(idToken);
+    } catch (error) {
+      logger.error("Token verification failed:", error);
+      res.status(401).send("Unauthorized");
+      return;
+    }
+
+    try {
+      await aggregateLast6HoursRanking();
+      res.status(200).send("✅ 테스트용 랭킹 집계 완료");
+    } catch (error) {
+      logger.error("랭킹 집계 실패", error);
+      res.status(500).send("❌ 랭킹 집계 실패");
+    }
   }
 );

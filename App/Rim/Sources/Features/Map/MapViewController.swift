@@ -11,6 +11,7 @@ import NMapsMap
 import CoreLocation
 import Core
 import ComposableArchitecture
+import SwiftUI
 
 @ViewAction(for: MapFeature.self)
 class MapViewController: UIViewController, NMFMapViewCameraDelegate {
@@ -25,8 +26,21 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     private let postButton = UIButton(type: .custom)
     private let locationManager = CLLocationManager()
     
+    private let latestBackgroundView: RimView
+    private let latestLabel: RimLabel
+    
+    private let popularBackgroundView: RimView
+    private let popularLabel: RimLabel
+    
     init(store: StoreOf<MapFeature>) {
+        @UIBindable var binding = store
         self.store = store
+        
+        self.latestLabel = RimLabel(state: $binding.latestFilter)
+        self.popularLabel = RimLabel(state: $binding.popularFilter)
+        self.latestBackgroundView = RimView(state: $binding.latestBackground)
+        self.popularBackgroundView = RimView(state: $binding.popularBackground)
+        
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -111,9 +125,25 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     private func makeConstraint() {
         view.addSubview(mapView)
         view.addSubview(postButton)
+        view.addSubview(latestBackgroundView)
+        view.addSubview(popularBackgroundView)
+        
+        let filterBgInsets = UIEdgeInsets(top: 5, left: 8, bottom: 5, right: 8)
         
         mapView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
+        }
+        
+        latestLabel.background(latestBackgroundView, insets: filterBgInsets)
+        latestLabel.snpTarget.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide.snp.top)
+            make.leading.equalToSuperview().offset(16)
+        }
+        
+        popularLabel.background(popularBackgroundView, insets: filterBgInsets)
+        popularLabel.snpTarget.makeConstraints { make in
+            make.top.equalTo(latestLabel.containerView.snp.top)
+            make.leading.equalTo(latestLabel.containerView.snp.trailing).offset(6)
         }
         
         postButton.snp.makeConstraints { make in
@@ -125,17 +155,25 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     
     private func setupView() {
         addOverlay()
-        mapView.addCameraDelegate(delegate: self)
         
-        // 추후 줌 기능을 추가합니다. 현재는 API 호출의 편의성을 위해 일시적으로
-        // 줌 기능을 막습니다 -page 2025. 06. 23
-        mapView.isZoomGestureEnabled = false
+        mapView.addCameraDelegate(delegate: self)
+        mapView.zoomLevel = 17
+        
+        navigationController?.setNavigationBarHidden(true, animated: false)
         
         postButton.setImage(UIImage(systemName: "camera"), for: .normal)
         
         postButton.addAction(UIAction(handler: { [weak self] _ in
             self?.presentCamera()
         }), for: .touchUpInside)
+        
+        latestBackgroundView.addAction(.touchUpInside({ [weak self] in
+            self?.store.selectedFilter = .latest
+        }))
+        
+        popularBackgroundView.addAction(.touchUpInside({ [weak self] in
+            self?.store.selectedFilter = .popular
+        }))
     }
     
     
@@ -158,7 +196,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     func mapViewCameraIdle(_ mapView: NMFMapView) {
         let zoomLevel = mapView.zoomLevel
         let centerPosition = mapView.cameraPosition
-        send(.cameraDidMove(zoomLevel: mapView.zoomLevel, centerPosition: centerPosition.target))
+        send(.cameraDidMove(zoomLevel: zoomLevel, centerPosition: centerPosition.target))
     }
     
     private func showLocationPermissionAlert() {
@@ -180,15 +218,15 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
 extension MapViewController: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
-
+        
         let coord = NMGLatLng(lat: location.coordinate.latitude,
                               lng: location.coordinate.longitude)
-
+        
         mapView.moveCamera(NMFCameraUpdate(scrollTo: coord))
-
+        
         locationManager.stopUpdatingLocation()
     }
-
+    
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         addOverlay()
     }
@@ -200,13 +238,13 @@ private extension MapViewController {
             print("Camera not available")
             return
         }
-
+        
         let picker = UIImagePickerController()
         picker.sourceType = .camera
         picker.delegate = self
         picker.allowsEditing = false
         present(picker, animated: true)
-
+        
     }
 }
 
@@ -225,4 +263,15 @@ private extension MapViewController {
             image.draw(in: CGRect(origin: .zero, size: size))
         }
     }
+}
+
+#Preview {
+    let store = Store(initialState: MapFeature.State()) {
+        MapFeature()
+    }
+    
+    ViewControllerPreview {
+        MapViewController(store: store)
+    }
+    .ignoresSafeArea()
 }
