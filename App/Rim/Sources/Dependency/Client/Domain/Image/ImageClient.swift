@@ -10,10 +10,12 @@ import Dependencies
 import DependenciesMacros
 import UIKit
 import FirebaseStorage
+import Core
 
 @DependencyClient
 struct ImageClient {
     var uploadImage : (_ image: UIImage, _ fileName: String) async throws -> ImageResponse
+    var loadImage: (_ url: String, _ size: CGSize) async throws -> UIImage
 }
 
 extension ImageClient: DependencyKey {
@@ -34,6 +36,13 @@ extension ImageClient: DependencyKey {
             let url = try await imageReference.downloadURL()
             
             return ImageResponse(imageURL: url.absoluteString)
+        } loadImage: { url, size in
+            let image = try await NetworkImageLoader().loadImage(fromKey: url)
+            let renderer = UIGraphicsImageRenderer(size: size)
+            
+            return renderer.image { _ in
+                image.draw(in: CGRect(origin: .zero, size: size))
+            }
         }
     }
 }

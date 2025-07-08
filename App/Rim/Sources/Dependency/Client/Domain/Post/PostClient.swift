@@ -61,7 +61,7 @@ struct PostClient {
             switch self {
             case .createPost: "/createPost"
             case let .fetchNearPosts(request):
-                "/getPosts/?latitude=\(request.latitude)&longitude=\(request.longitude)&precision=\(request.precision)"
+                "/getPosts/?latitude=\(request.latitude)&longitude=\(request.longitude)&precision=\(request.precision)&type=\(request.type)"
             case let .fetchPostByID(id): "/getPostById?id=\(id)"
             }
         }

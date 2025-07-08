@@ -11,6 +11,7 @@ import NMapsMap
 import CoreLocation
 import Core
 import ComposableArchitecture
+import SwiftUI
 
 @ViewAction(for: MapFeature.self)
 class MapViewController: UIViewController, NMFMapViewCameraDelegate {
@@ -25,8 +26,23 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     private let postButton = UIButton(type: .custom)
     private let locationManager = CLLocationManager()
     
+    private let latestBackgroundView: RimView
+    private let latestLabel: RimLabel
+    
+    private let popularBackgroundView: RimView
+    private let popularLabel: RimLabel
+    
+    private let progressView = UIActivityIndicatorView(style: .medium)
+    
     init(store: StoreOf<MapFeature>) {
+        @UIBindable var binding = store
         self.store = store
+        
+        self.latestLabel = RimLabel(state: $binding.latestFilter)
+        self.popularLabel = RimLabel(state: $binding.popularFilter)
+        self.latestBackgroundView = RimView(state: $binding.latestBackground)
+        self.popularBackgroundView = RimView(state: $binding.popularBackground)
+        
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -56,7 +72,12 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         observe { [weak self] in
             guard let self else { return }
             updateMarkers()
+            updateProgressView()
         }
+    }
+    
+    private func updateProgressView() {
+        store.isProgressPresented ? progressView.startAnimating() : progressView.stopAnimating()
     }
     
     private func updateMarkers() {
@@ -67,36 +88,23 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     private func addNewMarkers() {
         for post in store.posts {
             let lat: Double = post.location.coordinate.latitude
-            let lng: Double = post.location.coordinate.longitude
-            
+            let lng: Double = post.location.coordinate.longitude            
             let marker = NMFMarker(position: NMGLatLng(lat: lat, lng: lng))
-            let imageLoader = NetworkImageLoader.init()
-            
+
             marker.touchHandler = { [weak self] (o: NMFOverlay) -> Bool in
                 self?.traitCollection.push(state: MapNavigationStack.Path.State.postDetail(.init(postID: post.id)))
                 return true
             }
             
-            Task {
-                do {
-                    let image = try await imageLoader.loadImage(fromKey: post.imageURL)
-                    
-                    marker.width = 80
-                    marker.height = 80
-                    marker.captionText = post.title
-                    
-                    // Map에 추가할 수 있는 이미지의 크기는 제한되어 있습니다.
-                    // 이미지의 용량이 클 경우, 마커가 표시되지 않습니다.
-                    // 이미지의 크기를 최소화해야 이미지가 포함된 마커를 여러개 표시할 수 있습니다.
-                    // -page, 2025. 07. 01
-                    let resized = resizedImage(image, size: CGSize(width: 80, height: 80))
-                    marker.iconImage = NMFOverlayImage(image: resized)
-                    marker.mapView = mapView
-                    markers.append(marker)
-                } catch {
-                    
-                }
-            }
+            marker.captionText = post.title
+            marker.width = 80
+            marker.height = 80
+            
+            let iconImage = post.image ?? UIImage(resource: .placeholder)
+            marker.iconImage = NMFOverlayImage(image: iconImage)
+            marker.mapView = mapView
+            
+            markers.append(marker)
         }
     }
     
@@ -109,11 +117,44 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     }
     
     private func makeConstraint() {
+        let filterContainerView = UIView()
+        
         view.addSubview(mapView)
         view.addSubview(postButton)
+        view.addSubview(filterContainerView)
+        
+        filterContainerView.addSubview(latestBackgroundView)
+        filterContainerView.addSubview(popularBackgroundView)
+        filterContainerView.addSubview(progressView)
+        
+        let filterBgInsets = UIEdgeInsets(top: 5, left: 8, bottom: 5, right: 8)
         
         mapView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
+        }
+        
+        filterContainerView.snp.makeConstraints { make in
+            make.bottom.equalToSuperview().offset(-16)
+            make.trailing.equalToSuperview().offset(-16)
+        }
+        
+        progressView.snp.makeConstraints { make in
+            make.centerY.equalToSuperview()
+            make.height.width.equalTo(20)
+            make.leading.equalToSuperview()
+        }
+        
+        latestLabel.background(latestBackgroundView, insets: filterBgInsets)
+        latestLabel.snpTarget.makeConstraints { make in
+            make.top.bottom.equalToSuperview()
+            make.leading.equalTo(progressView.snp.trailing).offset(6)
+        }
+        
+        popularLabel.background(popularBackgroundView, insets: filterBgInsets)
+        popularLabel.snpTarget.makeConstraints { make in
+            make.centerY.equalToSuperview()
+            make.leading.equalTo(latestLabel.snpTarget.trailing).offset(6)
+            make.trailing.equalToSuperview()
         }
         
         postButton.snp.makeConstraints { make in
@@ -125,17 +166,28 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     
     private func setupView() {
         addOverlay()
-        mapView.addCameraDelegate(delegate: self)
         
-        // 추후 줌 기능을 추가합니다. 현재는 API 호출의 편의성을 위해 일시적으로
-        // 줌 기능을 막습니다 -page 2025. 06. 23
-        mapView.isZoomGestureEnabled = false
+        mapView.addCameraDelegate(delegate: self)
+        mapView.zoomLevel = 17
+        
+        navigationController?.setNavigationBarHidden(true, animated: false)
         
         postButton.setImage(UIImage(systemName: "camera"), for: .normal)
         
         postButton.addAction(UIAction(handler: { [weak self] _ in
             self?.presentCamera()
         }), for: .touchUpInside)
+        
+        latestBackgroundView.addAction(.touchUpInside({ [weak self] in
+            self?.store.selectedFilter = .latest
+        }))
+        
+        popularBackgroundView.addAction(.touchUpInside({ [weak self] in
+            self?.store.selectedFilter = .popular
+        }))
+        
+        progressView.startAnimating()
+        progressView.color = .gray
     }
     
     
@@ -158,7 +210,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     func mapViewCameraIdle(_ mapView: NMFMapView) {
         let zoomLevel = mapView.zoomLevel
         let centerPosition = mapView.cameraPosition
-        send(.cameraDidMove(zoomLevel: mapView.zoomLevel, centerPosition: centerPosition.target))
+        send(.cameraDidMove(zoomLevel: zoomLevel, centerPosition: centerPosition.target))
     }
     
     private func showLocationPermissionAlert() {
@@ -180,15 +232,15 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
 extension MapViewController: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
-
+        
         let coord = NMGLatLng(lat: location.coordinate.latitude,
                               lng: location.coordinate.longitude)
-
+        
         mapView.moveCamera(NMFCameraUpdate(scrollTo: coord))
-
+        
         locationManager.stopUpdatingLocation()
     }
-
+    
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         addOverlay()
     }
@@ -200,13 +252,13 @@ private extension MapViewController {
             print("Camera not available")
             return
         }
-
+        
         let picker = UIImagePickerController()
         picker.sourceType = .camera
         picker.delegate = self
         picker.allowsEditing = false
         present(picker, animated: true)
-
+        
     }
 }
 
@@ -225,4 +277,15 @@ private extension MapViewController {
             image.draw(in: CGRect(origin: .zero, size: size))
         }
     }
+}
+
+#Preview {
+    let store = Store(initialState: MapFeature.State()) {
+        MapFeature()
+    }
+    
+    ViewControllerPreview {
+        MapViewController(store: store)
+    }
+    .ignoresSafeArea()
 }

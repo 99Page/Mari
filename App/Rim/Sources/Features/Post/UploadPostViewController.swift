@@ -21,8 +21,7 @@ struct UploadPostFeature {
         
         var postButton = RimLabel.State(
             text: "공유하기",
-            textColor: .white,
-            background: .init(color: .systemBlue, cornerRadius: 16)
+            textColor: .white
         )
         
         var descriptionText = RimTextView.State(
