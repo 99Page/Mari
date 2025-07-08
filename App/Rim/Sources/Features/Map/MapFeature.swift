@@ -56,6 +56,8 @@ struct MapFeature {
         
         var selectedFilter = Filter.latest
         
+        var camera = RimImageView.State(image: .symbol(name: "camera", fgColor: .gray))
+        
         var precision: Geohash.Precision {
             switch zoomLevel {
             case ..<15:

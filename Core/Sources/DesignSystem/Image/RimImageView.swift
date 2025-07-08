@@ -12,8 +12,8 @@ import SnapKit
 import SwiftNavigation
 import SwiftUI
 
-public class RimImageView: UIView {
-    @UIBinding var state: State
+public class RimImageView: RimView {
+    @UIBinding var imageState: State
     
     public let imageView = UIImageView(frame: .zero)
     private let placeholder = ImagePlaceholderView()
@@ -22,7 +22,7 @@ public class RimImageView: UIView {
     private var imageLoader: ImageLoader
     
     public init(state: UIBinding<State>) {
-        self._state = state
+        self._imageState = state
         
         let memoryLoader = MemoryCacheImageLoader()
         let diskLoader = DiskCacheImageLoader()
@@ -33,7 +33,7 @@ public class RimImageView: UIView {
         
         self.imageLoader = memoryLoader
         
-        super.init(frame: .zero)
+        super.init(state: state.apperance)
         
         makeConstraint()
         updateView()
@@ -59,21 +59,28 @@ public class RimImageView: UIView {
     private func updateView() {
         observe { [weak self] in
             guard let self else { return }
+            resetAppearances()
             imageView.contentMode = .scaleAspectFill
             imageView.clipsToBounds = true
             updateImage()
         }
     }
     
+    private func resetAppearances() {
+        self.imageView.tintColor = .systemBlue
+    }
+    
     private func updateImage() {
-        switch state.image {
+        switch imageState.image {
         case let .resource(resource):
             self.imageView.image = UIImage(resource: resource)
             self.placeholder.isHidden = true
         case .custom(let url):
             loadImage(from: url)
-        case .symbol:
-            break
+        case let .symbol(name, color):
+            self.imageView.image = UIImage(systemName: name)
+            self.imageView.tintColor = color
+            self.placeholder.isHidden = true
         }
     }
     
@@ -99,14 +106,17 @@ public class RimImageView: UIView {
     public struct State: Equatable {
         public var image: ImageType
         
-        public init(image: ImageType) {
+        public var apperance: RimView.State
+        
+        public init(image: ImageType, appearance: RimView.State = .init()) {
             self.image = image
+            self.apperance = appearance
         }
         
         public enum ImageType: Equatable {
             case resource(imageResource: ImageResource)
             case custom(url: String?)
-            case symbol(name: String)
+            case symbol(name: String, fgColor: UIColor)
         }
         
         public static func == (lhs: RimImageView.State, rhs: RimImageView.State) -> Bool {

@@ -23,7 +23,6 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     }()
     
     private var markers: [NMFMarker] = []
-    private let postButton = UIButton(type: .custom)
     private let locationManager = CLLocationManager()
     
     private let latestBackgroundView: RimView
@@ -34,6 +33,9 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     
     private let progressView = UIActivityIndicatorView(style: .medium)
     
+    private let cameraButton: RimImageView
+    private let cameraBackgroundView: RimView
+    
     init(store: StoreOf<MapFeature>) {
         @UIBindable var binding = store
         self.store = store
@@ -42,6 +44,9 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         self.popularLabel = RimLabel(state: $binding.popularFilter)
         self.latestBackgroundView = RimView(state: $binding.latestBackground)
         self.popularBackgroundView = RimView(state: $binding.popularBackground)
+        
+        self.cameraButton = RimImageView(state: $binding.camera)
+        self.cameraBackgroundView = RimView(state: .constant(.init(borderColor: .gray, borderWidth: 1, cornerRadius: 20, backgroundColor: .systemBackground, shadowColor: .gray, shadowOpacity: 0.8, shadowOffset: CGSize(width: 0, height: 0.5), shadowRadius: 1)))
         
         super.init(nibName: nil, bundle: nil)
     }
@@ -120,17 +125,25 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         let filterContainerView = UIView()
         
         view.addSubview(mapView)
-        view.addSubview(postButton)
         view.addSubview(filterContainerView)
+        view.addSubview(cameraBackgroundView)
         
         filterContainerView.addSubview(latestBackgroundView)
         filterContainerView.addSubview(popularBackgroundView)
         filterContainerView.addSubview(progressView)
         
+        cameraButton.background(cameraBackgroundView, insets: UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8))
+        
         let filterBgInsets = UIEdgeInsets(top: 5, left: 8, bottom: 5, right: 8)
         
         mapView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
+        }
+        
+        cameraButton.snpTarget.makeConstraints { make in
+            make.bottom.equalTo(filterContainerView.snp.top).offset(-8)
+            make.trailing.equalTo(filterContainerView)
+            make.width.height.equalTo(40)
         }
         
         filterContainerView.snp.makeConstraints { make in
@@ -156,12 +169,6 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
             make.leading.equalTo(latestLabel.snpTarget.trailing).offset(6)
             make.trailing.equalToSuperview()
         }
-        
-        postButton.snp.makeConstraints { make in
-            make.trailing.equalToSuperview().offset(-16)
-            make.bottom.equalToSuperview().offset(-16)
-            make.width.height.equalTo(50)
-        }
     }
     
     private func setupView() {
@@ -171,12 +178,6 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         mapView.zoomLevel = 17
         
         navigationController?.setNavigationBarHidden(true, animated: false)
-        
-        postButton.setImage(UIImage(systemName: "camera"), for: .normal)
-        
-        postButton.addAction(UIAction(handler: { [weak self] _ in
-            self?.presentCamera()
-        }), for: .touchUpInside)
         
         latestBackgroundView.addAction(.touchUpInside({ [weak self] in
             self?.store.selectedFilter = .latest
@@ -188,6 +189,10 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         
         progressView.startAnimating()
         progressView.color = .gray
+        
+        cameraBackgroundView.addAction(.touchUpInside({ [weak self] in
+            self?.presentCamera()
+        }))
     }
     
     
