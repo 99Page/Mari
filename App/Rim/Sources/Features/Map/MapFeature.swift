@@ -73,8 +73,9 @@ struct MapFeature {
         case popular
     }
     
-    enum DebounceID {
+    enum EffectID {
         case fetchPosts
+        case setPosts
     }
     
     enum Action: ViewAction {
@@ -88,6 +89,7 @@ struct MapFeature {
         case uploadPost(PresentationAction<UploadPostFeature.Action>)
         case dismissProgress
         case setImage(postID: String, image: UIImage)
+        case cancelSetPosts
         
         enum UIAction: BindableAction {
             case cameraButtonTapped(UIImage)
@@ -104,7 +106,6 @@ struct MapFeature {
     @Dependency(\.postClient) var postClient
     
     var body: some ReducerOf<Self> {
-        
         BindingReducer(action: \.view)
             .onChange(of: \.selectedFilter) { oldValue, newValue in
                 Reduce { state, action in
@@ -190,17 +191,16 @@ struct MapFeature {
                 
                 return .run { [posts = state.posts] send in
                     for post in posts {
-                        Task.detached {
-                            do {
-                                let imageSize = CGSize(width: 80, height: 80)
-                                let image = try await imageClient.loadImage(url: post.imageURL, size: imageSize)
-                                await send(.setImage(postID: post.id, image: image))
-                            } catch {
-                                // 실패 무시 or 처리
-                            }
+                        do {
+                            let imageSize = CGSize(width: 80, height: 80)
+                            let image = try await imageClient.loadImage(url: post.imageURL, size: imageSize)
+                            await send(.setImage(postID: post.id, image: image))
+                        } catch {
+                            // 실패 무시 or 처리
                         }
                     }
                 }
+                .cancellable(id: EffectID.setPosts)
                 
             case let .setImage(postID, image):
                 state.posts[id: postID]?.image = image
@@ -222,6 +222,7 @@ struct MapFeature {
                 
             case .fetchPosts:
                 state.isProgressPresented = true
+                
                 let request = FetchNearPostsRequest(
                     type: state.selectedFilter.rawValue,
                     latitude: state.centerPosition.lat,
@@ -230,6 +231,7 @@ struct MapFeature {
                 )
                 
                 return .run { send in
+                    await send(.cancelSetPosts)
                     let response = try await postClient.fetchNearPosts(request)
                     await send(.setPosts(response))
                     await send(.dismissProgress)
@@ -237,7 +239,10 @@ struct MapFeature {
                     await send(.showFetchFailAlert)
                     await send(.dismissProgress)
                 }
-                    .debounce(id: DebounceID.fetchPosts, for: .seconds(1), scheduler: RunLoop.main)
+                    .debounce(id: EffectID.fetchPosts, for: .seconds(1), scheduler: RunLoop.main)
+                
+            case .cancelSetPosts:
+                return .cancel(id: EffectID.setPosts)
             }
         }
         .ifLet(\.$alert, action: \.alert)
