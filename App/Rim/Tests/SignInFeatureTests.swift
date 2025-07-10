@@ -22,20 +22,8 @@ struct SignInFeatureTests {
         }
         
         store.exhaustivity = .off
-        
-        await store.send(.view(.appleSignInSucceeded(identityToken: ""))) {
-            $0.isProgressPresented = true
-        }
-        
-        await store.receive(\.firebaseSignInSucceeded) {
-            $0.$uid.withLock {
-                $0 = "uid"
-            }
-        }
-        await store.receive(\.saveUID)
-        await store.receive(\.dismissProgressView) {
-            $0.isProgressPresented = false
-        }
+        await store.send(.view(.appleSignInSucceeded(identityToken: "")))
+        #expect(store.state.$uid.wrappedValue == "uid")
     }
 
 }

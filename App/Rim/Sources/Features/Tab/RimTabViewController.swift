@@ -13,7 +13,11 @@ struct TabFeature {
     @ObservableState
     struct State: Equatable {
         var mapStack = MapNavigationStack.State()
-        var userAccount = UserAccountFeature.State()
+        var userAccount: UserAccountFeature.State
+        
+        init(userAccount: UserAccountFeature.State = .init()) {
+            self.userAccount = userAccount
+        }
         
         @Presents var alert: AlertState<AlertAction>?
     }

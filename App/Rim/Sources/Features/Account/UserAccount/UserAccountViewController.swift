@@ -16,7 +16,7 @@ import Core
 struct UserAccountFeature {
     @ObservableState
     struct State: Equatable {
-        
+        @Shared(.uid) var uid
     }
     
     enum Action: ViewAction {
@@ -40,6 +40,7 @@ struct UserAccountFeature {
         Reduce<State, Action> { state, action in
             switch action {
             case .view(.logoutButtonTapped):
+                state.$uid.withLock { $0 = nil }
                 return .run { send in
                     await send(.delegate(.logout))
                 }

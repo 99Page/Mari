@@ -20,11 +20,28 @@ struct SceneFeatureTests {
             $0.continuousClock = ImmediateClock()
         }
         
-        await store.send(.tab(.userAccount(.view(.logoutButtonTapped))))
+        await store.send(.tab(.userAccount(.view(.logoutButtonTapped)))) 
         await store.receive(\.tab.userAccount.delegate.logout)
         await store.receive(\.logout) {
             $0 = .login(.init())
         }
+    }
+    
+    @Test func removeUID_afterSignOut() async throws {
+        @Shared(.uid) var uid = "uid"
+        
+        let store: TestStoreOf<SceneFeature> = TestStore(initialState: SceneFeature.State.tab(.init())) {
+            SceneFeature()
+        } withDependencies: {
+            $0.accountClient.logout = { } // 로그아웃 성공
+            $0.continuousClock = ImmediateClock()
+        }
+        
+        store.exhaustivity = .off
+        
+        await store.send(.tab(.userAccount(.view(.logoutButtonTapped))))
+        
+        #expect(store.state.tab?.userAccount.$uid.wrappedValue == nil)
     }
     
     @Test func showTabView_whenLoginSucceeded() async throws {
