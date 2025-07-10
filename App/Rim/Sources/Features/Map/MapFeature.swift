@@ -85,9 +85,7 @@ struct MapFeature {
         case setPosts(FetchNearPostsResponse)
         case view(UIAction)
         case alert(PresentationAction<Alert>)
-        case showImageUploadFailAlert
         case showFetchFailAlert
-        case showUploadPost(imageURL: String)
         case uploadPost(PresentationAction<UploadPostFeature.Action>)
         case dismissProgress
         case setImage(postID: String, image: UIImage)
@@ -119,12 +117,8 @@ struct MapFeature {
             switch action {
                 
             case let .view(.cameraButtonTapped(image)):
-                return .run { send in
-                    let response = try await imageClient.uploadImage(image: image, fileName: UUID().uuidString)
-                    await send(.showUploadPost(imageURL: response.imageURL))
-                } catch: { error, send in
-                    await send(.showImageUploadFailAlert)
-                }
+                state.uploadPost = .init(pikcedImage: image)
+                return .none
                 
             case let .view(.cameraDidMove(zoomLevel, cameraPosition)):
                 let centerGeoHash = Geohash.encode(latitude: cameraPosition.lat, longitude: cameraPosition.lng, precision: state.precision)
@@ -171,20 +165,6 @@ struct MapFeature {
                 return .none
                 
             case .alert:
-                return .none
-                
-            case .showImageUploadFailAlert:
-                state.alert = AlertState {
-                    TextState("이미지 업로드에 실패했어요")
-                } actions: {
-                    ButtonState(role: .cancel) {
-                      TextState("확인")
-                    }
-                }
-                return .none
-                
-            case let .showUploadPost(imageURL):
-                state.uploadPost = .init(imageURL: imageURL)
                 return .none
                 
             case let .setPosts(response):

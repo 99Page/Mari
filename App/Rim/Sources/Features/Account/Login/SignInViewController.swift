@@ -25,6 +25,8 @@ import Core
 struct SignInFeature {
     @ObservableState
     struct State: Equatable {
+        @Shared(.uid) var uid
+        
         // Firebase 인증에는 해시되지 않은 값 사용
         var originNonce = ""
         
@@ -47,12 +49,12 @@ struct SignInFeature {
     }
     
     enum Action: ViewAction {
-        
         case view(UIAction)
         case delegate(Delegate)
         case dismissProgressView
         case alert(PresentationAction<AlertAction>)
-        case firebaseSignInSucceeded(AuthDataResult)
+        case firebaseSignInSucceeded(SignInResult)
+        case saveUID(uid: String)
         
         enum UIAction: BindableAction {
             case appleSignInSucceeded(identityToken: String)
@@ -62,6 +64,7 @@ struct SignInFeature {
             case binding(BindingAction<State>)
         }
         
+        @CasePathable
         enum Delegate {
             case signInSucceeded
         }
@@ -79,8 +82,8 @@ struct SignInFeature {
             case let .view(.appleSignInSucceeded(identitiyToken)):
                 state.isProgressPresented = true
                 return .run { [nonce = state.originNonce] send in
-                    let authData = try await accountClient.loginUsingApple(token: identitiyToken, nonce: nonce)
-                    await send(.firebaseSignInSucceeded(authData))
+                    let signInResult = try await accountClient.signInUsingApple(token: identitiyToken, nonce: nonce)
+                    await send(.firebaseSignInSucceeded(signInResult))
                 } catch: { error, send in
                     await send(.view(.signInFailed))
                 }
@@ -119,13 +122,17 @@ struct SignInFeature {
             case .alert(_):
                 return .none
                 
-            case let .firebaseSignInSucceeded(authData):
+            case let .firebaseSignInSucceeded(signInResult):
                 return .run { send in
-                    let idToken = try await authData.user.getIDToken()
-                    try keychain.save(value: idToken, service: .firebase, account: .idToken)
+                    try keychain.save(value: signInResult.idToken, service: .firebase, account: .idToken)
+                    await send(.saveUID(uid: signInResult.uid))
                     await send(.dismissProgressView)
                     await send(.delegate(.signInSucceeded))
                 }
+                
+            case let .saveUID(uid):
+                state.$uid.withLock { $0 = uid }
+                return .none
             }
         }
         .ifLet(\.$alert, action: \.alert)

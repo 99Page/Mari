@@ -17,10 +17,12 @@ struct SceneFeatureTests {
             SceneFeature()
         } withDependencies: {
             $0.accountClient.logout = { } // 로그아웃 성공
+            $0.continuousClock = ImmediateClock()
         }
         
         await store.send(.tab(.userAccount(.view(.logoutButtonTapped))))
-        await store.receive(\.tab.userAccount.delegate.logoutSucceeded) {
+        await store.receive(\.tab.userAccount.delegate.logout)
+        await store.receive(\.logout) {
             $0 = .login(.init())
         }
     }
@@ -40,11 +42,13 @@ struct SceneFeatureTests {
             SceneFeature()
         } withDependencies: {
             $0.continuousClock = ImmediateClock()
-            $0.accountClient.isLoggedIn = { true }
+            $0.accountClient.isLoggedIn = { true } // 로그인 상태
+            $0.accountClient.refreshIdToken = { } // 토큰 갱신 성공
         }
         
         await store.send(.splash(.view(.viewDidLoad)))
-        await store.receive(\.splash.delegate.loggedIn)
+        await store.receive(\.splash.refreshIdToken)
+        await store.receive(\.splash.delegate.showTab)
         await store.receive(\.changeState) {
             $0 = .tab(.init())
         }
@@ -59,7 +63,7 @@ struct SceneFeatureTests {
         }
         
         await store.send(.splash(.view(.viewDidLoad)))
-        await store.receive(\.splash.delegate.loggedOut)
+        await store.receive(\.splash.delegate.showSignIn)
         await store.receive(\.changeState) {
             $0 = .login(.init())
         }

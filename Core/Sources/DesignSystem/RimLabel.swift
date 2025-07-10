@@ -116,7 +116,6 @@ public class RimLabel: RimView {
         ]
         
         label.attributedText = NSAttributedString(string: labelState.text, attributes: attributes)
-//        label.baselineAdjustment = .alignCenters
     }
 }
 
