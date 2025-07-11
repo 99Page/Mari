@@ -55,6 +55,10 @@ extension ImageClient: DependencyKey {
         }
 
     }
+    
+    static var testValue: ImageClient {
+        previewValue
+    }
 }
 
 extension DependencyValues {

@@ -19,16 +19,14 @@ struct UploadPostFeature {
     @ObservableState
     struct State: Equatable {
         @Presents var alert: AlertState<AlertAction>?
+        @Shared(.uid) var uid
         
         var image: RimImageView.State
         var isImageLoadingViewPresented = true
         var uploadTryCount = 0
         var imageURL: String?
         
-        var postButton = RimLabel.State(
-            text: "공유하기",
-            textColor: .white
-        )
+        var postButton = RimLabel.State(text: "공유하기", textColor: .white)
         
         var title = RimTextField.State(
             text: "",
@@ -37,15 +35,12 @@ struct UploadPostFeature {
             placeholder: "여기는 어떤 곳인가요?",
         )
         
-        var description = RimTextView.State(
-            text: "",
-            placeholder: "이곳을 설명해주세요."
-        )
+        var description = RimTextView.State(text: "", placeholder: "이곳을 설명해주세요.")
         
         let maxImageUploadRetry = 3
         
-        init(pikcedImage: UIImage) {
-            self.image = RimImageView.State(image: .uiImage(uiImage: pikcedImage))
+        init(pickedImage: UIImage) {
+            self.image = RimImageView.State(image: .uiImage(uiImage: pickedImage))
         }
         
         var hasRetryLeft: Bool { uploadTryCount < maxImageUploadRetry }
@@ -63,6 +58,7 @@ struct UploadPostFeature {
         case setImageURL(url: String)
         case alert(PresentationAction<AlertAction>)
         case showUploadFailAlert
+        case checkUID
         
         enum View: BindableAction {
             case binding(BindingAction<State>)
@@ -92,29 +88,37 @@ struct UploadPostFeature {
                 return .none
                 
             case .view(.viewDidLoad):
-                return .send(.uploadImage)
+                return .concatenate(
+                    .send(.checkUID),
+                    .send(.uploadImage)
+                )
+                
+            case .checkUID:
+                guard state.uid == nil else { return .none }
+                NotificationCenter.default.post(name: .appErrorNotification, object: AppError.emptyUID)
+                return .none
                 
             case .view(.uploadButtonTapped):
                 let locationManager = CLLocationManager()
                 
                 guard let imageURL = state.imageURL else { return .none }
                 guard let location = locationManager.location else { return .none }
+                guard let uid = state.uid else { return .none }
                 
                 let request = CreatePostRequest(
                     title: state.title.text,
                     content: state.description.text,
                     latitude: location.coordinate.latitude,
                     longitude: location.coordinate.longitude,
-                    creatorID: uuid().uuidString,
+                    creatorID: uid,
                     imageUrl: imageURL
                 )
                 
                 return .run { send in
-                    try await postClient.createPost(request: request)
-                    debugPrint("success")
+                    let _ = try await postClient.createPost(request: request)
                     await send(.delegate(.uploadSucceeded))
                 } catch: { error, send in
-                    debugPrint("fail \(error)")
+                    await send(.showUploadFailAlert)
                 }
                 
             case .uploadImage:
@@ -153,7 +157,6 @@ struct UploadPostFeature {
             }
         }
         .ifLet(\.$alert, action: \.alert)
-        ._printChanges()
     }
 }
 
@@ -254,7 +257,7 @@ class UploadPostViewController: UIViewController {
 
 #Preview {
     let image = UIImage(resource: .rimLogo)
-    let state = UploadPostFeature.State(pikcedImage: image)
+    let state = UploadPostFeature.State(pickedImage: image)
     let store = Store(initialState: state) {
         UploadPostFeature()
     }

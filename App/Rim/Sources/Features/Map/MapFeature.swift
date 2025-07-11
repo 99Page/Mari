@@ -117,7 +117,7 @@ struct MapFeature {
             switch action {
                 
             case let .view(.cameraButtonTapped(image)):
-                state.uploadPost = .init(pikcedImage: image)
+                state.uploadPost = .init(pickedImage: image)
                 return .none
                 
             case let .view(.cameraDidMove(zoomLevel, cameraPosition)):

@@ -13,7 +13,6 @@ import UIKit
 struct MapNavigationStack {
     @Reducer
     enum Path {
-        case uploadPost(UploadPostFeature)
         case postDetail(PostDetailFeature)
     }
     
@@ -57,8 +56,6 @@ class MapNavigationStackController: NavigationStackController {
             MapViewController(store: store.scope(state: \.root, action: \.root))
         } destination: { store in
             switch store.case {
-            case let .uploadPost(store):
-                UploadPostViewController(store: store)
             case let .postDetail(store):
                 PostDetailViewController(store: store)
             }
