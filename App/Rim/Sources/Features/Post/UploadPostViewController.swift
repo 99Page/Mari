@@ -161,6 +161,7 @@ struct UploadPostFeature {
                 }
                 return .none
             case .showMissingTitleAlert:
+                state.alert = nil
                 state.alert = AlertState {
                     TextState("게시글의 제목을 입력해주세요")
                 } actions: {
@@ -226,7 +227,6 @@ class UploadPostViewController: UIViewController {
         scrollView.alwaysBounceVertical = true
         scrollView.contentInset.top = 16
         scrollView.contentInset.bottom = 16 // 스크롤이 올라올 때 텍스트가 잘리는 걸 막습니다. -page, 2025. 07. 11
-        
         
         postButton.addAction(.touchUpInside({ [weak self] in
             Logger.debug("button tapped")
