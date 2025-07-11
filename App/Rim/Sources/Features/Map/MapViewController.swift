@@ -67,7 +67,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         }
         
         present(item: $store.scope(state: \.uploadPost, action: \.uploadPost)) { store in
-            let viewController = UploadPostViewController(store: store)
+            let viewController = UploadPostStackController(store: store)
             viewController.modalPresentationStyle = .fullScreen
             return viewController
         }

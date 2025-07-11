@@ -18,7 +18,7 @@ struct MapFeature {
     @ObservableState
     struct State: Equatable {
         @Presents var alert: AlertState<Action.Alert>?
-        @Presents var uploadPost: UploadPostFeature.State?
+        @Presents var uploadPost: UploadPostNavigationStack.State?
         
         // 기본 줌 레벨 14
         // 줌 레벨의 최대값 22, 최솟값은 약 0.67
@@ -86,7 +86,7 @@ struct MapFeature {
         case view(UIAction)
         case alert(PresentationAction<Alert>)
         case showFetchFailAlert
-        case uploadPost(PresentationAction<UploadPostFeature.Action>)
+        case uploadPost(PresentationAction<UploadPostNavigationStack.Action>)
         case dismissProgress
         case setImage(postID: String, image: UIImage)
         case cancelSetPosts
@@ -157,7 +157,7 @@ struct MapFeature {
             case .view(.binding):
                 return .none
                 
-            case .uploadPost(.presented(.delegate(.uploadSucceeded))):
+            case .uploadPost(.presented(.root(.delegate(.uploadSucceeded)))):
                 state.uploadPost = nil
                 return .send(.fetchPosts)
                 
@@ -229,7 +229,7 @@ struct MapFeature {
         }
         .ifLet(\.$alert, action: \.alert)
         .ifLet(\.$uploadPost, action: \.uploadPost) {
-            UploadPostFeature()
+            UploadPostNavigationStack()
         }
     }
 }

@@ -26,7 +26,11 @@ struct UploadPostFeature {
         var uploadTryCount = 0
         var imageURL: String?
         
-        var postButton = RimLabel.State(text: "공유하기", textColor: .white)
+        var postButton = RimLabel.State(
+            text: "공유하기",
+            textColor: .white,
+            appearance: .init(cornerRadius: 25, backgroundColor: UIColor(resource: .main))
+        )
         
         var title = RimTextField.State(
             text: "",
@@ -58,6 +62,7 @@ struct UploadPostFeature {
         case setImageURL(url: String)
         case alert(PresentationAction<AlertAction>)
         case showUploadFailAlert
+        case showMissingTitleAlert
         case checkUID
         
         enum View: BindableAction {
@@ -66,7 +71,7 @@ struct UploadPostFeature {
             case viewDidLoad
         }
         
-        enum Delegate {
+        enum Delegate: Equatable {
             case uploadSucceeded
         }
     }
@@ -84,23 +89,10 @@ struct UploadPostFeature {
             case .delegate(_):
                 return .none
                 
-            case .view(.binding(_)):
-                return .none
-                
-            case .view(.viewDidLoad):
-                return .concatenate(
-                    .send(.checkUID),
-                    .send(.uploadImage)
-                )
-                
-            case .checkUID:
-                guard state.uid == nil else { return .none }
-                NotificationCenter.default.post(name: .appErrorNotification, object: AppError.emptyUID)
-                return .none
-                
             case .view(.uploadButtonTapped):
                 let locationManager = CLLocationManager()
-                
+                Logger.debug("??")
+                guard !state.title.text.isEmpty else { return .send(.showMissingTitleAlert) }
                 guard let imageURL = state.imageURL else { return .none }
                 guard let location = locationManager.location else { return .none }
                 guard let uid = state.uid else { return .none }
@@ -120,6 +112,20 @@ struct UploadPostFeature {
                 } catch: { error, send in
                     await send(.showUploadFailAlert)
                 }
+                
+            case .view(.binding(_)):
+                return .none
+                
+            case .view(.viewDidLoad):
+                return .concatenate(
+                    .send(.checkUID),
+                    .send(.uploadImage)
+                )
+                
+            case .checkUID:
+                guard state.uid == nil else { return .none }
+                NotificationCenter.default.post(name: .appErrorNotification, object: AppError.emptyUID)
+                return .none
                 
             case .uploadImage:
                 guard state.hasRetryLeft else { return .send(.showUploadFailAlert) }
@@ -154,9 +160,19 @@ struct UploadPostFeature {
                     }
                 }
                 return .none
+            case .showMissingTitleAlert:
+                state.alert = AlertState {
+                    TextState("게시글의 제목을 입력해주세요")
+                } actions: {
+                    ButtonState(role: .cancel) {
+                        TextState("확인")
+                    }
+                }
+                return .none
             }
         }
         .ifLet(\.$alert, action: \.alert)
+        ._printChanges()
     }
 }
 
@@ -165,13 +181,11 @@ class UploadPostViewController: UIViewController {
     
     @UIBindable var store: StoreOf<UploadPostFeature>
     
+    private let divider = RimView(state: .constant(.init(backgroundColor: .gray)))
     private let scrollView = UIScrollView(frame: .zero)
-    
     private let photoImage: RimImageView
-    
     private let titleTextField: RimTextField
     private let contentTextView: RimTextView
-    
     private let postButton: RimLabel
     
     init(store: StoreOf<UploadPostFeature>) {
@@ -204,22 +218,55 @@ class UploadPostViewController: UIViewController {
     }
     
     private func setupView() {
-        title = "포스트 올리기"
+        title = "새 게시물"
         view.backgroundColor = .systemBackground
         
+        setupNavigationBar()
+        
+        scrollView.alwaysBounceVertical = true
+        scrollView.contentInset.top = 16
+        scrollView.contentInset.bottom = 16 // 스크롤이 올라올 때 텍스트가 잘리는 걸 막습니다. -page, 2025. 07. 11
+        
+        
         postButton.addAction(.touchUpInside({ [weak self] in
+            Logger.debug("button tapped")
             self?.send(.uploadButtonTapped)
         }))
+        
+        view.addAction(.touchUpInside({ [weak self] in
+            self?.view.endEditing(true)
+        }), animation: .none)
     }
     
-    private func send() {
-        send(.uploadButtonTapped)
+    private func setupNavigationBar() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = .systemBackground
+        
+        appearance.shadowColor = UIColor.lightGray
+        
+        navigationController?.navigationBar.standardAppearance = appearance
+        navigationController?.navigationBar.scrollEdgeAppearance = appearance
+        navigationController?.navigationBar.isTranslucent = false
+        
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            image: UIImage(systemName: "xmark"),
+            style: .plain,
+            target: self,
+            action: #selector(didTapClose)
+        )
+        
+        navigationItem.leftBarButtonItem?.tintColor = .darkText
+    }
+    
+    @objc private func didTapClose() {
+        dismiss(animated: true)
     }
     
     private func makeConstraint() {
         view.addSubview(scrollView)
         view.addSubview(postButton)
-        
+
         scrollView.addSubview(photoImage)
         scrollView.addSubview(titleTextField)
         scrollView.addSubview(contentTextView)
@@ -231,12 +278,13 @@ class UploadPostViewController: UIViewController {
         }
         
         scrollView.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide.snp.top)
             make.leading.trailing.top.equalToSuperview()
             make.bottom.equalTo(postButton.snp.top).offset(-16)
         }
         
         photoImage.snp.makeConstraints { make in
-            make.top.equalTo(view.safeAreaLayoutGuide.snp.top)
+            make.top.equalTo(scrollView.contentLayoutGuide.snp.top)
             make.centerX.equalToSuperview()
             make.width.equalToSuperview().multipliedBy(0.6)
             make.height.equalTo(photoImage.snp.width).multipliedBy(4.0 / 3.0)
@@ -250,20 +298,20 @@ class UploadPostViewController: UIViewController {
         contentTextView.snp.makeConstraints { make in
             make.leading.trailing.equalToSuperview().inset(16)
             make.top.equalTo(titleTextField.snp.bottom).offset(16)
-            make.bottom.equalToSuperview()
+            make.bottom.equalTo(scrollView.contentLayoutGuide.snp.bottom)
         }
     }
 }
 
 #Preview {
     let image = UIImage(resource: .rimLogo)
-    let state = UploadPostFeature.State(pickedImage: image)
+    let state = UploadPostNavigationStack.State(pickedImage: image)
     let store = Store(initialState: state) {
-        UploadPostFeature()
+        UploadPostNavigationStack()
     }
     
     ViewControllerPreview {
-        UploadPostViewController(store: store)
+        UploadPostStackController(store: store)
     }
     .ignoresSafeArea()
 }
