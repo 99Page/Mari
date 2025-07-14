@@ -19,10 +19,10 @@ struct UploadPostFeature {
     @ObservableState
     struct State: Equatable {
         @Presents var alert: AlertState<AlertAction>?
+        @Presents var dismissDialog: ConfirmationDialogState<DialogAction>?
         @Shared(.uid) var uid
         
         var image: RimImageView.State
-        var isImageLoadingViewPresented = true
         var uploadTryCount = 0
         var imageURL: String?
         
@@ -48,17 +48,27 @@ struct UploadPostFeature {
         }
         
         var hasRetryLeft: Bool { uploadTryCount < maxImageUploadRetry }
+        var isImageUploaded: Bool { imageURL != nil }
     }
     
     @CasePathable
     enum AlertAction: Equatable {
         case dismissView
+        case confirm
+    }
+    
+    @CasePathable
+    enum DialogAction: Equatable {
+        case cancel
+        case dismiss
     }
     
     enum Action: ViewAction {
         case view(View)
+        case dialog(PresentationAction<DialogAction>)
         case delegate(Delegate)
         case uploadImage
+        case uploadPost
         case setImageURL(url: String)
         case alert(PresentationAction<AlertAction>)
         case showUploadFailAlert
@@ -69,6 +79,7 @@ struct UploadPostFeature {
             case binding(BindingAction<State>)
             case uploadButtonTapped
             case viewDidLoad
+            case xButtonTapped
         }
         
         enum Delegate: Equatable {
@@ -80,6 +91,7 @@ struct UploadPostFeature {
     @Dependency(\.imageClient) var imageClient
     @Dependency(\.uuid) var uuid
     @Dependency(\.dismiss) var dismiss
+    @Dependency(\.continuousClock) var clock
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
@@ -89,7 +101,41 @@ struct UploadPostFeature {
             case .delegate(_):
                 return .none
                 
+            case .view(.xButtonTapped):
+                state.dismissDialog = ConfirmationDialogState(titleVisibility: .visible) {
+                    TextState("작성 중인 게시글을 삭제할까요?")
+                } actions: {
+                    ButtonState(role: .destructive, action: .dismiss) {
+                        TextState("삭제")
+                    }
+                    
+                    ButtonState(role: .cancel, action: .cancel) {
+                        TextState("취소")
+                    }
+                }
+                return .none
+                
             case .view(.uploadButtonTapped):
+                if state.isImageUploaded {
+                    return .send(.uploadPost)
+                } else {
+                    return .run { send in
+                        for await _ in clock.timer(interval: .seconds(1)) {
+                            await send(.view(.uploadButtonTapped))
+                        }
+                    }
+                }
+                
+            case .view(.binding(_)):
+                return .none
+                
+            case .view(.viewDidLoad):
+                return .concatenate(
+                    .send(.checkUID),
+                    .send(.uploadImage)
+                )
+                
+            case .uploadPost:
                 let locationManager = CLLocationManager()
                 Logger.debug("??")
                 guard !state.title.text.isEmpty else { return .send(.showMissingTitleAlert) }
@@ -113,15 +159,6 @@ struct UploadPostFeature {
                     await send(.showUploadFailAlert)
                 }
                 
-            case .view(.binding(_)):
-                return .none
-                
-            case .view(.viewDidLoad):
-                return .concatenate(
-                    .send(.checkUID),
-                    .send(.uploadImage)
-                )
-                
             case .checkUID:
                 guard state.uid == nil else { return .none }
                 NotificationCenter.default.post(name: .appErrorNotification, object: AppError.emptyUID)
@@ -143,6 +180,10 @@ struct UploadPostFeature {
                 state.imageURL = url
                 return .none
                 
+            case .alert(.presented(.confirm)):
+                state.alert = nil
+                return .none
+                
             case .alert(.presented(.dismissView)):
                 return .run { send in
                     await dismiss()
@@ -161,17 +202,28 @@ struct UploadPostFeature {
                 }
                 return .none
             case .showMissingTitleAlert:
-                state.alert = nil
                 state.alert = AlertState {
                     TextState("게시글의 제목을 입력해주세요")
                 } actions: {
-                    ButtonState(role: .cancel) {
+                    ButtonState(role: .cancel, action: .confirm) {
                         TextState("확인")
                     }
                 }
                 return .none
+                
+            case .dialog(.presented(.cancel)):
+                return .none
+                
+            case .dialog(.presented(.dismiss)):
+                return .run { _ in
+                    await dismiss()
+                }
+                
+            case .dialog:
+                return .none
             }
         }
+        .ifLet(\.$dismissDialog, action: \.dialog)
         .ifLet(\.$alert, action: \.alert)
         ._printChanges()
     }
@@ -182,7 +234,7 @@ class UploadPostViewController: UIViewController {
     
     @UIBindable var store: StoreOf<UploadPostFeature>
     
-    private let divider = RimView(state: .constant(.init(backgroundColor: .gray)))
+    private let contentBackgroundView = UIView()
     private let scrollView = UIScrollView(frame: .zero)
     private let photoImage: RimImageView
     private let titleTextField: RimTextField
@@ -215,6 +267,10 @@ class UploadPostViewController: UIViewController {
             UIAlertController(store: store)
         }
         
+        present(item: $store.scope(state: \.dismissDialog, action: \.dialog)) { store in
+            UIAlertController(store: store)
+        }
+        
         send(.viewDidLoad)
     }
     
@@ -233,7 +289,7 @@ class UploadPostViewController: UIViewController {
             self?.send(.uploadButtonTapped)
         }))
         
-        view.addAction(.touchUpInside({ [weak self] in
+        contentBackgroundView.addAction(.touchUpInside({ [weak self] in
             self?.view.endEditing(true)
         }), animation: .none)
     }
@@ -260,21 +316,27 @@ class UploadPostViewController: UIViewController {
     }
     
     @objc private func didTapClose() {
-        dismiss(animated: true)
+        send(.xButtonTapped)
     }
     
     private func makeConstraint() {
-        view.addSubview(scrollView)
+        view.addSubview(contentBackgroundView)
         view.addSubview(postButton)
 
+        contentBackgroundView.addSubview(scrollView)
         scrollView.addSubview(photoImage)
         scrollView.addSubview(titleTextField)
         scrollView.addSubview(contentTextView)
         
         postButton.withKeyboardAvoid(height: 50) { make in
             make.leading.trailing.equalToSuperview().inset(16)
-            make.bottom.equalToSuperview().inset(32)
+            make.bottom.equalToSuperview().inset(40)
             make.height.equalTo(50)
+        }
+        
+        contentBackgroundView.snp.makeConstraints { make in
+            make.top.leading.trailing.equalToSuperview()
+            make.bottom.equalTo(postButton.snp.top)
         }
         
         scrollView.snp.makeConstraints { make in
