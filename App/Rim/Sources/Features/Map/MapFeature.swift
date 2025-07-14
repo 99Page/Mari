@@ -159,7 +159,8 @@ struct MapFeature {
                 
             case .uploadPost(.presented(.root(.delegate(.uploadSucceeded)))):
                 state.uploadPost = nil
-                return .send(.fetchPosts)
+                
+                return state.selectedFilter == .latest ? .send(.fetchPosts) : .none
                 
             case .uploadPost(_):
                 return .none

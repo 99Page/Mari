@@ -22,6 +22,8 @@ struct UploadPostFeature {
         @Presents var dismissDialog: ConfirmationDialogState<DialogAction>?
         @Shared(.uid) var uid
         
+        var isProgressViewPresented = false
+        
         var image: RimImageView.State
         var uploadTryCount = 0
         var imageURL: String?
@@ -57,13 +59,14 @@ struct UploadPostFeature {
         case confirm
     }
     
-    @CasePathable
+    @CasePathable 
     enum DialogAction: Equatable {
         case cancel
         case dismiss
     }
     
     enum Action: ViewAction {
+        case dismissProgress
         case view(View)
         case dialog(PresentationAction<DialogAction>)
         case delegate(Delegate)
@@ -82,6 +85,7 @@ struct UploadPostFeature {
             case xButtonTapped
         }
         
+        @CasePathable
         enum Delegate: Equatable {
             case uploadSucceeded
         }
@@ -116,6 +120,10 @@ struct UploadPostFeature {
                 return .none
                 
             case .view(.uploadButtonTapped):
+                if !state.isProgressViewPresented {
+                    state.isProgressViewPresented = true
+                }
+                
                 if state.isImageUploaded {
                     return .send(.uploadPost)
                 } else {
@@ -137,7 +145,6 @@ struct UploadPostFeature {
                 
             case .uploadPost:
                 let locationManager = CLLocationManager()
-                Logger.debug("??")
                 guard !state.title.text.isEmpty else { return .send(.showMissingTitleAlert) }
                 guard let imageURL = state.imageURL else { return .none }
                 guard let location = locationManager.location else { return .none }
@@ -154,10 +161,16 @@ struct UploadPostFeature {
                 
                 return .run { send in
                     let _ = try await postClient.createPost(request: request)
+                    await send(.dismissProgress)
                     await send(.delegate(.uploadSucceeded))
                 } catch: { error, send in
                     await send(.showUploadFailAlert)
+                    Logger.error("upload fail: \(error)")
                 }
+                
+            case .dismissProgress:
+                state.isProgressViewPresented = false
+                return .none
                 
             case .checkUID:
                 guard state.uid == nil else { return .none }
@@ -225,7 +238,6 @@ struct UploadPostFeature {
         }
         .ifLet(\.$dismissDialog, action: \.dialog)
         .ifLet(\.$alert, action: \.alert)
-        ._printChanges()
     }
 }
 
@@ -269,6 +281,10 @@ class UploadPostViewController: UIViewController {
         
         present(item: $store.scope(state: \.dismissDialog, action: \.dialog)) { store in
             UIAlertController(store: store)
+        }
+        
+        present(isPresented: $store.isProgressViewPresented) {
+            ProgressViewController()
         }
         
         send(.viewDidLoad)

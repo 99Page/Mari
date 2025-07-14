@@ -41,6 +41,7 @@ struct MapNavigationStack {
             }
         }
         .forEach(\.path, action: \.path)
+        ._printChanges()
     }
 }
 

@@ -161,11 +161,31 @@ class RootViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         updateView()
+        setupView()
         send(.viewDidLoad)
         
         present(item: $store.scope(state: \.alert, action: \.alert)) { store in
             UIAlertController(store: store)
         }
+    }
+    
+    private func setupView() {
+        setupNavigationBar()
+    }
+    
+    private func setupNavigationBar() {
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        
+        let image = UIImage(systemName: "arrow.left")
+        appearance.setBackIndicatorImage(image, transitionMaskImage: image)
+        appearance.backButtonAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.clear]
+        appearance.backgroundColor = .clear
+        appearance.shadowColor = .clear
+        
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().tintColor = .white
     }
     
     private func updateView() {

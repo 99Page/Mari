@@ -28,9 +28,7 @@ extension APITarget {
 }
 
 class Client {
-    static func request<T: Decodable>(
-        target: APITarget
-    ) async throws -> T {
+    static func request<T: Decodable>(target: APITarget) async throws -> T {
         guard let url = target.url else { throw ClientError.invalidURL }
         
         var request = URLRequest(url: url)
@@ -45,7 +43,24 @@ class Client {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
 
-        let (data, _) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        try validateHTTPResponse(response, data: data)
+
         return try JSONDecoder().decode(T.self, from: data)
+    }
+
+    private static func validateHTTPResponse(_ response: URLResponse, data: Data) throws {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ClientError.invalidResponse
+        }
+
+        if !(200...299).contains(httpResponse.statusCode) {
+            if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
+                throw errorResponse
+            } else {
+                throw ClientError.failDecoding
+            }
+        }
     }
 }

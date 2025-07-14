@@ -58,7 +58,7 @@ public extension UIView {
         let trackingView = TouchInsideTrackingView()
         trackingView.action = handler
         trackingView.translatesAutoresizingMaskIntoConstraints = false
-        trackingView.backgroundColor = .black.withAlphaComponent(0.1)
+        trackingView.backgroundColor = .clear
         trackingView.isUserInteractionEnabled = true
         
         addSubview(trackingView)

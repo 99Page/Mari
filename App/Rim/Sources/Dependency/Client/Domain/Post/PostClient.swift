@@ -16,17 +16,20 @@ struct PostClient {
     var createPost: (_ request: CreatePostRequest) async throws -> PostDTO
     var fetchNearPosts: (_ request: FetchNearPostsRequest) async throws -> FetchNearPostsResponse
     var fetchPostByID: (_ id: String) async throws -> PostDTO
+    var incrementPostViewCount: (_ postID: String) async throws -> BaseResponse
     
     enum PostAPI: APITarget {
         case createPost(request: CreatePostRequest)
         case fetchNearPosts(request: FetchNearPostsRequest)
         case fetchPostByID(id: String)
+        case incrementPostViewCount(postID: String)
         
         var method: HTTPMethod {
             switch self {
             case .fetchNearPosts: .get
             case .fetchPostByID: .get
             case .createPost: .post
+            case .incrementPostViewCount: .post
             }
         }
         
@@ -35,6 +38,7 @@ struct PostClient {
             case .createPost(let request): request
             case .fetchNearPosts: nil
             case .fetchPostByID: nil
+            case .incrementPostViewCount: nil
             }
         }
         
@@ -44,6 +48,9 @@ struct PostClient {
             @Dependency(\.keychain) var keychain
             
             switch self {
+            case .incrementPostViewCount:
+                let idToken = try? keychain.load(service: .firebase, account: .idToken)
+                headers["Authorization"] = "Bearer \(idToken ?? "")"
             case .createPost:
                 let idToken = try? keychain.load(service: .firebase, account: .idToken)
                 headers["Authorization"] = "Bearer \(idToken ?? "")"
@@ -63,6 +70,8 @@ struct PostClient {
             case let .fetchNearPosts(request):
                 "/getPosts/?latitude=\(request.latitude)&longitude=\(request.longitude)&precision=\(request.precision)&type=\(request.type)"
             case let .fetchPostByID(id): "/getPostById?id=\(id)"
+            case let .incrementPostViewCount(postID):
+                "/increasePostViewCount/posts/\(postID)/views"
             }
         }
     }
@@ -76,7 +85,22 @@ extension PostClient: DependencyKey {
             try await Client.request(target: PostAPI.fetchNearPosts(request: request))
         } fetchPostByID: { id in
             try await Client.request(target: PostAPI.fetchPostByID(id: id))
+        } incrementPostViewCount: { postID in
+            try await Client.request(target: PostAPI.incrementPostViewCount(postID: postID))
         }
+    }
+    
+    static var testValue: PostClient {
+        PostClient { _ in
+            return .stub()
+        } fetchNearPosts: { _ in
+            return FetchNearPostsResponse(posts: [.stub()], geohashBlocks: ["a", "b", "c"])
+        } fetchPostByID: { _ in
+            return .stub()
+        } incrementPostViewCount: { _ in
+            BaseResponse(status: "status", message: "message")
+        }
+
     }
 }
 

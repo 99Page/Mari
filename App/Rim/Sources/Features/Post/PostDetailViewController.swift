@@ -33,6 +33,8 @@ struct PostDetailFeature {
     
     enum Action: ViewAction {
         
+        case incrementPostViewCount
+        case fetchPostDetail
         case setPostDetail(PostDTO)
         case showFetchFailAlert
         case view(UIAction)
@@ -62,15 +64,28 @@ struct PostDetailFeature {
         Reduce<State, Action> { state, action in
             switch action {
             case .view(.viewDidLoad):
+                return .merge(
+                    .send(.fetchPostDetail),
+                    .send(.incrementPostViewCount)
+                )
+                
+            case .view(.binding(_)):
+                return .none
+                
+            case .incrementPostViewCount:
+                return .run { [id = state.postID] send in
+                    let response = try await postClient.incrementPostViewCount(postID: id)
+                } catch: { error, send in
+                    Logger.error("increment fail: \(error)")
+                }
+                
+            case .fetchPostDetail:
                 return .run { [id = state.postID] send in
                     let response = try await postClient.fetchPostByID(id: id)
                     await send(.setPostDetail(response))
                 } catch: { _, send in
                     await send(.showFetchFailAlert)
                 }
-                
-            case .view(.binding(_)):
-                return .none
             
             case let .setPostDetail(post):
                 state.image = .init(image: .custom(url: post.imageUrl))
@@ -124,6 +139,8 @@ class PostDetailViewController: UIViewController {
         self.descriptionLabel = RimLabel(state: $binding.description)
         self.imageView = RimImageView(state: $binding.image)
         super.init(nibName: nil, bundle: nil)
+        
+        hidesBottomBarWhenPushed = true
     }
     
     required init?(coder: NSCoder) {
@@ -132,12 +149,11 @@ class PostDetailViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         makeConstraint()
         setupView()
-        
+
         send(.viewDidLoad)
-        
+
         present(item: $store.scope(state: \.alert, action: \.alert)) { store in
             UIAlertController(store: store)
         }
@@ -145,6 +161,7 @@ class PostDetailViewController: UIViewController {
     
     private func setupView() {
         view.backgroundColor = .systemBackground
+        navigationController?.setNavigationBarHidden(false, animated: false)
     }
     
     private func makeConstraint() {
