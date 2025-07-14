@@ -92,7 +92,7 @@ struct RootFeature {
             case .destination(.signIn(_)):
                 return .none
                 
-            case .destination(.tab(.userAccount(.delegate(.logout)))):
+            case .destination(.tab(.userAccountStack(.root(.delegate(.logout))))):
                 return .send(.signOut)
                 
             case .destination(.tab(.alert(.presented(.showSignIn)))):

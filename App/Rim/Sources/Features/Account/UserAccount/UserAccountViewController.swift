@@ -58,7 +58,18 @@ final class UserAccountViewController: UIViewController {
     let store: StoreOf<UserAccountFeature>
     
     private let tableView = UITableView()
-    private let items = ["로그아웃"]
+    
+    private enum Section: Int, CaseIterable {
+        case post
+        case account
+
+        var title: String {
+            switch self {
+            case .post: return "포스트"
+            case .account: return "계정"
+            }
+        }
+    }
     
     init(store: StoreOf<UserAccountFeature>) {
         self.store = store
@@ -95,13 +106,36 @@ final class UserAccountViewController: UIViewController {
 
 // MARK: UITableViewDataSource
 extension UserAccountViewController: UITableViewDataSource {
+    func numberOfSections(in tableView: UITableView) -> Int {
+        return Section.allCases.count
+    }
+
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return items.count
+        guard let section = Section(rawValue: section) else { return 0 }
+
+        switch section {
+        case .post:
+            return 0 // 포스트 관련 항목 아직 없음
+        case .account:
+            return 1 // 로그아웃 버튼
+        }
+    }
+
+    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        return Section(rawValue: section)?.title
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
-        cell.textLabel?.text = items[indexPath.row]
+        guard let section = Section(rawValue: indexPath.section) else { return cell }
+
+        switch section {
+        case .post:
+            cell.textLabel?.text = ""
+        case .account:
+            cell.textLabel?.text = "로그아웃"
+        }
+
         return cell
     }
 }
@@ -109,9 +143,16 @@ extension UserAccountViewController: UITableViewDataSource {
 extension UserAccountViewController: UITableViewDelegate {
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
-        
-        if indexPath.row == 0 {
-            send(.logoutButtonTapped)
+
+        guard let section = Section(rawValue: indexPath.section) else { return }
+
+        switch section {
+        case .post:
+            break
+        case .account:
+            if indexPath.row == 0 {
+                send(.logoutButtonTapped)
+            }
         }
     }
 }
