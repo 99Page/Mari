@@ -18,7 +18,7 @@ struct MapFeature {
     @ObservableState
     struct State: Equatable {
         @Presents var alert: AlertState<Action.Alert>?
-        @Presents var uploadPost: UploadPostFeature.State?
+        @Presents var uploadPost: UploadPostNavigationStack.State?
         
         // 기본 줌 레벨 14
         // 줌 레벨의 최대값 22, 최솟값은 약 0.67
@@ -85,10 +85,8 @@ struct MapFeature {
         case setPosts(FetchNearPostsResponse)
         case view(UIAction)
         case alert(PresentationAction<Alert>)
-        case showImageUploadFailAlert
         case showFetchFailAlert
-        case showUploadPost(imageURL: String)
-        case uploadPost(PresentationAction<UploadPostFeature.Action>)
+        case uploadPost(PresentationAction<UploadPostNavigationStack.Action>)
         case dismissProgress
         case setImage(postID: String, image: UIImage)
         case cancelSetPosts
@@ -119,12 +117,8 @@ struct MapFeature {
             switch action {
                 
             case let .view(.cameraButtonTapped(image)):
-                return .run { send in
-                    let response = try await imageClient.uploadImage(image: image, fileName: UUID().uuidString)
-                    await send(.showUploadPost(imageURL: response.imageURL))
-                } catch: { error, send in
-                    await send(.showImageUploadFailAlert)
-                }
+                state.uploadPost = .init(pickedImage: image)
+                return .none
                 
             case let .view(.cameraDidMove(zoomLevel, cameraPosition)):
                 let centerGeoHash = Geohash.encode(latitude: cameraPosition.lat, longitude: cameraPosition.lng, precision: state.precision)
@@ -163,7 +157,7 @@ struct MapFeature {
             case .view(.binding):
                 return .none
                 
-            case .uploadPost(.presented(.delegate(.uploadSucceeded))):
+            case .uploadPost(.presented(.root(.delegate(.uploadSucceeded)))):
                 state.uploadPost = nil
                 return .send(.fetchPosts)
                 
@@ -171,20 +165,6 @@ struct MapFeature {
                 return .none
                 
             case .alert:
-                return .none
-                
-            case .showImageUploadFailAlert:
-                state.alert = AlertState {
-                    TextState("이미지 업로드에 실패했어요")
-                } actions: {
-                    ButtonState(role: .cancel) {
-                      TextState("확인")
-                    }
-                }
-                return .none
-                
-            case let .showUploadPost(imageURL):
-                state.uploadPost = .init(imageURL: imageURL)
                 return .none
                 
             case let .setPosts(response):
@@ -249,7 +229,7 @@ struct MapFeature {
         }
         .ifLet(\.$alert, action: \.alert)
         .ifLet(\.$uploadPost, action: \.uploadPost) {
-            UploadPostFeature()
+            UploadPostNavigationStack()
         }
     }
 }

@@ -16,16 +16,16 @@ import Core
 
 @DependencyClient
 struct AccountClient {
-    var loginUsingApple: (_ token: String, _ nonce: String) async throws -> AuthDataResult
+    var signInUsingApple: (_ token: String, _ nonce: String) async throws -> SignInResult
     var logout: () throws -> Void
     var isLoggedIn: () -> Bool = { false }
-    var signInFirebase: (_ credential: AuthCredential) async throws -> AuthDataResult
+    var signInFirebase: (_ credential: AuthCredential) async throws -> SignInResult
     var refreshIdToken: () async throws -> Void
 }
 
 extension AccountClient: DependencyKey {
     static var liveValue: AccountClient {
-        let signIn: (_ credential: AuthCredential) async throws -> AuthDataResult = { credential in
+        let signIn: (_ credential: AuthCredential) async throws -> SignInResult = { credential in
             let authData: AuthDataResult? = try await withCheckedThrowingContinuation { continuation in
                 Auth.auth().signIn(with: credential) { result, error in
                     if let error = error {
@@ -35,8 +35,12 @@ extension AccountClient: DependencyKey {
                     continuation.resume(returning: result)
                 }
             }
+            
             guard let authData else { throw ClientError.emptyValue }
-            return authData
+            
+            let uid = authData.user.uid
+            let idToken = try await authData.user.getIDToken()
+            return SignInResult(uid: uid, idToken: idToken)
         }
         
         return AccountClient { token, nonce in

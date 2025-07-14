@@ -116,7 +116,6 @@ public class RimLabel: RimView {
         ]
         
         label.attributedText = NSAttributedString(string: labelState.text, attributes: attributes)
-//        label.baselineAdjustment = .alignCenters
     }
 }
 
@@ -128,13 +127,15 @@ public extension RimLabel {
         
         var typography: Typography
         
-        var appearance = RimView.State()
+        var appearance: RimView.State
         
-        public init(text: String, textColor: UIColor, typography: Typography = .contentDescription, alignment: NSTextAlignment = .center) {
+        public init(text: String, textColor: UIColor, typography: Typography = .contentDescription, alignment: NSTextAlignment = .center,
+                    appearance: RimView.State = .init()) {
             self.text = text
             self.textColor = textColor
             self.typography = typography
             self.alignment = alignment
+            self.appearance = appearance
         }
         
     }

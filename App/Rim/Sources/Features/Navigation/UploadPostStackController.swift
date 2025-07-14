@@ -1,8 +1,8 @@
 //
-//  MapNavigationStackController.swift
+//  UploadPostStackController.swift
 //  Rim
 //
-//  Created by 노우영 on 6/12/25.
+//  Created by 노우영 on 7/11/25.
 //
 
 import Foundation
@@ -10,26 +10,30 @@ import ComposableArchitecture
 import UIKit
 
 @Reducer
-struct MapNavigationStack {
+struct UploadPostNavigationStack {
     @Reducer
     enum Path {
-        case postDetail(PostDetailFeature)
+        
     }
     
     @ObservableState
     struct State: Equatable {
         var path = StackState<Path.State>()
-        var root = MapFeature.State()
+        var root: UploadPostFeature.State
+        
+        init(pickedImage: UIImage) {
+            self.root = .init(pickedImage: pickedImage)
+        }
     }
     
     enum Action {
         case path(StackActionOf<Path>)
-        case root(MapFeature.Action)
+        case root(UploadPostFeature.Action)
     }
     
     var body: some ReducerOf<Self> {
         Scope(state: \.root, action: \.root) {
-            MapFeature()
+            UploadPostFeature()
         }
         
         Reduce<State, Action> { state, action in
@@ -44,20 +48,21 @@ struct MapNavigationStack {
     }
 }
 
-extension MapNavigationStack.Path.State: Equatable { }
-
-class MapNavigationStackController: NavigationStackController {
-    private var store: StoreOf<MapNavigationStack>!
+extension UploadPostNavigationStack.Path.State: Equatable {
     
-    convenience init(store: StoreOf<MapNavigationStack>!) {
+}
+
+class UploadPostStackController: NavigationStackController {
+    private var store: StoreOf<UploadPostNavigationStack>!
+    
+    convenience init(store: StoreOf<UploadPostNavigationStack>!) {
         @UIBindable var store = store
         
         self.init(path: $store.scope(state: \.path, action: \.path)) {
-            MapViewController(store: store.scope(state: \.root, action: \.root))
+            UploadPostViewController(store: store.scope(state: \.root, action: \.root))
         } destination: { store in
             switch store.case {
-            case let .postDetail(store):
-                PostDetailViewController(store: store)
+            
             }
         }
         

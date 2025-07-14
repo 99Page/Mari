@@ -81,6 +81,9 @@ public class RimImageView: RimView {
             self.imageView.image = UIImage(systemName: name)
             self.imageView.tintColor = color
             self.placeholder.isHidden = true
+        case let .uiImage(uiImage):
+            self.imageView.image = uiImage
+            self.placeholder.isHidden = true
         }
     }
     
@@ -117,6 +120,7 @@ public class RimImageView: RimView {
             case resource(imageResource: ImageResource)
             case custom(url: String?)
             case symbol(name: String, fgColor: UIColor)
+            case uiImage(uiImage: UIImage)
         }
         
         public static func == (lhs: RimImageView.State, rhs: RimImageView.State) -> Bool {

@@ -91,6 +91,17 @@ extension KeychainClient: DependencyKey {
             }
         )
     }
+    
+    static var testValue: KeychainClient {
+        KeychainClient { value, service, account in
+            
+        } load: { service, account in
+            return "keychain value"
+        } delete: { service, account in
+            
+        }
+
+    }
 }
 
 extension DependencyValues {

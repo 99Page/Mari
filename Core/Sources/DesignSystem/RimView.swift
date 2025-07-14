@@ -64,6 +64,17 @@ public class RimView: UIView {
         }
     }
     
+    public func overlay(_ view: UIView, insets: UIEdgeInsets) {
+        addSubview(view)
+        
+        view.snp.makeConstraints { make in
+            make.top.equalToSuperview().inset(insets.top)
+            make.bottom.equalToSuperview().inset(insets.bottom)
+            make.leading.equalToSuperview().inset(insets.left)
+            make.trailing.equalToSuperview().inset(insets.right)
+        }
+    }
+    
     public struct State: Equatable {
         public var borderColor: UIColor
         var borderWidth: CGFloat
