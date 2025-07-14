@@ -181,6 +181,7 @@ class RootViewController: UIViewController {
         appearance.setBackIndicatorImage(image, transitionMaskImage: image)
         appearance.backButtonAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor.clear]
         appearance.backgroundColor = .clear
+        appearance.shadowColor = .clear
         
         UINavigationBar.appearance().standardAppearance = appearance
         UINavigationBar.appearance().scrollEdgeAppearance = appearance

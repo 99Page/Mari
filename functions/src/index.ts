@@ -201,7 +201,10 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
     const idToken = authHeader?.startsWith("Bearer ") ? authHeader.split("Bearer ")[1] : null;
 
     if (!idToken) {
-      res.status(401).send("Missing or invalid Authorization header");
+      res.status(401).json({
+        code: "UNAUTHORIZED_MISSING_TOKEN",
+        message: "Missing or invalid Authorization header"
+      });
       return;
     }
 
@@ -209,7 +212,10 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       await admin.auth().verifyIdToken(idToken);
     } catch (error) {
       logger.error("Token verification failed:", error);
-      res.status(401).send("Unauthorized");
+      res.status(401).json({
+        code: "UNAUTHORIZED_INVALID_TOKEN",
+        message: "Token verification failed"
+      });
       return;
     }
 
@@ -217,14 +223,20 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
     const body = req.body;
 
     if (!body || typeof body !== "object") {
-      res.status(400).send("Invalid request body");
+      res.status(400).json({
+        code: "INVALID_BODY",
+        message: "Invalid request body"
+      });
       return;
     }
 
     const { title, content, latitude, longitude, creatorID, imageUrl } = body;
 
-    if (!title || !content || latitude == null || longitude == null || !creatorID || !imageUrl) {
-      res.status(400).send("Missing required fields");
+    if (!title || latitude == null || longitude == null || !creatorID || !imageUrl) {
+      res.status(400).json({
+        code: "MISSING_REQUIRED_FIELDS",
+        message: "Missing required fields"
+      });
       return;
     }
 
@@ -232,7 +244,10 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       typeof latitude !== "number" || isNaN(latitude) ||
       typeof longitude !== "number" || isNaN(longitude)
     ) {
-      res.status(400).send("Invalid latitude or longitude");
+      res.status(400).json({
+        code: "INVALID_COORDINATES",
+        message: "Invalid latitude or longitude"
+      });
       return;
     }
 
@@ -247,7 +262,10 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       }
     } catch (e) {
       logger.error("GeoHash encoding failed:", e);
-      res.status(500).send("GeoHash encoding error");
+      res.status(500).json({
+        code: "GEOHASH_ENCODING_ERROR",
+        message: "GeoHash encoding error"
+      });
       return;
     }
 
@@ -274,7 +292,10 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
     res.status(201).json({ id: postRef.id, ...newPost });
   } catch (error) {
     logger.error("Error creating post:", error);
-    res.status(500).send("Failed to create post");
+    res.status(500).json({
+      code: "FIRESTORE_WRITE_FAILED",
+      message: "Failed to create post"
+    });
   }
 });
 

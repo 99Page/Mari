@@ -11,3 +11,8 @@ struct BaseResponse: Decodable {
     let status: String
     let message: String
 }
+
+struct ErrorResponse: Decodable, Error {
+    let code: String
+    let message: String
+}

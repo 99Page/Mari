@@ -7,8 +7,9 @@
 
 import Testing
 import ComposableArchitecture
-@testable import Rim
 import UIKit
+@testable import Rim
+
 
 @MainActor
 struct RootFeatureTests {
@@ -46,8 +47,8 @@ struct RootFeatureTests {
         #expect(store.state.$uid.wrappedValue == nil) // id 저장 사전 검사
         
         await store.send(.view(.viewDidLoad)) // 구독 시작
-        await store.send(.destination(.tab(.mapStack(.root(.uploadPost(.presented(.view(.viewDidLoad))))))))
-        await store.receive(\.destination.tab.mapStack.root.uploadPost.presented.checkUID)
+        await store.send(.destination(.tab(.mapStack(.root(.uploadPost(.presented(.root(.view(.viewDidLoad)))))))))
+        await store.receive(\.destination.tab.mapStack.root.uploadPost.presented.root.checkUID)
         await store.receive(\.handleError)
         await store.send(.alert(.presented(.signOut)))
         

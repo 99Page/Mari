@@ -89,6 +89,19 @@ extension PostClient: DependencyKey {
             try await Client.request(target: PostAPI.incrementPostViewCount(postID: postID))
         }
     }
+    
+    static var testValue: PostClient {
+        PostClient { _ in
+            return .stub()
+        } fetchNearPosts: { _ in
+            return FetchNearPostsResponse(posts: [.stub()], geohashBlocks: ["a", "b", "c"])
+        } fetchPostByID: { _ in
+            return .stub()
+        } incrementPostViewCount: { _ in
+            BaseResponse(status: "status", message: "message")
+        }
+
+    }
 }
 
 extension DependencyValues {

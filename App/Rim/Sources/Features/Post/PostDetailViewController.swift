@@ -75,7 +75,6 @@ struct PostDetailFeature {
             case .incrementPostViewCount:
                 return .run { [id = state.postID] send in
                     let response = try await postClient.incrementPostViewCount(postID: id)
-                    Logger.debug("\(response)")
                 } catch: { error, send in
                     Logger.error("increment fail: \(error)")
                 }
