@@ -35,11 +35,11 @@ struct MapFeatureTests {
         await store.send(.uploadPost(.presented(.root(.view(.binding(.set(\.title.text, "title")))))))
         
         await store.send(.uploadPost(.presented(.root(.view(.uploadButtonTapped)))))
-        await store.receive(\.uploadPost.presented.root.delegate.uploadSucceeded)
+        await store.receive(\.uploadPost.presented.root.delegate)
         await store.receive(\.fetchPosts)
         await store.receive(\.setPosts)
         
-        #expect($0.posts.isEmpty == false)
+        #expect(store.state.posts.isEmpty == false)
     }
     
     @Test
@@ -59,9 +59,31 @@ struct MapFeatureTests {
         #expect(store.state.posts.isEmpty) // 초기값 확인
         
         await store.send(.uploadPost(.presented(.root(.view(.viewDidLoad))))) // 이미지 업로드 처리
-        await store.send(.uploadPost(.presented(.root(.view(.binding(.set(\.title.text, "title")))))))
+        await store.receive(\.uploadPost.presented.root.checkUID)
+        await store.receive(\.uploadPost.presented.root.uploadImage) {
+            $0.uploadPost?.root.uploadTryCount += 1
+        }
         
-        await store.send(.uploadPost(.presented(.root(.view(.uploadButtonTapped)))))
-        await store.receive(\.uploadPost.presented.root.delegate.uploadSucceeded)
+        await store.receive(\.uploadPost.presented.root.setImageURL) {
+            $0.uploadPost?.root.imageURL = "https://picsum.photos/200/300"
+        }
+        
+        await store.send(.uploadPost(.presented(.root(.view(.binding(.set(\.title.text, "title"))))))) {
+            $0.uploadPost?.root.title.text = "title"
+        }
+        
+        await store.send(.uploadPost(.presented(.root(.view(.uploadButtonTapped))))) {
+            $0.uploadPost?.root.isProgressViewPresented = true
+        }
+        
+        await store.receive(\.uploadPost.presented.root.uploadPost)
+        await store.receive(\.uploadPost.presented.root.dismissProgress) {
+            $0.uploadPost?.root.isProgressViewPresented = false
+        }
+        await store.receive(\.uploadPost.presented.root.delegate) {
+            $0.uploadPost = nil
+        }
+        
+        #expect(store.state.posts.isEmpty)
     }
 }
