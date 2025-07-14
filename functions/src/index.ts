@@ -331,7 +331,10 @@ export const increasePostViewCount = functions.https.onRequest(
       : null;
 
     if (lastViewedAt && now.getTime() - lastViewedAt.getTime() < VIEW_DUPLICATION_LIMIT_MS) {
-      res.status(200).json({ message: 'View ignored (too recent)' });
+      res.status(200).json({
+        status: 'IGNORED',
+        message: 'View ignored (too recent)'
+      });
       return;
     }
 
@@ -376,7 +379,10 @@ export const increasePostViewCount = functions.https.onRequest(
     // 🕓 조회 기록 저장
     await historyRef.set({ lastViewedAt: now }, { merge: true });
 
-    res.status(200).json({ message: 'View recorded', block: `${yyyyMMdd}/hours/${hour}` });
+    res.status(200).json({
+      status: 'SUCCESS',
+      message: `View recorded at ${yyyyMMdd}/hours/${hour}`
+    });
   }
 );
 

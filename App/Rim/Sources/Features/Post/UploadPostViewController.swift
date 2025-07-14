@@ -57,7 +57,7 @@ struct UploadPostFeature {
         case confirm
     }
     
-    @CasePathable
+    @CasePathable 
     enum DialogAction: Equatable {
         case cancel
         case dismiss
@@ -225,7 +225,6 @@ struct UploadPostFeature {
         }
         .ifLet(\.$dismissDialog, action: \.dialog)
         .ifLet(\.$alert, action: \.alert)
-        ._printChanges()
     }
 }
 
