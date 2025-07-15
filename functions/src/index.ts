@@ -273,8 +273,6 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
     const newPost = {
       title,
       content,
-      latitude,
-      longitude,
       location: new admin.firestore.GeoPoint(latitude, longitude),
       creatorID,
       imageUrl,
@@ -282,7 +280,7 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       weeklyScore: 0,
       monthlyScore: 0,
       viewCount: 0,
-      createdAt: new Date().toISOString(),
+      createdAt: new Date(),
       ...geohashFields
     };
 
@@ -576,6 +574,7 @@ interface PostSummary {
   id: string;
   title: string;
   imageUrl: string;
+  location: FirebaseFirestore.GeoPoint;
 }
 
 // 사용자별 게시글 조회 (최대 20개, 최신순, 페이징 지원) - 인증 토큰 기반
@@ -630,14 +629,16 @@ export const getPostsByUser = onRequest({ region: REGION }, async (req, res) => 
       return {
         id: doc.id,
         title: data.title,
-        imageUrl: data.imageUrl
+        imageUrl: data.imageUrl,
+        location: data.location
       };
     });
 
     // 다음 페이지 커서 (마지막 createdAt)
-    const nextCursorValue = snapshot.docs.length > 0
+    const nextCursorRaw = snapshot.docs.length > 0
       ? snapshot.docs[snapshot.docs.length - 1].data().createdAt
       : null;
+    const nextCursorValue = nextCursorRaw?.toDate?.() ?? null;
 
     res.status(200).json({
       status: "SUCCESS",

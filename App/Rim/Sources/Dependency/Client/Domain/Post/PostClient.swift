@@ -13,12 +13,12 @@ import FirebaseFunctions
 
 @DependencyClient
 struct PostClient {
-    var createPost: (_ request: CreatePostRequest) async throws -> PostDTO
+    var createPost: (_ request: CreatePostRequest) async throws -> PostDetailDTO
     var fetchNearPosts: (_ request: FetchNearPostsRequest) async throws -> FetchNearPostsResponse
-    var fetchPostByID: (_ id: String) async throws -> PostDTO
+    var fetchPostByID: (_ id: String) async throws -> PostDetailDTO
     var incrementPostViewCount: (_ postID: String) async throws -> APIResponse<EmptyResult>
     // lastCreateAt는 커서의 역할을 합니다 -page, 2025. 07. 15
-    var fetchUserPosts: (_ lastCreatedAt: Date) async throws -> APIResponse<Array<PostDTO>>
+    var fetchUserPosts: (_ lastCreatedAt: Date) async throws -> APIResponse<FetchUserPostsResponse>
     
     enum PostAPI: APITarget {
         case createPost(request: CreatePostRequest)
@@ -108,8 +108,9 @@ extension PostClient: DependencyKey {
         } fetchUserPosts: { _  in
             APIResponse(status: "status", message: "message", result: .stub())
         }
-
     }
+    
+    static var previewValue: PostClient { testValue }
 }
 
 extension DependencyValues {

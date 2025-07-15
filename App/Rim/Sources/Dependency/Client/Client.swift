@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Core
 
 enum HTTPMethod: String {
     case get = "GET"
@@ -47,7 +48,10 @@ class Client {
 
         try validateHTTPResponse(response, data: data)
 
-        return try JSONDecoder().decode(T.self, from: data)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601WithMilliseconds
+        
+        return try decoder.decode(T.self, from: data)
     }
 
     private static func validateHTTPResponse(_ response: URLResponse, data: Data) throws {
@@ -61,6 +65,26 @@ class Client {
             } else {
                 throw ClientError.failDecoding
             }
+        }
+    }
+}
+
+extension JSONDecoder.DateDecodingStrategy {
+    static var iso8601WithMilliseconds: JSONDecoder.DateDecodingStrategy {
+        return .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateStr = try container.decode(String.self)
+            
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            
+            guard let date = formatter.date(from: dateStr) else {
+                throw DecodingError.dataCorruptedError(
+                    in: container,
+                    debugDescription: "Expected ISO8601 date string with fractional seconds"
+                )
+            }
+            return date
         }
     }
 }

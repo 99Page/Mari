@@ -8,6 +8,6 @@
 import Foundation
 
 struct FetchNearPostsResponse: Decodable {
-    let posts: [PostDTO]
+    let posts: [PostDetailDTO]
     let geohashBlocks: [String]
 }

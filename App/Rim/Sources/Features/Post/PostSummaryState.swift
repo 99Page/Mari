@@ -23,7 +23,14 @@ struct PostSummaryState: Equatable, Identifiable {
         self.location = coordinate
     }
     
-    init(dto: PostDTO) {
+    init(dto: PostDetailDTO) {
+        self.id = dto.id
+        self.imageURL = dto.imageUrl
+        self.title = dto.title
+        self.location = CLLocation(latitude: dto.location.latitude, longitude: dto.location.longitude)
+    }
+    
+    init(dto: PostSummaryDTO) {
         self.id = dto.id
         self.imageURL = dto.imageUrl
         self.title = dto.title

@@ -93,6 +93,7 @@ final class UserAccountViewController: UIViewController {
         tableView.dataSource = self
         tableView.delegate = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
+        tableView.separatorStyle = .none
     }
     
     private func makeConstraint() {
@@ -115,7 +116,7 @@ extension UserAccountViewController: UITableViewDataSource {
 
         switch section {
         case .post:
-            return 0 // 포스트 관련 항목 아직 없음
+            return 1
         case .account:
             return 1 // 로그아웃 버튼
         }
@@ -131,10 +132,7 @@ extension UserAccountViewController: UITableViewDataSource {
 
         switch section {
         case .post:
-            cell.addAction(.touchUpInside({ [weak self] in
-                
-            }))
-            cell.textLabel?.text = ""
+            cell.textLabel?.text = "내 게시물"
         case .account:
             cell.textLabel?.text = "로그아웃"
         }
@@ -151,7 +149,7 @@ extension UserAccountViewController: UITableViewDelegate {
 
         switch section {
         case .post:
-            break
+            traitCollection.push(state: AccountNavigationStack.Path.State.myPosts(.init()))
         case .account:
             if indexPath.row == 0 {
                 send(.logoutButtonTapped)

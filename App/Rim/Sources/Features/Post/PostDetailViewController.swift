@@ -35,7 +35,7 @@ struct PostDetailFeature {
         
         case incrementPostViewCount
         case fetchPostDetail
-        case setPostDetail(PostDTO)
+        case setPostDetail(PostDetailDTO)
         case showFetchFailAlert
         case view(UIAction)
         case alert(PresentationAction<AlertAction>)
@@ -224,7 +224,7 @@ class PostDetailViewController: UIViewController {
         PostDetailFeature()
     } withDependencies: {
         $0.postClient.fetchPostByID = { _ in
-            PostDTO(
+            PostDetailDTO(
                 id: "",
                 title: "title",
                 content: "content",
