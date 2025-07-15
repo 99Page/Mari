@@ -7,10 +7,14 @@
 
 import Foundation
 
-struct APIResponse<Data: Decodable & Stub>: Decodable {
+struct APIResponse<Data: Decodable & Stub>: Decodable, Stub {
     let status: String
     let message: String
     let result: Data
+    
+    static func stub() -> Self {
+        Self(status: "status", message: "message", result: .stub())
+    }
 }
 
 protocol Stub {

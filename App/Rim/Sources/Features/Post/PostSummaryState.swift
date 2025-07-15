@@ -9,7 +9,7 @@ import CoreLocation
 import Foundation
 import UIKit
 
-struct PostSummaryState: Equatable, Identifiable {
+struct PostSummaryState: Equatable, Identifiable, Hashable {
     let id: String
     let imageURL: String
     let title: String

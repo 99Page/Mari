@@ -11,7 +11,7 @@ import Core
 enum HTTPMethod: String {
     case get = "GET"
     case post = "POST"
-    // Extend as needed (PUT, DELETE, etc.)
+    case delete
 }
 
 protocol APITarget {

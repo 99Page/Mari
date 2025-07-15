@@ -726,7 +726,9 @@ export const deletePost = onRequest({ region: REGION }, async (req, res) => {
     res.status(200).json({
       status: "SUCCESS",
       message: "Post deleted",
-      result: {}
+      result: {
+        id: postId
+      }
     });
   } catch (error) {
     logger.error("Error deleting post:", error);
