@@ -22,10 +22,6 @@ struct MyPostFeature {
         var creationCursor: Date? = Date.now
     }
     
-    enum Table {
-        
-    }
-    
     @CasePathable
     enum AlertAction: Equatable {
         case deletePost(PostSummaryState)
@@ -230,6 +226,7 @@ class MyPostViewController: UIViewController {
             var content = cell.defaultContentConfiguration()
             content.text = post.title
             cell.contentConfiguration = content
+            cell.selectionStyle = .none
             return cell
         }
     }
@@ -248,6 +245,7 @@ extension MyPostViewController: UITableViewDelegate {
     }
     
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
         let post = store.posts[indexPath.row]
         let postDetail = PostDetailFeature.State(postID: post.id)
         traitCollection.push(state: AccountNavigationStack.Path.State.postDetail(postDetail))
