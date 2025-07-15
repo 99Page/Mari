@@ -60,7 +60,7 @@ struct MyPostFeature {
             case let .setPosts(response):
                 let posts = response.posts.map { PostSummaryState(dto: $0) }
                 state.posts.append(contentsOf: posts)
-//                state.creationCursor = response.nextCursor
+                state.creationCursor = response.nextCursor
                 return .none
             }
         }
@@ -69,8 +69,10 @@ struct MyPostFeature {
 
 @ViewAction(for: MyPostFeature.self)
 class MyPostViewController: UIViewController, UITableViewDataSource {
+    
     let store: StoreOf<MyPostFeature>
     private let tableView = PaginatedTableView()
+    private var previousTintColor: UIColor?
     
     init(store: StoreOf<MyPostFeature>) {
         self.store = store
@@ -81,7 +83,7 @@ class MyPostViewController: UIViewController, UITableViewDataSource {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
         makeConstraint()
@@ -89,17 +91,29 @@ class MyPostViewController: UIViewController, UITableViewDataSource {
         updateView()
         send(.viewDidLoad)
     }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        previousTintColor = navigationController?.navigationBar.tintColor
+        navigationController?.navigationBar.tintColor = .black
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.navigationBar.tintColor = previousTintColor
+    }
     
     private func setupView() {
         title = "내 게시물"
         
+        tableView.delegate = self
         tableView.dataSource = self
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
-        tableView.frame = view.bounds
-        tableView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         tableView.onScrollToBottom = { [weak self] in
             self?.send(.didScrollToBottom)
         }
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
+        tableView.frame = view.bounds
+        tableView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
     }
     
     private func makeConstraint() {
@@ -125,6 +139,24 @@ class MyPostViewController: UIViewController, UITableViewDataSource {
         content.text = post.title
         cell.contentConfiguration = content
         return cell
+    }
+}
+
+extension MyPostViewController: UITableViewDelegate {
+    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let deleteAction = UIContextualAction(style: .destructive, title: "삭제") { [weak self] _, _, completionHandler in
+            guard let self else { return }
+//            let post = store.posts[indexPath.row]
+            completionHandler(true)
+        }
+        
+        return UISwipeActionsConfiguration(actions: [deleteAction])
+    }
+    
+    public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        let post = store.posts[indexPath.row]
+        let postDetail = PostDetailFeature.State(postID: post.id)
+        traitCollection.push(state: AccountNavigationStack.Path.State.postDetail(postDetail))
     }
 }
 

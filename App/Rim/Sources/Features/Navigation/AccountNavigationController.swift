@@ -25,6 +25,7 @@ struct AccountNavigationStack {
     @Reducer
     enum Path {
         case myPosts(MyPostFeature)
+        case postDetail(PostDetailFeature)
     }
     
     var body: some ReducerOf<Self> {
@@ -51,6 +52,8 @@ class AccountNavigationStackController: NavigationStackController {
             switch store.case {
             case let .myPosts(store):
                 MyPostViewController(store: store)
+            case let .postDetail(store):
+                PostDetailViewController(store: store)
             }
         }
         
