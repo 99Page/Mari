@@ -8,7 +8,7 @@
 import Foundation
 import CoreLocation
 
-struct PostDTO: Decodable {
+struct PostDTO: Decodable, Stub {
     let id: String
     let title: String
     let content: String

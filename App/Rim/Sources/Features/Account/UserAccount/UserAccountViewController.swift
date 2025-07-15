@@ -65,7 +65,7 @@ final class UserAccountViewController: UIViewController {
 
         var title: String {
             switch self {
-            case .post: return "포스트"
+            case .post: return "게시물 관리"
             case .account: return "계정"
             }
         }
@@ -131,6 +131,9 @@ extension UserAccountViewController: UITableViewDataSource {
 
         switch section {
         case .post:
+            cell.addAction(.touchUpInside({ [weak self] in
+                
+            }))
             cell.textLabel?.text = ""
         case .account:
             cell.textLabel?.text = "로그아웃"

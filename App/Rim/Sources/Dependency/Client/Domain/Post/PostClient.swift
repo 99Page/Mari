@@ -16,13 +16,16 @@ struct PostClient {
     var createPost: (_ request: CreatePostRequest) async throws -> PostDTO
     var fetchNearPosts: (_ request: FetchNearPostsRequest) async throws -> FetchNearPostsResponse
     var fetchPostByID: (_ id: String) async throws -> PostDTO
-    var incrementPostViewCount: (_ postID: String) async throws -> BaseResponse
+    var incrementPostViewCount: (_ postID: String) async throws -> APIResponse<EmptyResult>
+    // lastCreateAt는 커서의 역할을 합니다 -page, 2025. 07. 15
+    var fetchUserPosts: (_ lastCreatedAt: Date) async throws -> APIResponse<Array<PostDTO>>
     
     enum PostAPI: APITarget {
         case createPost(request: CreatePostRequest)
         case fetchNearPosts(request: FetchNearPostsRequest)
         case fetchPostByID(id: String)
         case incrementPostViewCount(postID: String)
+        case fetchUserPosts(lastCreatedAt: Date)
         
         var method: HTTPMethod {
             switch self {
@@ -30,6 +33,7 @@ struct PostClient {
             case .fetchPostByID: .get
             case .createPost: .post
             case .incrementPostViewCount: .post
+            case .fetchUserPosts: .get
             }
         }
         
@@ -39,6 +43,7 @@ struct PostClient {
             case .fetchNearPosts: nil
             case .fetchPostByID: nil
             case .incrementPostViewCount: nil
+            case .fetchUserPosts: nil
             }
         }
         
@@ -48,10 +53,7 @@ struct PostClient {
             @Dependency(\.keychain) var keychain
             
             switch self {
-            case .incrementPostViewCount:
-                let idToken = try? keychain.load(service: .firebase, account: .idToken)
-                headers["Authorization"] = "Bearer \(idToken ?? "")"
-            case .createPost:
+            case .incrementPostViewCount, .createPost, .fetchUserPosts:
                 let idToken = try? keychain.load(service: .firebase, account: .idToken)
                 headers["Authorization"] = "Bearer \(idToken ?? "")"
             case .fetchNearPosts:
@@ -72,6 +74,8 @@ struct PostClient {
             case let .fetchPostByID(id): "/getPostById?id=\(id)"
             case let .incrementPostViewCount(postID):
                 "/increasePostViewCount/posts/\(postID)/views"
+            case let .fetchUserPosts(lastCreatedAt):
+                "/getPostsByUser?lastCreatedAt=\(lastCreatedAt)"
             }
         }
     }
@@ -87,6 +91,8 @@ extension PostClient: DependencyKey {
             try await Client.request(target: PostAPI.fetchPostByID(id: id))
         } incrementPostViewCount: { postID in
             try await Client.request(target: PostAPI.incrementPostViewCount(postID: postID))
+        } fetchUserPosts: { lastCreatedAt in
+            try await Client.request(target: PostAPI.fetchUserPosts(lastCreatedAt: lastCreatedAt))
         }
     }
     
@@ -98,7 +104,9 @@ extension PostClient: DependencyKey {
         } fetchPostByID: { _ in
             return .stub()
         } incrementPostViewCount: { _ in
-            BaseResponse(status: "status", message: "message")
+            APIResponse(status: "status", message: "message", result: .stub())
+        } fetchUserPosts: { _  in
+            APIResponse(status: "status", message: "message", result: .stub())
         }
 
     }
