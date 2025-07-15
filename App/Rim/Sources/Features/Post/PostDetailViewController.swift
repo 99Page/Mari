@@ -22,6 +22,7 @@ struct PostDetailFeature {
         var image: RimImageView.State
         var title: RimLabel.State
         var description: RimLabel.State
+        var isTrashButtonPresented = false
         
         init(postID: String) {
             self.postID = postID
@@ -91,6 +92,7 @@ struct PostDetailFeature {
                 state.image = .init(image: .custom(url: post.imageUrl))
                 state.title.text = post.title
                 state.description.text = post.content
+                state.isTrashButtonPresented = post.isMine
                 return .none
                 
             case .alert(.presented(.dismissButtonTapped)):
@@ -132,6 +134,8 @@ class PostDetailViewController: UIViewController {
     private let descriptionLabel: RimLabel
     private let imageView: RimImageView
     
+    private var trashButton = UIBarButtonItem()
+    
     init(store: StoreOf<PostDetailFeature>) {
         @UIBindable var binding = store
         self.store = store
@@ -151,7 +155,8 @@ class PostDetailViewController: UIViewController {
         super.viewDidLoad()
         makeConstraint()
         setupView()
-
+        updateView()
+        
         send(.viewDidLoad)
 
         present(item: $store.scope(state: \.alert, action: \.alert)) { store in
@@ -159,9 +164,34 @@ class PostDetailViewController: UIViewController {
         }
     }
     
+    private func updateView() {
+        observe { [weak self] in
+            guard let self else { return }
+            
+            trashButton.tintColor = store.isTrashButtonPresented ? .white : .clear
+            trashButton.isEnabled = store.isTrashButtonPresented
+        }
+    }
+    
     private func setupView() {
         view.backgroundColor = .systemBackground
         navigationController?.setNavigationBarHidden(false, animated: false)
+        
+        let trashImage = UIImage(systemName: "trash", withConfiguration: UIImage.SymbolConfiguration(weight: .heavy))
+        trashButton = UIBarButtonItem(
+            image: trashImage,
+            style: .plain,
+            target: self,
+            action: #selector(didTapTrashButton)
+        )
+        
+        navigationItem.rightBarButtonItem = trashButton
+        trashButton.tintColor = .clear
+        trashButton.isEnabled = false
+    }
+    
+    @objc private func didTapTrashButton() {
+      // 삭제 동작 실행
     }
     
     private func makeConstraint() {
@@ -220,8 +250,9 @@ class PostDetailViewController: UIViewController {
 }
 
 #Preview("fetch success") {
-    let store = Store(initialState: PostDetailFeature.State(postID: "")) {
-        PostDetailFeature()
+    let stackState = MapNavigationStack.State(postDetail: .init(postID: "postID"))
+    let store = Store(initialState: stackState) {
+        MapNavigationStack()
     } withDependencies: {
         $0.postClient.fetchPostByID = { _ in
             PostDetailDTO(
@@ -229,17 +260,15 @@ class PostDetailViewController: UIViewController {
                 title: "title",
                 content: "content",
                 imageUrl: "https://picsum.photos/200/300",
-                location: .init(latitude: 0, longitude: 0)
+                location: .init(latitude: 0, longitude: 0),
+                isMine: true
             )
         }
     }
-    
-    
-    NavigationStack {
-        ViewControllerPreview {
-            PostDetailViewController(store: store)
-        }
-        .ignoresSafeArea()
+
+    ViewControllerPreview {
+        MapNavigationStackController(store: store)
     }
+    .ignoresSafeArea()
 }
 

@@ -14,7 +14,7 @@ import FirebaseFunctions
 @DependencyClient
 struct PostClient {
     var createPost: (_ request: CreatePostRequest) async throws -> PostDetailDTO
-    var fetchNearPosts: (_ request: FetchNearPostsRequest) async throws -> FetchNearPostsResponse
+    var fetchNearPosts: (_ request: FetchNearPostsRequest) async throws -> APIResponse<FetchNearPostsResponse>
     var fetchPostByID: (_ id: String) async throws -> PostDetailDTO
     var incrementPostViewCount: (_ postID: String) async throws -> APIResponse<EmptyResult>
     // lastCreateAt는 커서의 역할을 합니다 -page, 2025. 07. 15
@@ -57,12 +57,10 @@ struct PostClient {
             @Dependency(\.keychain) var keychain
             
             switch self {
-            case .incrementPostViewCount, .createPost, .fetchUserPosts, .deletePost:
+            case .incrementPostViewCount, .createPost, .fetchUserPosts, .deletePost, .fetchPostByID:
                 let idToken = try? keychain.load(service: .firebase, account: .idToken)
                 headers["Authorization"] = "Bearer \(idToken ?? "")"
             case .fetchNearPosts:
-                break
-            case .fetchPostByID:
                 break
             }
             return headers
@@ -108,7 +106,7 @@ extension PostClient: DependencyKey {
         PostClient { _ in
             return .stub()
         } fetchNearPosts: { _ in
-            return FetchNearPostsResponse(posts: [.stub()], geohashBlocks: ["a", "b", "c"])
+                .stub()
         } fetchPostByID: { _ in
             return .stub()
         } incrementPostViewCount: { _ in

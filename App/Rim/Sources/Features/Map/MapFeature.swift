@@ -215,7 +215,7 @@ struct MapFeature {
                 
                 return .run { send in
                     await send(.cancelSetPosts)
-                    let response = try await postClient.fetchNearPosts(request)
+                    let response = try await postClient.fetchNearPosts(request).result
                     await send(.setPosts(response))
                     await send(.dismissProgress)
                 } catch: { error, send in

@@ -18,8 +18,20 @@ struct MapNavigationStack {
     
     @ObservableState
     struct State: Equatable {
-        var path = StackState<Path.State>()
-        var root = MapFeature.State()
+        var path: StackState<Path.State>
+        var root: MapFeature.State
+        
+        init(path: StackState<Path.State> = StackState<Path.State>(), root: MapFeature.State = MapFeature.State()) {
+            self.path = path
+            self.root = root
+        }
+        
+        /// PostDetailViewController 프리뷰를 위한 이니셜라이저입니다.
+        /// 프리뷰에서 MapNvigationStack.Path.State가 추론되지 않아 추가했습니다.
+        init(postDetail: PostDetailFeature.State) {
+            self.path = .init([.postDetail(postDetail)])
+            self.root = MapFeature.State()
+        }
     }
     
     enum Action {

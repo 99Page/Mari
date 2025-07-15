@@ -3,6 +3,7 @@ import * as logger from "firebase-functions/logger";
 import Geohash from "latlon-geohash";
 import { fetchPostById } from "./fetchPostById";
 import { db, adminInstance as admin } from "../utils/firebase";
+import { PostSummary } from "./post";
 
 const REGION = "asia-northeast3";
 
@@ -76,9 +77,13 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
       const posts = await fetchLatestPosts(geohashBlocks, geohashField);
 
       res.status(200).json({
-        type: "latest",
-        posts,
-        geohashBlocks,
+        status: "SUCCESS",
+        message: "Successfully fetched latest posts",
+        result: {
+          type: "latest",
+          posts,
+          geohashBlocks,
+        }
       });
     } catch (error) {
       logger.error("Error fetching latest posts:", error);
@@ -88,9 +93,13 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
     try {
       const posts = await fetchPopularPosts(geohashBlocks, userID);
       res.status(200).json({
-        type: "popular",
-        posts,
-        geohashBlocks,
+        status: "SUCCESS",
+        message: "Successfully fetched popular posts",
+        result: {
+          type: "popular",
+          posts,
+          geohashBlocks,
+        }
       });
     } catch (error) {
       logger.error("Error fetching popular posts:", error);
@@ -101,8 +110,8 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
 });
 
 // geohash 블록별로 최신 게시글을 가져옴 (각 블록당 최대 1개, createdAt 기준 내림차순 정렬)
-async function fetchLatestPosts(geohashBlocks: string[], geohashField: string): Promise<any[]> {
-  const posts: any[] = [];
+async function fetchLatestPosts(geohashBlocks: string[], geohashField: string): Promise<PostSummary[]> {
+  const posts: PostSummary[] = [];
 
   for (const hash of geohashBlocks) {
     const snapshot = await db
@@ -116,7 +125,13 @@ async function fetchLatestPosts(geohashBlocks: string[], geohashField: string): 
 
     if (!snapshot.empty) {
       const doc = snapshot.docs[0];
-      posts.push({ id: doc.id, ...doc.data() });
+      const data = doc.data();
+      posts.push({
+        id: doc.id,
+        title: data.title,
+        imageUrl: data.imageUrl,
+        location: data.location
+      });
     }
   }
 
@@ -124,7 +139,7 @@ async function fetchLatestPosts(geohashBlocks: string[], geohashField: string): 
 }
 
 // 인기순 포스트 조회 (6시간 내 인기 포스트, post_ranking_cache 사용)
-async function fetchPopularPosts(geohashBlocks: string[], userID: string): Promise<any[]> {
+async function fetchPopularPosts(geohashBlocks: string[], userID: string): Promise<PostSummary[]> {
   const now = new Date();
   const currentHour = now.getUTCHours();
   const snappedHour = Math.floor(currentHour / 3) * 3; // 현재 시간이 05시면 03시 조회
@@ -132,7 +147,7 @@ async function fetchPopularPosts(geohashBlocks: string[], userID: string): Promi
   const yyyyMMdd = now.toISOString().slice(0, 10);
   const basePath = `post_ranking_cache/${yyyyMMdd}/last6hours/hour${hourStr}/geohash`;
 
-  const posts: any[] = [];
+  const posts: PostSummary[] = [];
 
   for (const hash of geohashBlocks) {
     const docRef = db.doc(`${basePath}/${hash}`);
@@ -149,7 +164,12 @@ async function fetchPopularPosts(geohashBlocks: string[], userID: string): Promi
     for (const entry of ranking) {
       try {
         const post = await fetchPostById(entry.postId, userID);
-        posts.push(post);
+        posts.push({
+          id: post.id,
+          title: post.title,
+          imageUrl: post.imageUrl,
+          location: post.location
+        });
       } catch (error) {
         logger.warn(`⚠️ postId ${entry.postId} 조회 실패:`, error);
       }

@@ -14,9 +14,10 @@ struct PostDetailDTO: Decodable, Stub {
     let content: String
     let imageUrl: String
     let location: CoordinateDTO
+    let isMine: Bool
     
     static func stub() -> Self {
-        Self(id: UUID().uuidString, title: "title", content: "content", imageUrl: "imageURL", location: .init(latitude: 0, longitude: 0))
+        Self(id: UUID().uuidString, title: "title", content: "content", imageUrl: "imageURL", location: .init(latitude: 0, longitude: 0), isMine: true)
     }
 }
 
