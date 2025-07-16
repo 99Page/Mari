@@ -88,10 +88,6 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       location: new admin.firestore.GeoPoint(latitude, longitude),
       creatorID,
       imageUrl,
-      dailyScore: 0,
-      weeklyScore: 0,
-      monthlyScore: 0,
-      viewCount: 0,
       createdAt: new Date(),
       ...geohashFields
     };
@@ -99,7 +95,21 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
     // Firestore의 "posts" 컬렉션에 문서 추가
     const postRef = await db.collection("posts").add(newPost);
 
-    res.status(201).json({ id: postRef.id, ...newPost });
+  res.status(201).json({
+    status: "SUCCESS",
+    message: "Post created successfully",
+    result: {
+      id: postRef.id,
+      title,
+      content,
+      imageUrl,
+      location: new admin.firestore.GeoPoint(latitude, longitude),
+      createdAt: newPost.createdAt,
+      creatorID,
+      ...geohashFields,
+      isMine: true
+    }
+  });
   } catch (error) {
     logger.error("Error creating post:", error);
     res.status(500).json({

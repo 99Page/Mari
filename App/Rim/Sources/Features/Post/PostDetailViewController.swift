@@ -42,15 +42,21 @@ struct PostDetailFeature {
         case alert(PresentationAction<AlertAction>)
         case delegate(Delegate)
         
+        @CasePathable
         enum UIAction: BindableAction {
             case viewDidLoad
             case binding(BindingAction<State>)
+            case trashButtonTapped
         }
         
+        @CasePathable
         enum AlertAction {
             case dismissButtonTapped
+            case deleteButtonTapped
+            case dismissAlert
         }
         
+        @CasePathable
         enum Delegate {
             case dismiss
         }
@@ -69,6 +75,20 @@ struct PostDetailFeature {
                     .send(.fetchPostDetail),
                     .send(.incrementPostViewCount)
                 )
+                
+            case .view(.trashButtonTapped):
+                state.alert = AlertState {
+                    TextState("게시물을 삭제할까요? ")
+                } actions: {
+                    ButtonState(action: .dismissAlert) {
+                        TextState("취소")
+                    }
+                    
+                    ButtonState(role: .destructive, action: .deleteButtonTapped) {
+                        TextState("삭제")
+                    }
+                }
+                return .none
                 
             case .view(.binding(_)):
                 return .none
@@ -95,10 +115,17 @@ struct PostDetailFeature {
                 state.isTrashButtonPresented = post.isMine
                 return .none
                 
+            case .alert(.presented(.dismissAlert)):
+                state.alert = nil
+                return .none
+                
             case .alert(.presented(.dismissButtonTapped)):
                 return .run { _ in
                     await dismiss()
                 }
+                
+            case .alert(.presented(.deleteButtonTapped)):
+                return .none
                 
             case .alert(.dismiss):
                 return .none
@@ -119,6 +146,7 @@ struct PostDetailFeature {
             }
         }
         .ifLet(\.$alert, action: \.alert)
+        ._printChanges()
     }
 }
 
@@ -191,7 +219,7 @@ class PostDetailViewController: UIViewController {
     }
     
     @objc private func didTapTrashButton() {
-      // 삭제 동작 실행
+        send(.trashButtonTapped)
     }
     
     private func makeConstraint() {

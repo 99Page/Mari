@@ -13,7 +13,7 @@ import FirebaseFunctions
 
 @DependencyClient
 struct PostClient {
-    var createPost: (_ request: CreatePostRequest) async throws -> PostDetailDTO
+    var createPost: (_ request: CreatePostRequest) async throws -> APIResponse<PostDetailDTO>
     var fetchNearPosts: (_ request: FetchNearPostsRequest) async throws -> APIResponse<FetchNearPostsResponse>
     var fetchPostByID: (_ id: String) async throws -> PostDetailDTO
     var incrementPostViewCount: (_ postID: String) async throws -> APIResponse<EmptyResult>
