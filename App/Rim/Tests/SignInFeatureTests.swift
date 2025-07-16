@@ -12,7 +12,7 @@ import ComposableArchitecture
 @MainActor
 struct SignInFeatureTests {
 
-    @Test func test_saveUID_AfterAppleSignIn() async throws {
+    @Test func saveUID_AfterAppleSignIn() async throws {
         let store = TestStore(initialState: SignInFeature.State()) {
             SignInFeature()
         } withDependencies: {

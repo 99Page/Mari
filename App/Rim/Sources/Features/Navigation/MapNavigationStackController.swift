@@ -46,6 +46,9 @@ struct MapNavigationStack {
         
         Reduce<State, Action> { state, action in
             switch action {
+            case let .path(.element(id: _, action: .postDetail(.delegate(.removePostFromMap(id))))):
+                state.root.posts.remove(id: id)
+                return .none
             case .path(_):
                 return .none
             case .root(_):

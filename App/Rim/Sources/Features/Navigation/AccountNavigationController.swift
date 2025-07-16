@@ -33,8 +33,19 @@ struct AccountNavigationStack {
             UserAccountFeature()
         }
         
-        EmptyReducer()
-            .forEach(\.path, action: \.path)
+        Reduce<State, Action> { state, action in
+            switch action {
+            case let .path(.element(id: _, action: .postDetail(.delegate(.removePostFromMyPosts(id))))):
+                guard let index = state.path.firstIndex(where: { $0.is(\.myPosts) }) else { return .none}
+                let pathID = state.path.ids[index]
+                return .send(.path(.element(id: pathID, action: .myPosts(.removePostFromList(id: id)))))
+            case .path(_):
+                return .none
+            case .root:
+                return .none
+            }
+        }
+        .forEach(\.path, action: \.path)
     }
 }
 

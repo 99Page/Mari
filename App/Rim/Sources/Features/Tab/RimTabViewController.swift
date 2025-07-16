@@ -49,10 +49,18 @@ struct TabFeature {
         
         Reduce<State, Action> { state, action in
             switch action {
+            case let .userAccountStack(.path(.element(id: _, action: .myPosts(.delegate(.removePostFromMap(id)))))):
+                return .send(.mapStack(.root(.removePost(id: id))))
+                
+            case let .userAccountStack(.path(.element(id: _, action: .postDetail(.delegate(.removePostFromMap(id)))))):
+                return .send(.mapStack(.root(.removePost(id: id))))
+                
             case .mapStack:
                 return .none
+                
             case .userAccountStack:
                 return .none
+                
             case .view(.viewDidLoad):
                 return .run { send in
                     // https://firebase.google.com/docs/auth/admin/manage-sessions?utm_source=chatgpt.com&hl=ko

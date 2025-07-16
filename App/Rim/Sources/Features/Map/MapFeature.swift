@@ -81,6 +81,7 @@ struct MapFeature {
     }
     
     enum Action: ViewAction {
+        case removePost(id: String)
         case fetchPosts
         case setPosts(FetchNearPostsResponse)
         case view(UIAction)
@@ -226,6 +227,10 @@ struct MapFeature {
                 
             case .cancelSetPosts:
                 return .cancel(id: EffectID.setPosts)
+                
+            case let .removePost(id):
+                state.posts.remove(id: id)
+                return .none
             }
         }
         .ifLet(\.$alert, action: \.alert)

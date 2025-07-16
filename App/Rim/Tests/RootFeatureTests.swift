@@ -22,8 +22,8 @@ struct RootFeatureTests {
             $0.continuousClock = ImmediateClock()
         }
         
-        await store.send(.destination(.tab(.userAccount(.view(.logoutButtonTapped)))))
-        await store.receive(\.destination.tab.userAccount.delegate.logout)
+        await store.send(.destination(.tab(.userAccountStack(.root(.view(.logoutButtonTapped))))))
+        await store.receive(\.destination.tab.userAccountStack.root.delegate.logout)
         await store.receive(\.signOut) {
             $0.destination = .signIn(.init())
         }
@@ -71,11 +71,11 @@ struct RootFeatureTests {
         store.exhaustivity = .off
         
         // Shared 저장 확인
-        #expect(store.state.destination.tab?.userAccount.$uid.wrappedValue == "uid")
+        #expect(store.state.destination.tab?.userAccountStack.root.$uid.wrappedValue == "uid")
         
-        await store.send(.destination(.tab(.userAccount(.view(.logoutButtonTapped)))))
+        await store.send(.destination(.tab(.userAccountStack(.root(.view(.logoutButtonTapped))))))
         
-        #expect(store.state.destination.tab?.userAccount.$uid.wrappedValue == nil)
+        #expect(store.state.destination.tab?.userAccountStack.root.$uid.wrappedValue == nil)
     }
     
     @Test func showTabView_whenLoginSucceeded() async throws {

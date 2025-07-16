@@ -28,6 +28,7 @@ struct MyPostFeature {
     }
     
     enum Action: ViewAction {
+        case delegate(Delegate)
         case removePostFromList(id: String)
         case fetchMyPosts
         case appendPosts(FetchUserPostsResponse)
@@ -37,11 +38,17 @@ struct MyPostFeature {
         case showFetchFailAlert
         case showDeleteFailAlert
         
+        @CasePathable
         enum UIAction: BindableAction {
             case binding(BindingAction<State>)
             case deleteButtonTapped(PostSummaryState)
             case didScrollToBottom
             case viewDidLoad
+        }
+        
+        @CasePathable
+        enum Delegate {
+            case removePostFromMap(id: String)
         }
     }
     
@@ -126,7 +133,9 @@ struct MyPostFeature {
             case let .alert(.presented(.deletePost(post))):
                 return .run { send in
                     let response = try await postClient.deletePost(postID: post.id)
-                    await send(.removePostFromList(id: response.result.id))
+                    let id = response.result.id
+                    await send(.removePostFromList(id: id))
+                    await send(.delegate(.removePostFromMap(id: id)))
                 } catch: { _, send in
                     await send(.showDeleteFailAlert)
                 }
@@ -136,6 +145,9 @@ struct MyPostFeature {
                 
             case let .removePostFromList(id):
                 state.posts.remove(id: id)
+                return .none
+                
+            case .delegate:
                 return .none
             }
         }

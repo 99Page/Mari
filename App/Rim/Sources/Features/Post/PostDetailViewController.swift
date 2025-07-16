@@ -24,6 +24,8 @@ struct PostDetailFeature {
         var description: RimLabel.State
         var isTrashButtonPresented = false
         
+        var isProgressViewPresented = false
+        
         init(postID: String) {
             self.postID = postID
             self.image = .init(image: .custom(url: nil))
@@ -38,9 +40,11 @@ struct PostDetailFeature {
         case fetchPostDetail
         case setPostDetail(PostDetailDTO)
         case showFetchFailAlert
+        case showDeleteFailAlert
         case view(UIAction)
         case alert(PresentationAction<AlertAction>)
         case delegate(Delegate)
+        case dismsisProgress
         
         @CasePathable
         enum UIAction: BindableAction {
@@ -59,6 +63,8 @@ struct PostDetailFeature {
         @CasePathable
         enum Delegate {
             case dismiss
+            case removePostFromMap(id: String)
+            case removePostFromMyPosts(id: String)
         }
     }
     
@@ -125,9 +131,33 @@ struct PostDetailFeature {
                 }
                 
             case .alert(.presented(.deleteButtonTapped)):
-                return .none
+                state.alert = nil
+                state.isProgressViewPresented = true
+                
+                return .run { [id = state.postID] send in
+                    let response = try await postClient.deletePost(postID: id)
+                    let id = response.result.id
+                    await send(.delegate(.removePostFromMap(id: id)))
+                    await send(.delegate(.removePostFromMyPosts(id: id)))
+                    await dismiss()
+                    await send(.dismsisProgress)
+                } catch: { _, send in
+                    await send(.dismsisProgress)
+                    await send(.showDeleteFailAlert)
+                }
                 
             case .alert(.dismiss):
+                return .none
+                
+            case .showDeleteFailAlert:
+                state.alert = AlertState {
+                    TextState("게시글을 삭제하지 못했어요")
+                } actions: {
+                    ButtonState(role: .cancel, action: .dismissAlert) {
+                        TextState("확인")
+                    }
+                }
+                
                 return .none
                 
             case .showFetchFailAlert:
@@ -141,7 +171,11 @@ struct PostDetailFeature {
                 
                 return .none
                 
-            case .delegate(.dismiss):
+            case .dismsisProgress:
+                state.isProgressViewPresented = false
+                return .none
+                
+            case .delegate:
                 return .none
             }
         }
@@ -189,6 +223,10 @@ class PostDetailViewController: UIViewController {
 
         present(item: $store.scope(state: \.alert, action: \.alert)) { store in
             UIAlertController(store: store)
+        }
+        
+        present(isPresented: $store.isProgressViewPresented) {
+            ProgressViewController()
         }
     }
     
