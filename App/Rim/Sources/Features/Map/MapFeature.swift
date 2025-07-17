@@ -19,6 +19,7 @@ struct MapFeature {
     struct State: Equatable {
         @Presents var alert: AlertState<Action.Alert>?
         @Presents var uploadPost: UploadPostNavigationStack.State?
+        @Presents var camera: CameraFeature.State?
         
         // 기본 줌 레벨 14
         // 줌 레벨의 최대값 22, 최솟값은 약 0.67
@@ -28,6 +29,7 @@ struct MapFeature {
         var posts = IdentifiedArrayOf<PostSummaryState>()
         var retrievedGeoHashes: Set<String> = []
         var centerPosition = NMGLatLng(lat: 0, lng: 0)
+        var photoLocation = NMGLatLng(lat: 0, lng: 0)
         
         var latestFilter = RimLabel.State(text: "최신순", textColor: .black)
         var isProgressPresented = false
@@ -56,7 +58,7 @@ struct MapFeature {
         
         var selectedFilter = Filter.latest
         
-        var camera = RimImageView.State(image: .symbol(name: "camera", fgColor: .gray))
+        var cameraButton = RimImageView.State(image: .symbol(name: "camera", fgColor: .gray))
         
         var precision: Geohash.Precision {
             switch zoomLevel {
@@ -81,19 +83,20 @@ struct MapFeature {
     }
     
     enum Action: ViewAction {
+        case alert(PresentationAction<Alert>)
+        case uploadPost(PresentationAction<UploadPostNavigationStack.Action>)
+        case camera(PresentationAction<CameraFeature.Action>)
+        case view(UIAction)
         case removePost(id: String)
         case fetchPosts
         case setPosts(FetchNearPostsResponse)
-        case view(UIAction)
-        case alert(PresentationAction<Alert>)
         case showFetchFailAlert
-        case uploadPost(PresentationAction<UploadPostNavigationStack.Action>)
         case dismissProgress
         case setImage(postID: String, image: UIImage)
         case cancelSetPosts
         
         enum UIAction: BindableAction {
-            case cameraButtonTapped(UIImage)
+            case usePhotoButtonTapped(UIImage)
             case binding(BindingAction<State>)
             case cameraDidMove(zoomLevel: Double, centerPosition: NMGLatLng)
         }
@@ -116,8 +119,7 @@ struct MapFeature {
         
         Reduce<State, Action> { state, action in
             switch action {
-                
-            case let .view(.cameraButtonTapped(image)):
+            case let .view(.usePhotoButtonTapped(image)):
                 state.uploadPost = .init(pickedImage: image)
                 return .none
                 
@@ -156,6 +158,9 @@ struct MapFeature {
                 return .none
                 
             case .view(.binding):
+                return .none
+                
+            case .camera:
                 return .none
                 
             case .uploadPost(.presented(.root(.delegate(.uploadSucceeded)))):
@@ -234,9 +239,8 @@ struct MapFeature {
             }
         }
         .ifLet(\.$alert, action: \.alert)
-        .ifLet(\.$uploadPost, action: \.uploadPost) {
-            UploadPostNavigationStack()
-        }
+        .ifLet(\.$uploadPost, action: \.uploadPost) { UploadPostNavigationStack() }
+        .ifLet(\.$camera, action: \.camera) { CameraFeature() }
     }
 }
 

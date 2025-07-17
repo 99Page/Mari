@@ -130,7 +130,7 @@ public class RimImageView: RimView {
 }
 
 @available(iOS 17.0, *)
-#Preview {
+#Preview("url") {
     @Previewable @UIBinding var state: RimImageView.State = .init(image: .custom(url: "https://picsum.photos/200/300"))
     
     ViewPreview(fromY: \.centerY, toY: \.centerY) {
