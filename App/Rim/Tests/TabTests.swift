@@ -100,9 +100,4 @@ struct TabTests {
             #expect(idToken == 1)
         }
     }
-    
-    final class Box<T> {
-        var value: T
-        init(_ value: T) { self.value = value }
-    }
 }

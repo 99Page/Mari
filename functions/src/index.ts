@@ -15,4 +15,7 @@ export { getPosts } from './posts/getPosts'
 export { createPost } from './posts/createPost'
 export { scheduleAggregateLast6HoursRanking } from './posts/aggregateRanking'
 export { testAggregateLast6HoursRanking } from './posts/aggregateRanking'
+
 export { debugFirestorePath } from './debug/debugFirstorePath'
+
+export  { withdrawAccount} from './account/withdrawAccount'

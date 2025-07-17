@@ -16,21 +16,34 @@ import Core
 struct UserAccountFeature {
     @ObservableState
     struct State: Equatable {
+        @Presents var alert: AlertState<Action.Alert>?
         @Shared(.uid) var uid
+        var isProgressViewPresented = false
     }
     
     enum Action: ViewAction {
-        case view(UIAction)
+        case view(View)
         case delegate(Delegate)
+        case alert(PresentationAction<Alert>)
+        case showWithdrawalFailAlert
+        case dismissProgressView
         
         @CasePathable
-        enum UIAction {
+        enum View: BindableAction {
             case logoutButtonTapped
+            case binding(BindingAction<State>)
+            case withdrawalButtonTapped
         }
         
         @CasePathable
         enum Delegate {
             case logout
+        }
+        
+        @CasePathable
+        enum Alert: Equatable {
+            case confirmWithdrawal
+            case dismissAlert
         }
     }
     
@@ -45,17 +58,63 @@ struct UserAccountFeature {
                     await send(.delegate(.logout))
                 }
                 
+            case .view(.withdrawalButtonTapped):
+                state.alert = AlertState {
+                    TextState("계정을 삭제하시나요?")
+                } actions: {
+                    ButtonState(role: .cancel, action: .dismissAlert) {
+                        TextState("취소")
+                    }
+                    
+                    ButtonState(role: .destructive, action: .confirmWithdrawal) {
+                        TextState("삭제")
+                    }
+                } message: {
+                    TextState("생성된 게시물은 삭제되지 않아요")
+                }
+                
+                return .none
+                
+            case .view(.binding):
+                return .none
+                
             case .delegate:
+                return .none
+                
+            case .alert(.presented(.confirmWithdrawal)):
+                state.isProgressViewPresented = true
+                
+                return .run { send in
+                    let _ = try await accountClient.withdraw()
+                    await send(.delegate(.logout))
+                } catch: { _, send in
+                    
+                }
+                
+            case .alert(_):
+                return .none
+                
+            case .showWithdrawalFailAlert:
+                state.alert = AlertState {
+                    TextState("계정을 삭제하지 못했어요")
+                } actions: {
+                    ButtonState(role: .cancel) { TextState("확인") }
+                }
+                return .none
+                
+            case .dismissProgressView:
+                state.isProgressViewPresented = false
                 return .none
             }
         }
+        .ifLet(\.$alert, action: \.alert)
     }
 }
 
 @ViewAction(for: UserAccountFeature.self)
 final class UserAccountViewController: UIViewController {
     
-    let store: StoreOf<UserAccountFeature>
+    @UIBindable var store: StoreOf<UserAccountFeature>
     
     private let tableView = UITableView()
     
@@ -84,6 +143,14 @@ final class UserAccountViewController: UIViewController {
         super.viewDidLoad()
         makeConstraint()
         setupView()
+        
+        present(item: $store.scope(state: \.alert, action: \.alert)) { store in
+            UIAlertController(store: store)
+        }
+        
+        present(isPresented: $store.isProgressViewPresented) {
+            ProgressViewController()
+        }
     }
     
     private func setupView() {
@@ -118,7 +185,7 @@ extension UserAccountViewController: UITableViewDataSource {
         case .post:
             return 1
         case .account:
-            return 1 // 로그아웃 버튼
+            return 2 // 로그아웃 + 회원 탈퇴
         }
     }
 
@@ -133,8 +200,15 @@ extension UserAccountViewController: UITableViewDataSource {
         switch section {
         case .post:
             cell.textLabel?.text = "내 게시물"
+            cell.textLabel?.textColor = .label
         case .account:
-            cell.textLabel?.text = "로그아웃"
+            if indexPath.row == 0 {
+                cell.textLabel?.text = "로그아웃"
+                cell.textLabel?.textColor = .label
+            } else if indexPath.row == 1 {
+                cell.textLabel?.text = "계정 삭제"
+                cell.textLabel?.textColor = .systemRed
+            }
         }
 
         return cell
@@ -153,6 +227,8 @@ extension UserAccountViewController: UITableViewDelegate {
         case .account:
             if indexPath.row == 0 {
                 send(.logoutButtonTapped)
+            } else if indexPath.row == 1 {
+                send(.withdrawalButtonTapped)
             }
         }
     }

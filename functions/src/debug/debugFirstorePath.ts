@@ -4,7 +4,6 @@ import { db } from "../utils/firebase";
 
 const REGION = "asia-northeast3";
 
-
 // Firestore document/collection inspection via HTTPS POST
 export const debugFirestorePath = onRequest({ region: REGION }, async (req, res) => {
   if (req.method !== 'POST') {
