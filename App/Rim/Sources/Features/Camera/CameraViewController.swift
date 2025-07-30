@@ -58,12 +58,17 @@ struct CameraFeature {
     enum Action: ViewAction {
         case view(View)
         case photoPreview(PresentationAction<PhotoPreviewFeature.Action>)
+        case delegate(Delegate)
         
         enum View: BindableAction {
             case flashButtonTapped
             case cancelButtonTapped
             case photoCaptured
             case binding(BindingAction<State>)
+        }
+        
+        enum Delegate {
+            case photoCaptured
         }
     }
     
@@ -85,12 +90,18 @@ struct CameraFeature {
                 return .none
                 
             case .view(.photoCaptured):
-                return .none
+                return .send(.delegate(.photoCaptured))
                 
             case .view(.binding):
                 return .none
                 
+            case .photoPreview(.presented(.delegate(.dismissPhotoView))):
+                return .run { _ in await dismiss() }
+                
             case .photoPreview:
+                return .none
+                
+            case .delegate(.photoCaptured):
                 return .none
             }
         }
@@ -302,6 +313,7 @@ extension CameraViewController: AVCapturePhotoCaptureDelegate {
               let image = UIImage(data: imageData) else { return }
 
         store.photoPreview = .init(capturedPhoto: image)
+        send(.photoCaptured)
     }
 }
 

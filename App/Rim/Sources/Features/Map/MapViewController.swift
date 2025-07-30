@@ -197,7 +197,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         progressView.color = .gray
         
         cameraBackgroundView.addAction(.touchUpInside({ [weak self] in
-            self?.presentCamera()
+            self?.send(.cameraButtonTapped)
         }))
     }
     
@@ -260,28 +260,8 @@ extension MapViewController: CLLocationManagerDelegate {
     }
 }
 
-private extension MapViewController {
-    func presentCamera() {
-        store.camera = CameraFeature.State()
-//        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
-//            print("Camera not available")
-//            return
-//        }
-//        
-//        let picker = UIImagePickerController()
-//        picker.sourceType = .camera
-//        picker.delegate = self
-//        picker.allowsEditing = false
-//        present(picker, animated: true)
-    }
-}
-
-extension MapViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-        if let image = info[.originalImage] as? UIImage {
-            send(.usePhotoButtonTapped(image))
-        }
-    }
+extension MapViewController: UINavigationControllerDelegate {
+    
 }
 
 private extension MapViewController {

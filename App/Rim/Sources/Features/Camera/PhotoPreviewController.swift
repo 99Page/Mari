@@ -16,6 +16,8 @@ import SwiftUI
 struct PhotoPreviewFeature {
     @ObservableState
     struct State: Equatable {
+        @Presents var alert: AlertState<Action.Alert>?
+        
         var photoView: RimImageView.State
         var retakeButton = RimLabel.State(text: "다시 찍기", textColor: .white, typography: .primaryAction)
         var usePhotoButton = RimLabel.State(text: "사용하기", textColor: .white, typography: .primaryAction)
@@ -27,10 +29,23 @@ struct PhotoPreviewFeature {
     
     enum Action: ViewAction {
         case view(View)
+        case delegate(Delegate)
+        case showUsePhotoFailAlert
+        case alert(PresentationAction<Alert>)
         
         enum View: BindableAction {
             case retakeButtonTapped
+            case useButtonTapped
             case binding(BindingAction<State>)
+        }
+        
+        enum Delegate {
+            case usePhoto(UIImage)
+            case dismissPhotoView
+        }
+        
+        enum Alert: Equatable {
+            case photoErrorConfirm
         }
     }
     
@@ -43,17 +58,45 @@ struct PhotoPreviewFeature {
             switch action {
             case .view(.binding):
                 return .none
+                
             case .view(.retakeButtonTapped):
                 return .run { _ in await dismiss() }
+                
+            case .view(.useButtonTapped):
+                guard case let .uiImage(uiImage) = state.photoView.image else { return .send(.showUsePhotoFailAlert) }
+                return .concatenate([
+                    .send(.delegate(.usePhoto(uiImage))),
+                    .send(.delegate(.dismissPhotoView))
+                ])
+                
+            case .delegate(_):
+                return .none
+                
+            case .showUsePhotoFailAlert:
+                state.alert = AlertState {
+                    TextState("사진을 사용할 수 없어요")
+                } actions: {
+                    ButtonState(role: .cancel, action: .photoErrorConfirm) {
+                        TextState("확인")
+                    }
+                }
+                return .none
+                
+            case .alert(.presented(.photoErrorConfirm)):
+                return .send(.delegate(.dismissPhotoView))
+                
+            case .alert:
+                return .none
             }
         }
+        .ifLet(\.$alert, action: \.alert)
     }
 }
 
 @ViewAction(for: PhotoPreviewFeature.self)
 class PhotoPreviewController: UIViewController {
     
-    let store: StoreOf<PhotoPreviewFeature>
+    @UIBindable var store: StoreOf<PhotoPreviewFeature>
     let photoBackgroundView = UIView()
     let imagePreviewView: RimImageView
     
@@ -86,6 +129,10 @@ class PhotoPreviewController: UIViewController {
         super.viewDidLoad()
         setupView()
         makeConstraint()
+        
+        present(item: $store.scope(state: \.alert, action: \.alert)) { store in
+            UIAlertController(store: store)
+        }
     }
     
     private func makeConstraint() {
@@ -136,6 +183,10 @@ class PhotoPreviewController: UIViewController {
         
         retakeButton.addAction(.touchUpInside({ [weak self] in
             self?.send(.retakeButtonTapped)
+        }), animation: .none)
+        
+        usePhotoButton.addAction(.touchUpInside({ [weak self] in
+            self?.send(.useButtonTapped)
         }), animation: .none)
     }
 }

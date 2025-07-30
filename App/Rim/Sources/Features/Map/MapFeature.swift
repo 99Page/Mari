@@ -28,8 +28,8 @@ struct MapFeature {
         
         var posts = IdentifiedArrayOf<PostSummaryState>()
         var retrievedGeoHashes: Set<String> = []
-        var centerPosition = NMGLatLng(lat: 0, lng: 0)
-        var photoLocation = NMGLatLng(lat: 0, lng: 0)
+        var mapCameraCenterPosition = NMGLatLng(lat: 0, lng: 0)
+        var photoLocation: NMGLatLng?
         
         var latestFilter = RimLabel.State(text: "최신순", textColor: .black)
         var isProgressPresented = false
@@ -94,20 +94,22 @@ struct MapFeature {
         case dismissProgress
         case setImage(postID: String, image: UIImage)
         case cancelSetPosts
+        case showFailedToGetPhotoLocationAlert
         
         enum UIAction: BindableAction {
-            case usePhotoButtonTapped(UIImage)
+            case cameraButtonTapped
             case binding(BindingAction<State>)
             case cameraDidMove(zoomLevel: Double, centerPosition: NMGLatLng)
         }
         
         enum Alert: Equatable {
-            
+            case openLocationSettings
         }
     }
     
     @Dependency(\.imageClient) var imageClient
     @Dependency(\.postClient) var postClient
+    @Dependency(\.locationManager) var locationManager
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
@@ -119,8 +121,8 @@ struct MapFeature {
         
         Reduce<State, Action> { state, action in
             switch action {
-            case let .view(.usePhotoButtonTapped(image)):
-                state.uploadPost = .init(pickedImage: image)
+            case .view(.cameraButtonTapped):
+                state.camera = .init()
                 return .none
                 
             case let .view(.cameraDidMove(zoomLevel, cameraPosition)):
@@ -129,7 +131,7 @@ struct MapFeature {
                 guard !state.retrievedGeoHashes.contains(centerGeoHash) else { return .none}
                 
                 state.zoomLevel = zoomLevel
-                state.centerPosition = cameraPosition
+                state.mapCameraCenterPosition = cameraPosition
                 
                 return .send(.fetchPosts)
                 
@@ -160,6 +162,21 @@ struct MapFeature {
             case .view(.binding):
                 return .none
                 
+            case let .camera(.presented(.photoPreview(.presented(.delegate(.usePhoto(image)))))):
+                guard let photoLocation = state.photoLocation else { return .none }
+                state.uploadPost = .init(pickedImage: image, photoLocation: photoLocation)
+                return .none
+                
+            case .camera(.presented(.delegate(.photoCaptured))):
+                let currentLocation = try? locationManager.getCurrentLocation()
+                
+                if let currentLocation {
+                    state.photoLocation = NMGLatLng(lat: currentLocation.coordinate.latitude, lng: currentLocation.coordinate.longitude)
+                } else {
+                    state.photoLocation = nil
+                }
+                return .none
+                
             case .camera:
                 return .none
                 
@@ -169,6 +186,12 @@ struct MapFeature {
                 return state.selectedFilter == .latest ? .send(.fetchPosts) : .none
                 
             case .uploadPost(_):
+                return .none
+                
+            case .alert(.presented(.openLocationSettings)):
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                     UIApplication.shared.open(url)
+                 }
                 return .none
                 
             case .alert:
@@ -214,8 +237,8 @@ struct MapFeature {
                 
                 let request = FetchNearPostsRequest(
                     type: state.selectedFilter.rawValue,
-                    latitude: state.centerPosition.lat,
-                    longitude: state.centerPosition.lng,
+                    latitude: state.mapCameraCenterPosition.lat,
+                    longitude: state.mapCameraCenterPosition.lng,
                     precision: state.precision.rawValue
                 )
                 
@@ -235,6 +258,17 @@ struct MapFeature {
                 
             case let .removePost(id):
                 state.posts.remove(id: id)
+                return .none
+                
+            case .showFailedToGetPhotoLocationAlert:
+                state.alert = AlertState {
+                    TextState("현재 위치를 확인할 수 없어요")
+                } actions: {
+                    ButtonState(action: .openLocationSettings) {
+                        TextState("설정으로 이동")
+                    }
+                }
+                
                 return .none
             }
         }

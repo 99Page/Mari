@@ -8,6 +8,7 @@
 import Foundation
 import ComposableArchitecture
 import UIKit
+import NMapsMap
 
 @Reducer
 struct UploadPostNavigationStack {
@@ -21,8 +22,8 @@ struct UploadPostNavigationStack {
         var path = StackState<Path.State>()
         var root: UploadPostFeature.State
         
-        init(pickedImage: UIImage) {
-            self.root = .init(pickedImage: pickedImage)
+        init(pickedImage: UIImage, photoLocation: NMGLatLng) {
+            self.root = .init(pickedImage: pickedImage, photoLocation: photoLocation)
         }
     }
     
