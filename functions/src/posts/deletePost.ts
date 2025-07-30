@@ -1,6 +1,7 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { db, adminInstance as admin } from "../utils/firebase";
+import { ErrorResponse, errors } from "../errorResponse/errorResponse";
 
 const REGION = "asia-northeast3";
 
@@ -8,10 +9,7 @@ const REGION = "asia-northeast3";
 // 사용자 게시글 삭제 API
 export const deletePost = onRequest({ region: REGION }, async (req, res) => {
   if (req.method !== 'DELETE') {
-    res.status(405).json({
-      code: "METHOD_NOT_ALLOWED",
-      message: "Only DELETE method is allowed"
-    });
+    res.status(405).json(errors.METHOD_NOT_ALLOWED);
     return;
   }
 
@@ -19,10 +17,7 @@ export const deletePost = onRequest({ region: REGION }, async (req, res) => {
   const idToken = authHeader?.startsWith("Bearer ") ? authHeader.split("Bearer ")[1] : null;
 
   if (!idToken) {
-    res.status(401).json({
-      code: "UNAUTHORIZED_MISSING_TOKEN",
-      message: "Missing or invalid Authorization header"
-    });
+    res.status(401).json(errors.INVALID_AUTH_HEADER);
     return;
   }
 
@@ -32,19 +27,17 @@ export const deletePost = onRequest({ region: REGION }, async (req, res) => {
     uid = decoded.uid;
   } catch (error) {
     logger.error("Token verification failed:", error);
-    res.status(401).json({
-      code: "UNAUTHORIZED_INVALID_TOKEN",
-      message: "Token verification failed"
-    });
+    res.status(401).json(errors.UNAUTHORIZED);
     return;
   }
 
   const postId = req.query.id;
   if (!postId || typeof postId !== "string") {
-    res.status(400).json({
+    const errorResponse: ErrorResponse = {
       code: "INVALID_POST_ID",
       message: "Missing or invalid 'id' query parameter"
-    });
+    };
+    res.status(400).json(errorResponse);
     return;
   }
 
@@ -52,20 +45,22 @@ export const deletePost = onRequest({ region: REGION }, async (req, res) => {
   const snapshot = await postRef.get();
 
   if (!snapshot.exists) {
-    res.status(404).json({
+    const errorResponse: ErrorResponse = {
       code: "POST_NOT_FOUND",
       message: "Post not found"
-    });
+    };
+    res.status(404).json(errorResponse);
     return;
   }
 
   // 요청한 사용자의 포스트인지 검증
   const post = snapshot.data();
   if (post?.creatorID !== uid) {
-    res.status(403).json({
+    const errorResponse: ErrorResponse = {
       code: "FORBIDDEN_NOT_CREATOR",
       message: "You are not the creator of this post"
-    });
+    };
+    res.status(403).json(errorResponse);
     return;
   }
 
@@ -80,10 +75,11 @@ export const deletePost = onRequest({ region: REGION }, async (req, res) => {
     });
   } catch (error) {
     logger.error("Error deleting post:", error);
-    res.status(500).json({
+    const errorResponse: ErrorResponse = {
       code: "FIRESTORE_DELETE_FAILED",
       message: "Failed to delete post"
-    });
+    };
+    res.status(500).json(errorResponse);
   }
 });
 

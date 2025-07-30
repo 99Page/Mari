@@ -2,6 +2,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { PostDetail } from './post'
 import { db, adminInstance as admin } from "../utils/firebase";
+import { ErrorResponse, errors } from "../errorResponse/errorResponse";
 
 const REGION = "asia-northeast3";
 
@@ -39,7 +40,11 @@ export const getPostById = onRequest({ region: REGION }, async (req, res) => {
   const postId = req.query.id;
 
   if (!postId || typeof postId !== "string") {
-    res.status(400).json({ code: "INVALID_ID", message: "Missing or invalid 'id' query parameter" });
+    const errorResponse: ErrorResponse = {
+      code: "INVALID_ID",
+      message: "Missing or invalid 'id' query parameter"
+    };
+    res.status(400).json(errorResponse);
     return;
   }
 
@@ -47,7 +52,7 @@ export const getPostById = onRequest({ region: REGION }, async (req, res) => {
   const idToken = authHeader?.startsWith("Bearer ") ? authHeader.split("Bearer ")[1] : undefined;
 
   if (!idToken) {
-    res.status(401).json({ code: "UNAUTHORIZED", message: "Missing Authorization header" });
+    res.status(401).json(errors.UNAUTHORIZED);
     return;
   }
 
@@ -59,6 +64,10 @@ export const getPostById = onRequest({ region: REGION }, async (req, res) => {
     res.status(200).json(post);
   } catch (error: any) {
     logger.error("Error fetching post by ID:", error);
-    res.status(404).json({ code: "POST_NOT_FOUND", message: error.message || "Failed to fetch post" });
+    const errorResponse: ErrorResponse = {
+      code: "POST_NOT_FOUND",
+      message: "Failed to fetch post"
+    };
+    res.status(404).json(errorResponse);
   }
 });

@@ -34,6 +34,8 @@ public enum Typography {
         }
     }
     
+    var lineHeight: CGFloat { size + 4 }
+    
     var weight: UIFont.Weight {
         switch self {
         case .logoTitle: .bold

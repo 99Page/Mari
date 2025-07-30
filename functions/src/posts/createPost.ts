@@ -2,6 +2,8 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import Geohash from "latlon-geohash";
 import { db, adminInstance as admin } from "../utils/firebase";
+import { errors } from "../errorResponse/errorResponse";
+import type { ErrorResponse } from "../errorResponse/errorResponse";
 
 const REGION = "asia-northeast3";
 
@@ -13,10 +15,7 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
     const idToken = authHeader?.startsWith("Bearer ") ? authHeader.split("Bearer ")[1] : null;
 
     if (!idToken) {
-      res.status(401).json({
-        code: "UNAUTHORIZED_MISSING_TOKEN",
-        message: "Missing or invalid Authorization header"
-      });
+      res.status(401).json(errors.UNAUTHORIZED);
       return;
     }
 
@@ -24,10 +23,7 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       await admin.auth().verifyIdToken(idToken);
     } catch (error) {
       logger.error("Token verification failed:", error);
-      res.status(401).json({
-        code: "UNAUTHORIZED_INVALID_TOKEN",
-        message: "Token verification failed"
-      });
+      res.status(401).json(errors.UNAUTHORIZED);
       return;
     }
 
@@ -35,20 +31,22 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
     const body = req.body;
 
     if (!body || typeof body !== "object") {
-      res.status(400).json({
+      const errorResponse: ErrorResponse = {
         code: "INVALID_BODY",
         message: "Invalid request body"
-      });
+      };
+      res.status(400).json(errorResponse);
       return;
     }
 
     const { title, content, latitude, longitude, creatorID, imageUrl } = body;
 
     if (!title || latitude == null || longitude == null || !creatorID || !imageUrl) {
-      res.status(400).json({
+      const errorResponse: ErrorResponse = {
         code: "MISSING_REQUIRED_FIELDS",
         message: "Missing required fields"
-      });
+      };
+      res.status(400).json(errorResponse);
       return;
     }
 
@@ -56,10 +54,11 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       typeof latitude !== "number" || isNaN(latitude) ||
       typeof longitude !== "number" || isNaN(longitude)
     ) {
-      res.status(400).json({
-        code: "INVALID_COORDINATES",
+      const errorResponse: ErrorResponse = {
+        code: "INVALID_COORDINATES", 
         message: "Invalid latitude or longitude"
-      });
+      };
+      res.status(400).json(errorResponse);
       return;
     }
 
@@ -112,9 +111,10 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
   });
   } catch (error) {
     logger.error("Error creating post:", error);
-    res.status(500).json({
-      code: "FIRESTORE_WRITE_FAILED",
+    const errorResponse: ErrorResponse = {
+      code: "FIRESTORE_WIRTE_FAILED",
       message: "Failed to create post"
-    });
+    };
+    res.status(500).json(errorResponse);
   }
 });

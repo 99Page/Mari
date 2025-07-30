@@ -104,8 +104,8 @@ public class RimLabel: RimView {
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = labelState.alignment
         paragraphStyle.lineSpacing = 0
-        paragraphStyle.minimumLineHeight = labelState.typography.size
-        paragraphStyle.maximumLineHeight = labelState.typography.size
+        paragraphStyle.minimumLineHeight = labelState.typography.lineHeight
+        paragraphStyle.maximumLineHeight = labelState.typography.lineHeight
         
         let attributes: [NSAttributedString.Key: Any] = [
             .foregroundColor: labelState.textColor,

@@ -1,19 +1,20 @@
 import * as admin from "firebase-admin";
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
+import { errors  } from "../errorResponse/errorResponse";
 
 const REGION = "asia-northeast3";
 
 // 회원 탈퇴 API
 export const withdrawAccount = onRequest({ region: REGION }, async (req, res) => {
   if (req.method !== 'POST') {
-    res.status(405).json({ code: "method-not-allowed", message: "Method Not Allowed" });
+    res.status(405).json(errors.METHOD_NOT_ALLOWED);
     return;
   }
 
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    res.status(401).json({ code: "invalid-auth-header", message: "Missing or invalid Authorization header" });
+    res.status(401).json(errors.INVALID_AUTH_HEADER);
     return;
   }
 
@@ -24,7 +25,7 @@ export const withdrawAccount = onRequest({ region: REGION }, async (req, res) =>
     decodedToken = await admin.auth().verifyIdToken(idToken);
   } catch (error) {
     logger.error("❌ Token verification failed", error);
-    res.status(401).json({ code: "unauthorized", message: "Unauthorized: Invalid token" });
+    res.status(401).json(errors.UNAUTHORIZED);
     return;
   }
 

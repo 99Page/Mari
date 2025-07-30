@@ -2,6 +2,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { db, adminInstance as admin } from "../utils/firebase";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import { errors } from "../errorResponse/errorResponse";
 
 const REGION = "asia-northeast3";
 
@@ -102,7 +103,7 @@ export const testAggregateLast6HoursRanking = onRequest(
     const idToken = authHeader?.startsWith("Bearer ") ? authHeader.split("Bearer ")[1] : null;
 
     if (!idToken) {
-      res.status(401).send("Missing or invalid Authorization header");
+      res.status(401).send(errors.INVALID_AUTH_HEADER);
       return;
     }
 
@@ -110,7 +111,7 @@ export const testAggregateLast6HoursRanking = onRequest(
       await admin.auth().verifyIdToken(idToken);
     } catch (error) {
       logger.error("Token verification failed:", error);
-      res.status(401).send("Unauthorized");
+      res.status(401).send(errors.UNAUTHORIZED);
       return;
     }
 

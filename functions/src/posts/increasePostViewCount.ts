@@ -4,16 +4,22 @@ import * as admin from "firebase-admin";
 import { fetchPostById } from './fetchPostById';
 export { fetchPostById } from './fetchPostById';
 import { db } from "../utils/firebase";
+import { ErrorResponse, errors } from '../errorResponse/errorResponse';
 
 const REGION = "asia-northeast3";
 // 5분 내 중복 조회 방지용 (선택)
 const VIEW_DUPLICATION_LIMIT_MS = 5 * 60 * 1000 // 5분
 
+const MISSING_POST_ID: ErrorResponse = {
+  code: "missing-post-id",
+  message: "Missing postId in request path"
+};
+
 export const increasePostViewCount = functions.https.onRequest(
   { region: REGION },
   async (req, res) => {
     if (req.method !== 'POST') {
-      res.status(405).send('Method Not Allowed');
+      res.status(405).send(errors.METHOD_NOT_ALLOWED);
       return;
     }
 
@@ -24,7 +30,7 @@ export const increasePostViewCount = functions.https.onRequest(
       : null;
 
     if (!idToken) {
-      res.status(401).send("Missing or invalid Authorization header");
+      res.status(401).send(errors.INVALID_AUTH_HEADER);
       return;
     }
 
@@ -33,7 +39,7 @@ export const increasePostViewCount = functions.https.onRequest(
       decodedToken = await admin.auth().verifyIdToken(idToken);
     } catch (error) {
       logger.error("Token verification failed:", error);
-      res.status(401).send("Unauthorized");
+      res.status(401).send(errors.UNAUTHORIZED);
       return;
     }
 
@@ -41,7 +47,7 @@ export const increasePostViewCount = functions.https.onRequest(
     const postId = req.path.split('/')[2]; // e.g. /posts/{postId}/views
 
     if (!postId) {
-      res.status(400).json({ error: 'Missing postId' });
+      res.status(400).json(MISSING_POST_ID);
       return;
     }
 

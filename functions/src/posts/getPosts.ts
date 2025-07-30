@@ -4,6 +4,7 @@ import Geohash from "latlon-geohash";
 import { fetchPostById } from "./fetchPostById";
 import { db, adminInstance as admin } from "../utils/firebase";
 import { PostSummary } from "./post";
+import { ErrorResponse } from "../errorResponse/errorResponse";
 
 const REGION = "asia-northeast3";
 
@@ -17,12 +18,20 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
   logger.info("Requested post type:", type);
 
   if (isNaN(lat) || isNaN(lng)) {
-    res.status(400).send("Missing or invalid 'latitude' or 'longitude' query parameters");
+    const errorResponse: ErrorResponse = {
+      code: "invalid-location-query",
+      message: "Missing or invalid 'latitude' or 'longitude' query parameters"
+    };
+    res.status(400).json(errorResponse);
     return;
   }
 
   if (isNaN(precision) || precision < 1 || precision > 10) {
-    res.status(400).send("Missing or invalid 'precision' query parameter. Must be between 1 and 10.");
+    const errorResponse: ErrorResponse = {
+      code: "invalid-precision-query",
+      message: "'precision' query parameter must be a number between 1 and 10"
+    };
+    res.status(400).json(errorResponse);
     return;
   }
 
@@ -87,7 +96,12 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
       });
     } catch (error) {
       logger.error("Error fetching latest posts:", error);
-      res.status(500).send("Failed to fetch latest posts");
+      // 최신 게시글 조회 실패 에러 상수
+      const FETCH_LATEST_FAILED: ErrorResponse = {
+        code: "latest-fetch-failed",
+        message: "Failed to fetch latest posts"
+      };
+      res.status(500).send(FETCH_LATEST_FAILED);
     }
   } else if (type === "popular") {
     try {
@@ -103,7 +117,12 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
       });
     } catch (error) {
       logger.error("Error fetching popular posts:", error);
-      res.status(500).send("Failed to fetch popular posts");
+      // 인기 게시글 조회 실패 에러 상수
+      const FETCH_POPULAR_FAILED: ErrorResponse = {
+        code: "popular-fetch-failed",
+        message: "Failed to fetch popular posts"
+      };
+      res.status(500).json(FETCH_POPULAR_FAILED);
     }
     return;
   }

@@ -2,6 +2,13 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { PostSummary } from "./post"
 import { db, adminInstance as admin } from "../utils/firebase";
+import { ErrorResponse, errors } from "../errorResponse/errorResponse";
+
+const FETCH_BY_USER_FAILED: ErrorResponse = {
+  code: "fetch-by-user-failed",
+  message: "Failed to fetch posts by user"
+};
+
 const REGION = "asia-northeast3";
 
 // 사용자별 게시글 조회 (최대 20개, 최신순, 페이징 지원) - 인증 토큰 기반
@@ -11,10 +18,7 @@ export const getPostsByUser = onRequest({ region: REGION }, async (req, res) => 
   const idToken = authHeader?.startsWith("Bearer ") ? authHeader.split("Bearer ")[1] : null;
 
   if (!idToken) {
-    res.status(401).json({
-      code: "UNAUTHORIZED_MISSING_TOKEN",
-      message: "Missing or invalid Authorization header"
-    });
+    res.status(401).json(errors.INVALID_AUTH_HEADER);
     return;
   }
 
@@ -25,10 +29,7 @@ export const getPostsByUser = onRequest({ region: REGION }, async (req, res) => 
     uid = decoded.uid;
   } catch (error) {
     logger.error("Token verification failed:", error);
-    res.status(401).json({
-      code: "UNAUTHORIZED_INVALID_TOKEN",
-      message: "Token verification failed"
-    });
+    res.status(401).json(errors.UNAUTHORIZED);
     return;
   }
 
@@ -77,9 +78,6 @@ export const getPostsByUser = onRequest({ region: REGION }, async (req, res) => 
     });
   } catch (error) {
     logger.error("Error fetching posts by user:", error);
-    res.status(500).json({
-      code: "FIRESTORE_FETCH_FAILED",
-      message: "Failed to fetch posts by user"
-    });
+    res.status(500).json(FETCH_BY_USER_FAILED);
   }
 });
