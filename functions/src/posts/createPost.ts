@@ -2,8 +2,8 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import Geohash from "latlon-geohash";
 import { db, adminInstance as admin } from "../utils/firebase";
-import { errors } from "../errorResponse/errorResponse";
-import type { ErrorResponse } from "../errorResponse/errorResponse";
+import { errors } from "../resopnse/errorResponse";
+import type { ErrorResponse } from "../resopnse/errorResponse";
 
 const REGION = "asia-northeast3";
 
@@ -67,16 +67,17 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
     // 예) precision 1 → 약 수천 km / precision 10 → 약 1m 단위의 위치 구분 가능
     // precision 1~10까지의 다양한 정밀도로 인코딩된 값들을 생성하여 저장
     let geohashFields: Record<string, string> = {};
+    const GEOHASH_ENCODING_ERROR: ErrorResponse = {
+      code: "GEOHASH_ENCODING_ERROR",
+      message: "GeoHash encoding error"
+    };
     try {
       for (let p = 1; p <= 10; p++) {
         geohashFields[`geohash_${p}`] = Geohash.encode(latitude, longitude, p);
       }
     } catch (e) {
       logger.error("GeoHash encoding failed:", e);
-      res.status(500).json({
-        code: "GEOHASH_ENCODING_ERROR",
-        message: "GeoHash encoding error"
-      });
+      res.status(500).json(GEOHASH_ENCODING_ERROR);
       return;
     }
 

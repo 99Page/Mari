@@ -1,9 +1,15 @@
 import * as admin from "firebase-admin";
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
-import { errors  } from "../errorResponse/errorResponse";
+import { ErrorResponse, errors } from "../resopnse/errorResponse";
+import type { SuccessResponse } from "../resopnse/successResponse";
 
 const REGION = "asia-northeast3";
+
+const WITHDRAW_FAILED: ErrorResponse = {
+  code: "withdraw-failed",
+  message: "회원 탈퇴에 실패했습니다."
+};
 
 // 회원 탈퇴 API
 export const withdrawAccount = onRequest({ region: REGION }, async (req, res) => {
@@ -35,9 +41,14 @@ export const withdrawAccount = onRequest({ region: REGION }, async (req, res) =>
     // Firebase Authentication에서 사용자 삭제
     await admin.auth().deleteUser(uid);
 
-    res.status(200).json({ status: "success", message: "회원 탈퇴가 완료되었습니다.", result: null });
+    const WITHDRAW_SUCCESS: SuccessResponse<null> = {
+      status: "success",
+      message: "회원 탈퇴가 완료되었습니다.",
+      result: null
+    };
+    res.status(200).json(WITHDRAW_SUCCESS);
   } catch (error) {
     logger.error("❌ 회원 탈퇴 실패", error);
-    res.status(500).json({ code: "withdraw-failed", message: (error as Error).message });
+    res.status(500).json(WITHDRAW_FAILED);
   }
 });

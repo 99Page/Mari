@@ -2,7 +2,8 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { PostSummary } from "./post"
 import { db, adminInstance as admin } from "../utils/firebase";
-import { ErrorResponse, errors } from "../errorResponse/errorResponse";
+import { ErrorResponse, errors } from "../resopnse/errorResponse";
+import type { SuccessResponse } from "../resopnse/successResponse";
 
 const FETCH_BY_USER_FAILED: ErrorResponse = {
   code: "fetch-by-user-failed",
@@ -68,14 +69,18 @@ export const getPostsByUser = onRequest({ region: REGION }, async (req, res) => 
       : null;
     const nextCursorValue = nextCursorRaw?.toDate?.() ?? null;
 
-    res.status(200).json({
-      status: "SUCCESS",
-      message: "Posts fetched",
-      result: {
-        posts,
-        nextCursor: nextCursorValue
-      }
-    });
+   const successResponse: SuccessResponse<{
+     posts: PostSummary[];
+     nextCursor: Date | null;
+   }> = {
+     status: "success",
+     message: "Posts fetched",
+     result: {
+       posts,
+       nextCursor: nextCursorValue
+     }
+   };
+   res.status(200).json(successResponse);
   } catch (error) {
     logger.error("Error fetching posts by user:", error);
     res.status(500).json(FETCH_BY_USER_FAILED);

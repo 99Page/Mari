@@ -4,7 +4,7 @@ import * as admin from "firebase-admin";
 import { fetchPostById } from './fetchPostById';
 export { fetchPostById } from './fetchPostById';
 import { db } from "../utils/firebase";
-import { ErrorResponse, errors } from '../errorResponse/errorResponse';
+import { ErrorResponse, errors } from '../resopnse/errorResponse';
 
 const REGION = "asia-northeast3";
 // 5분 내 중복 조회 방지용 (선택)

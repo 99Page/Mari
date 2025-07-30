@@ -4,7 +4,8 @@ import Geohash from "latlon-geohash";
 import { fetchPostById } from "./fetchPostById";
 import { db, adminInstance as admin } from "../utils/firebase";
 import { PostSummary } from "./post";
-import { ErrorResponse } from "../errorResponse/errorResponse";
+import { ErrorResponse } from "../resopnse/errorResponse";
+import type { SuccessResponse } from "../resopnse/successResponse";
 
 const REGION = "asia-northeast3";
 
@@ -106,15 +107,20 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
   } else if (type === "popular") {
     try {
       const posts = await fetchPopularPosts(geohashBlocks, userID);
-      res.status(200).json({
-        status: "SUCCESS",
+      const successResponse: SuccessResponse<{
+        type: string;
+        posts: PostSummary[];
+        geohashBlocks: string[];
+      }> = {
+        status: "success",
         message: "Successfully fetched popular posts",
         result: {
           type: "popular",
           posts,
           geohashBlocks,
         }
-      });
+      };
+      res.status(200).json(successResponse);
     } catch (error) {
       logger.error("Error fetching popular posts:", error);
       // 인기 게시글 조회 실패 에러 상수

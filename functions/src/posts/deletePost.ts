@@ -1,7 +1,8 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { db, adminInstance as admin } from "../utils/firebase";
-import { ErrorResponse, errors } from "../errorResponse/errorResponse";
+import { ErrorResponse, errors } from "../resopnse/errorResponse";
+import type { SuccessResponse } from "../resopnse/successResponse";
 
 const REGION = "asia-northeast3";
 
@@ -66,13 +67,14 @@ export const deletePost = onRequest({ region: REGION }, async (req, res) => {
 
   try {
     await postRef.delete();
-    res.status(200).json({
-      status: "SUCCESS",
+
+    const successResponse: SuccessResponse<{ id: string }> = {
+      status: "success",
       message: "Post deleted",
-      result: {
-        id: postId
-      }
-    });
+      result: { id: postId }
+    };
+    
+    res.status(200).json(successResponse);
   } catch (error) {
     logger.error("Error deleting post:", error);
     const errorResponse: ErrorResponse = {

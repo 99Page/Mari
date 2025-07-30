@@ -6,9 +6,3 @@ const app = admin.apps.length ? admin.app() : admin.initializeApp();
 export const db = getFirestore(app, "mari-db");
 export const auth = admin.auth();
 export const adminInstance = admin;
-
-export type SuccessResponse<T = any> = {
-  status: string;
-  message: string;
-  result: T;
-};

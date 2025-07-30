@@ -2,7 +2,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { db, adminInstance as admin } from "../utils/firebase";
 import { onSchedule } from "firebase-functions/v2/scheduler";
-import { errors } from "../errorResponse/errorResponse";
+import { errors } from "../resopnse/errorResponse";
 
 const REGION = "asia-northeast3";
 

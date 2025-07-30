@@ -1,8 +1,9 @@
+import type { SuccessResponse } from "../resopnse/successResponse";
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { PostDetail } from './post'
 import { db, adminInstance as admin } from "../utils/firebase";
-import { ErrorResponse, errors } from "../errorResponse/errorResponse";
+import { ErrorResponse, errors } from "../resopnse/errorResponse";
 
 const REGION = "asia-northeast3";
 
@@ -61,7 +62,12 @@ export const getPostById = onRequest({ region: REGION }, async (req, res) => {
     const userID = decodedToken.uid;
 
     const post = await fetchPostById(postId, userID);
-    res.status(200).json(post);
+    const successResponse: SuccessResponse<PostDetail> = {
+      status: "success",
+      message: "게시글 조회 성공",
+      result: post
+    };
+    res.status(200).json(successResponse);
   } catch (error: any) {
     logger.error("Error fetching post by ID:", error);
     const errorResponse: ErrorResponse = {
