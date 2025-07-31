@@ -21,8 +21,7 @@ struct MapFeature {
         @Presents var uploadPost: UploadPostNavigationStack.State?
         @Presents var camera: CameraFeature.State?
         
-        // 기본 줌 레벨 14
-        // 줌 레벨의 최대값 22, 최솟값은 약 0.67
+        // NaverMap에서 제공하는 줌 레벨의 최대값 22, 최솟값은 약 0.67
         // 값이 커질수록 확대됩니다 -page, 2025. 07. 04
         var zoomLevel: Double = 17.0
         
@@ -62,12 +61,24 @@ struct MapFeature {
         
         var precision: Geohash.Precision {
             switch zoomLevel {
-            case ..<15:
+            case 0..<5:
+                return .sixHundredThirtyKilometers
+            case 5..<7:
+                return .seventyEightKilometers
+            case 7..<10:
+                return .twentyKilometers
+            case 10..<12:
+                return .twentyFourHundredMeters
+            case 12..<16:
                 return .sixHundredTenMeters  // 0~14
-            case 15..<18:
+            case 16..<18:
                 return .seventySixMeters // 15~17
+            case 18..<20:
+                return .nineteenMeters
+            case 20...22:
+                return .sixtyCentimeters
             default:
-                return .nineteenMeters // 17 이상
+                return .seventyFourMillimeters
             }
         }
     }
@@ -126,9 +137,10 @@ struct MapFeature {
                 return .none
                 
             case let .view(.cameraDidMove(zoomLevel, cameraPosition)):
+                debugPrint(zoomLevel)
                 let centerGeoHash = Geohash.encode(latitude: cameraPosition.lat, longitude: cameraPosition.lng, precision: state.precision)
                 
-                guard !state.retrievedGeoHashes.contains(centerGeoHash) else { return .none}
+                guard !state.retrievedGeoHashes.contains(centerGeoHash) else { return .none }
                 
                 state.zoomLevel = zoomLevel
                 state.mapCameraCenterPosition = cameraPosition

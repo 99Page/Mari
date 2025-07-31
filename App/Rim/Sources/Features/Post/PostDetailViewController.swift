@@ -109,8 +109,9 @@ struct PostDetailFeature {
             case .fetchPostDetail:
                 return .run { [id = state.postID] send in
                     let response = try await postClient.fetchPostByID(id: id)
-                    await send(.setPostDetail(response))
-                } catch: { _, send in
+                    await send(.setPostDetail(response.result))
+                } catch: { error, send in
+                    Logger.error("post detail: \(error)")
                     await send(.showFetchFailAlert)
                 }
             
@@ -320,16 +321,7 @@ class PostDetailViewController: UIViewController {
     let store = Store(initialState: stackState) {
         MapNavigationStack()
     } withDependencies: {
-        $0.postClient.fetchPostByID = { _ in
-            PostDetailDTO(
-                id: "",
-                title: "title",
-                content: "content",
-                imageUrl: "https://picsum.photos/200/300",
-                location: .init(latitude: 0, longitude: 0),
-                isMine: true
-            )
-        }
+        $0.postClient.fetchPostByID = { _ in .stub() }
     }
 
     ViewControllerPreview {

@@ -15,7 +15,7 @@ import FirebaseFunctions
 struct PostClient {
     var createPost: (_ request: CreatePostRequest) async throws -> APIResponse<PostDetailDTO>
     var fetchNearPosts: (_ request: FetchNearPostsRequest) async throws -> APIResponse<FetchNearPostsResponse>
-    var fetchPostByID: (_ id: String) async throws -> PostDetailDTO
+    var fetchPostByID: (_ id: String) async throws -> APIResponse<PostDetailDTO>
     var incrementPostViewCount: (_ postID: String) async throws -> APIResponse<EmptyResult>
     // lastCreateAt는 커서의 역할을 합니다 -page, 2025. 07. 15
     var fetchUserPosts: (_ lastCreatedAt: Date) async throws -> APIResponse<FetchUserPostsResponse>
