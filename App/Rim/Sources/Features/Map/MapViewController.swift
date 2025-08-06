@@ -23,6 +23,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     }()
     
     private var markers: [NMFMarker] = []
+    
     private let locationManager = CLLocationManager()
     private var isUserLocationInitialzed = false
     
@@ -180,7 +181,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         addOverlay()
         
         mapView.addCameraDelegate(delegate: self)
-        mapView.zoomLevel = 17
+        mapView.zoomLevel = store.zoomLevel
         mapView.locationOverlay.hidden = false
         
         navigationController?.setNavigationBarHidden(true, animated: false)

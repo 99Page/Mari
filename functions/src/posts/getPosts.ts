@@ -3,7 +3,7 @@ import * as logger from "firebase-functions/logger";
 import Geohash from "latlon-geohash";
 import { fetchPostById } from "./fetchPostById";
 import { db, adminInstance as admin } from "../utils/firebase";
-import { PostSummary } from "./post";
+import { PostDetail, PostSummary } from "./post";
 import { ErrorResponse } from "../resopnse/errorResponse";
 import type { SuccessResponse } from "../resopnse/successResponse";
 
@@ -13,10 +13,10 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
   const lat = parseFloat(req.query.latitude as string);
   const lng = parseFloat(req.query.longitude as string);
   const precision = parseInt(req.query.precision as string, 10); // 10진법으로 변환
+  const groupSize = parseInt(req.query.groupSize as string, 10) || 1;
 
   // Add type parsing after parsing precision
   const type = (req.query.type as string || "latest").toLowerCase();
-  logger.info("Requested post type:", type);
 
   if (isNaN(lat) || isNaN(lng)) {
     const errorResponse: ErrorResponse = {
@@ -36,6 +36,16 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
     return;
   }
 
+  // groupSize 파라미터 유효성 검사 (1~4)
+  if (groupSize < 1 || groupSize > 4) {
+    const errorResponse: ErrorResponse = {
+      code: "invalid-group-size-query",
+      message: "'groupSize' must be a number between 1 and 4"
+    };
+    res.status(400).json(errorResponse);
+    return;
+  }
+
   // Extract userID from Authorization header
   let userID = "";
   try {
@@ -50,49 +60,27 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
     // userID remains empty string if verification fails
   }
 
-  logger.info("Query Params", { latitude: lat, longitude: lng, precision, userID });
-
-  // Shared geohash calculation
   const geohash = Geohash.encode(lat, lng, precision);
-  logger.info(`GeoHash(${precision}): ${geohash}`);
 
-  // 5x3 총 15개 구역에서 조회
-  const geohashBlocks = [
-    Geohash.adjacent(Geohash.adjacent(Geohash.adjacent(geohash, "N"), "N"), "W"), // NNW
-    Geohash.adjacent(Geohash.adjacent(geohash, "N"), "N"), // NN
-    Geohash.adjacent(Geohash.adjacent(Geohash.adjacent(geohash, "N"), "N"), "E"), // NNE
-
-    Geohash.adjacent(Geohash.adjacent(geohash, "N"), "W"), // NW
-    Geohash.adjacent(geohash, "N"),                       // N
-    Geohash.adjacent(Geohash.adjacent(geohash, "N"), "E"), // NE
-
-    Geohash.adjacent(geohash, "W"),                       // W
-    geohash,                                              // 현재위치
-    Geohash.adjacent(geohash, "E"),                       // E
-
-    Geohash.adjacent(Geohash.adjacent(geohash, "S"), "W"), // SW
-    Geohash.adjacent(geohash, "S"),                       // S
-    Geohash.adjacent(Geohash.adjacent(geohash, "S"), "E"), // SE
-    
-    Geohash.adjacent(Geohash.adjacent(Geohash.adjacent(geohash, "S"), "S"), "W"), // SSW
-    Geohash.adjacent(Geohash.adjacent(geohash, "S"), "S"), // SE
-    Geohash.adjacent(Geohash.adjacent(Geohash.adjacent(geohash, "S"), "S"), "E"), // SSE
-  ];
-
+  // 조회해야할 geohash 가져오기
+  const geohashGroup = makeGeohashGroups(geohash, groupSize);
+  const geohashBlocks = Object.keys(geohashGroup);
   const geohashField = `geohash_${precision}`;
-  logger.info("Fetching posts with geohash:", geohash, "Field:", geohashField, "block:", geohashBlocks);
+
+  logger.info("geohash group", Object.entries(geohashGroup));
 
   if (type === "latest") {
     try {
-      const posts = await fetchLatestPosts(geohashBlocks, geohashField);
-
+      const posts = await fetchLatestPosts(geohashBlocks, geohashField, userID);
+      const filteredPosts = filterLatestPostPerGroup(posts, geohashField, geohashGroup);
       res.status(200).json({
         status: "SUCCESS",
         message: "Successfully fetched latest posts",
         result: {
           type: "latest",
-          posts,
+          posts: filteredPosts,
           geohashBlocks,
+          postCount: filteredPosts.length
         }
       });
     } catch (error) {
@@ -107,17 +95,20 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
   } else if (type === "popular") {
     try {
       const posts = await fetchPopularPosts(geohashBlocks, userID);
+      const filteredPosts = filterLatestPostPerGroup(posts, geohashField, geohashGroup);
       const successResponse: SuccessResponse<{
         type: string;
         posts: PostSummary[];
         geohashBlocks: string[];
+        postCount: number;
       }> = {
         status: "success",
         message: "Successfully fetched popular posts",
         result: {
           type: "popular",
-          posts,
+          posts: filteredPosts,
           geohashBlocks,
+          postCount: filteredPosts.length
         }
       };
       res.status(200).json(successResponse);
@@ -135,8 +126,8 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
 });
 
 // geohash 블록별로 최신 게시글을 가져옴 (각 블록당 최대 1개, createdAt 기준 내림차순 정렬)
-async function fetchLatestPosts(geohashBlocks: string[], geohashField: string): Promise<PostSummary[]> {
-  const posts: PostSummary[] = [];
+async function fetchLatestPosts(geohashBlocks: string[], geohashField: string, userID: string): Promise<PostDetail[]> {
+  const posts: PostDetail[] = [];
 
   for (const hash of geohashBlocks) {
     const snapshot = await db
@@ -146,16 +137,28 @@ async function fetchLatestPosts(geohashBlocks: string[], geohashField: string): 
       .limit(1)
       .get();
 
-    logger.info(`Fetched ${snapshot.size} posts for hash ${hash}`);
-
     if (!snapshot.empty) {
       const doc = snapshot.docs[0];
       const data = doc.data();
       posts.push({
         id: doc.id,
-        title: data.title,
-        imageUrl: data.imageUrl,
-        location: data.location
+        title: data?.title,
+        content: data?.content,
+        imageUrl: data?.imageUrl,
+        location: data?.location,
+        createdAt: data?.createdAt,
+        creatorID: data?.creatorID,
+        geohash_1: data?.geohash_1,
+        geohash_2: data?.geohash_2,
+        geohash_3: data?.geohash_3,
+        geohash_4: data?.geohash_4,
+        geohash_5: data?.geohash_5,
+        geohash_6: data?.geohash_6,
+        geohash_7: data?.geohash_7,
+        geohash_8: data?.geohash_8,
+        geohash_9: data?.geohash_9,
+        geohash_10: data?.geohash_10,
+        isMine: userID === data?.creatorID
       });
     }
   }
@@ -164,7 +167,7 @@ async function fetchLatestPosts(geohashBlocks: string[], geohashField: string): 
 }
 
 // 인기순 포스트 조회 (6시간 내 인기 포스트, post_ranking_cache 사용)
-async function fetchPopularPosts(geohashBlocks: string[], userID: string): Promise<PostSummary[]> {
+async function fetchPopularPosts(geohashBlocks: string[], userID: string): Promise<PostDetail[]> {
   const now = new Date();
   const currentHour = now.getUTCHours();
   const snappedHour = Math.floor(currentHour / 3) * 3; // 현재 시간이 05시면 03시 조회
@@ -172,14 +175,13 @@ async function fetchPopularPosts(geohashBlocks: string[], userID: string): Promi
   const yyyyMMdd = now.toISOString().slice(0, 10);
   const basePath = `post_ranking_cache/${yyyyMMdd}/last6hours/hour${hourStr}/geohash`;
 
-  const posts: PostSummary[] = [];
+  const posts: PostDetail[] = [];
 
   for (const hash of geohashBlocks) {
     const docRef = db.doc(`${basePath}/${hash}`);
     const snapshot = await docRef.get();
 
     if (!snapshot.exists) {
-      logger.info(`⚠️ 랭킹 데이터 없음: ${basePath}/${hash}`);
       continue;
     }
 
@@ -189,12 +191,7 @@ async function fetchPopularPosts(geohashBlocks: string[], userID: string): Promi
     for (const entry of ranking) {
       try {
         const post = await fetchPostById(entry.postId, userID);
-        posts.push({
-          id: post.id,
-          title: post.title,
-          imageUrl: post.imageUrl,
-          location: post.location
-        });
+        posts.push(post);
       } catch (error) {
         logger.warn(`⚠️ postId ${entry.postId} 조회 실패:`, error);
       }
@@ -202,4 +199,102 @@ async function fetchPopularPosts(geohashBlocks: string[], userID: string): Promi
   }
 
   return posts;
+}
+
+function getTopLeftCornerGeohash(center: string, groupSize: number): string {
+  const westCount = 2 * groupSize;
+  const northCount = 2 * groupSize;
+  let currentGeohash = center; 
+
+  for (let i = 0; i < westCount; i++) {
+    currentGeohash = Geohash.adjacent(center, "w");
+  }
+
+  for (let i = 0; i < northCount; i++) {
+    currentGeohash = Geohash.adjacent(center, "n");
+  }
+
+  return currentGeohash;
+}
+
+function makeGeohashGroups(center: string, groupSize: number): Record<string, number> {
+  const geohashGroups: Record<string, number> = {};
+
+  let rowPosition = getTopLeftCornerGeohash(center, groupSize);
+  let groupNumber = 0;
+
+  for (let row = 0; row < 5; row++) {
+    let groupStartPosition = rowPosition
+
+    for (let col = 0; col < 5; col++) {
+      const partialGroup = generateGeohashGroup(groupStartPosition, groupSize, groupNumber);
+      Object.assign(geohashGroups, partialGroup);
+      groupStartPosition = move(groupStartPosition, "E", groupSize);
+      groupNumber += 1;
+    }
+
+    rowPosition = move(rowPosition, "S", groupSize);
+  }
+
+  return geohashGroups;
+}
+
+function move(geohash: string, direction: Geohash.Direction, count: number): string {
+  let current = geohash;
+
+  for (let i = 0; i < count; i++) {
+    current = Geohash.adjacent(current, direction);
+  }
+
+  return current;
+}
+
+// topLeftGeohash: 해당 그룹 내의 좌측 상단 geo hash 값
+// 이 값을 시작으로 주어진 그룹 사이즈만큼 좌측으로 탐색해가며 geo hash 추가
+function generateGeohashGroup(topLeftGeohash: string, groupSize: number, groupNumber: number): Record<string, number> {
+  const geohashGroups: Record<string, number> = {}; 
+
+  let rowPosition = topLeftGeohash; 
+
+  for (let row = 0; row < groupSize; row++) {
+    let current = rowPosition;
+
+    for (let col = 0; col < groupSize; col++) {
+      geohashGroups[current] = groupNumber;
+      current = Geohash.adjacent(current, "e");
+    }
+    
+    rowPosition = Geohash.adjacent(rowPosition, "s");
+  }
+
+  return geohashGroups;
+}
+
+/**
+ * 각 geohash 그룹별로 해당 그룹에 포함된 첫 번째 post만 추출
+ */
+function filterLatestPostPerGroup(
+  posts: PostDetail[],
+  geohashField: string,
+  geohashGroups: Record<string, number>
+): PostSummary[] {
+  const result: PostSummary[] = [];
+  const seenGroups = new Set<number>();
+
+  for (const post of posts) {
+    const fieldValue = (post as any)[geohashField];
+    const groupIndex = geohashGroups[fieldValue];
+
+    if (groupIndex !== undefined && !seenGroups.has(groupIndex)) {
+      result.push({
+        id: post.id,
+        title: post.title,
+        imageUrl: post.imageUrl,
+        location: post.location
+      });
+      seenGroups.add(groupIndex);
+    }
+  }
+
+  return result;
 }

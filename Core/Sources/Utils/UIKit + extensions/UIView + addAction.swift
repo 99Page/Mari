@@ -79,7 +79,6 @@ private final class TouchInsideTrackingView: UIView {
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         isTouchInside = true
         animateTouchDown()
-        Logger.debug("touches began")
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -87,7 +86,6 @@ private final class TouchInsideTrackingView: UIView {
             let inside = bounds.contains(point)
             if isTouchInside != inside {
                 isTouchInside = inside
-                Logger.debug("touches moved")
                 inside ? animateTouchDown() : animateTouchUp()
             }
         }
@@ -95,9 +93,8 @@ private final class TouchInsideTrackingView: UIView {
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         animateTouchUp()
-        Logger.log("touch ended!")
+        
         if isTouchInside {
-            Logger.log("touch ended inside")
             action?()
         }
     }

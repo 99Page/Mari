@@ -23,7 +23,7 @@ struct MapFeature {
         
         // NaverMap에서 제공하는 줌 레벨의 최대값 22, 최솟값은 약 0.67
         // 값이 커질수록 확대됩니다 -page, 2025. 07. 04
-        var zoomLevel: Double = 17.0
+        var zoomLevel: Double = 18.0
         
         var posts = IdentifiedArrayOf<PostSummaryState>()
         var retrievedGeoHashes: Set<String> = []
@@ -58,6 +58,7 @@ struct MapFeature {
         var selectedFilter = Filter.latest
         
         var cameraButton = RimImageView.State(image: .symbol(name: "camera", fgColor: .gray))
+        var lastFetchPrecision: Int = 7
         
         var precision: Geohash.Precision {
             switch zoomLevel {
@@ -70,15 +71,22 @@ struct MapFeature {
             case 10..<12:
                 return .twentyFourHundredMeters
             case 12..<16:
-                return .sixHundredTenMeters  // 0~14
-            case 16..<18:
-                return .seventySixMeters // 15~17
-            case 18..<20:
+                return .sixHundredTenMeters
+            case 16..<19:
+                return .seventySixMeters
+            case 19..<20:
                 return .nineteenMeters
             case 20...22:
                 return .sixtyCentimeters
             default:
                 return .seventyFourMillimeters
+            }
+        }
+        
+        var groupSize: Int {
+            switch zoomLevel {
+            case 17: 1
+            default: 1
             }
         }
     }
@@ -137,13 +145,11 @@ struct MapFeature {
                 return .none
                 
             case let .view(.cameraDidMove(zoomLevel, cameraPosition)):
-                debugPrint(zoomLevel)
-                let centerGeoHash = Geohash.encode(latitude: cameraPosition.lat, longitude: cameraPosition.lng, precision: state.precision)
-                
-                guard !state.retrievedGeoHashes.contains(centerGeoHash) else { return .none }
-                
                 state.zoomLevel = zoomLevel
                 state.mapCameraCenterPosition = cameraPosition
+                
+                let centerGeoHash = Geohash.encode(latitude: cameraPosition.lat, longitude: cameraPosition.lng, precision: state.precision)
+                guard !state.retrievedGeoHashes.contains(centerGeoHash) else { return .none }
                 
                 return .send(.fetchPosts)
                 
@@ -210,15 +216,34 @@ struct MapFeature {
                 return .none
                 
             case let .setPosts(response):
-                state.posts = IdentifiedArray(uniqueElements: response.posts.map { PostSummaryState(dto: $0) })
+                let oldIDs = Set(state.posts.map(\.id))
+                let newIDs = Set(response.posts.map(\.id))
+                let newPosts = response.posts.map { PostSummaryState(dto: $0) }
+                
+                let removedIDs = oldIDs.subtracting(newIDs)
+                
+                // 이미지 로드를 최소화하기 위해 added 상태 분리
+                // 현재는 이미지 캐싱이 별도로 되어 있지 않습니다.
+                // 이미지 캐싱 처리 후에는 remove/add 분리할 필요가 없습니다. -page 2025. 08. 06
+                let addedIDs = newIDs.subtracting(oldIDs)
+                let addedPosts = newPosts.filter { addedIDs.contains($0.id) }
+                
+                for removedPostId in removedIDs {
+                    state.posts.remove(id: removedPostId)
+                }
+                
+                for addedPost in addedPosts {
+                    state.posts.append(addedPost)
+                }
+                
                 state.retrievedGeoHashes = Set(response.geohashBlocks)
                 
-                return .run { [posts = state.posts] send in
-                    for post in posts {
+                return .run { send in
+                    for addedPost in addedPosts {
                         do {
                             let imageSize = CGSize(width: 80, height: 80)
-                            let image = try await imageClient.loadImage(url: post.imageURL, size: imageSize)
-                            await send(.setImage(postID: post.id, image: image))
+                            let image = try await imageClient.loadImage(url: addedPost.imageURL, size: imageSize)
+                            await send(.setImage(postID: addedPost.id, image: image))
                         } catch {
                             // 실패 무시 or 처리
                         }
@@ -251,7 +276,8 @@ struct MapFeature {
                     type: state.selectedFilter.rawValue,
                     latitude: state.mapCameraCenterPosition.lat,
                     longitude: state.mapCameraCenterPosition.lng,
-                    precision: state.precision.rawValue
+                    precision: state.precision.rawValue,
+                    groupSize: state.groupSize
                 )
                 
                 return .run { send in
@@ -287,6 +313,11 @@ struct MapFeature {
         .ifLet(\.$alert, action: \.alert)
         .ifLet(\.$uploadPost, action: \.uploadPost) { UploadPostNavigationStack() }
         .ifLet(\.$camera, action: \.camera) { CameraFeature() }
+        .onChange(of: \.precision) { oldValue, newValue in
+            Reduce { _, _ in
+                return .send(.fetchPosts)
+            }
+        }
     }
 }
 

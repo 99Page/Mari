@@ -59,6 +59,7 @@ public class RimLabel: RimView {
         observe { [weak self] in
             guard let self else { return }
             updateAttributedString()
+            isUserInteractionEnabled = labelState.isEnabled
         }
     }
     
@@ -126,6 +127,7 @@ public extension RimLabel {
         var alignment: NSTextAlignment
         
         var typography: Typography
+        public var isEnabled = true
         
         var appearance: RimView.State
         

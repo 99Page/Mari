@@ -111,7 +111,6 @@ struct PostDetailFeature {
                     let response = try await postClient.fetchPostByID(id: id)
                     await send(.setPostDetail(response.result))
                 } catch: { error, send in
-                    Logger.error("post detail: \(error)")
                     await send(.showFetchFailAlert)
                 }
             

@@ -165,7 +165,6 @@ struct UploadPostFeature {
                     await send(.delegate(.uploadSucceeded))
                 } catch: { error, send in
                     await send(.showUploadFailAlert)
-                    Logger.error("upload fail: \(error)")
                 }
                 
             case .dismissProgress:
@@ -238,6 +237,12 @@ struct UploadPostFeature {
         }
         .ifLet(\.$dismissDialog, action: \.dialog)
         .ifLet(\.$alert, action: \.alert)
+        .onChange(of: \.isProgressViewPresented) { _, newValue in
+            Reduce { state, action in
+                state.postButton.isEnabled = !newValue
+                return .none
+            }
+        }
     }
 }
 
@@ -301,7 +306,6 @@ class UploadPostViewController: UIViewController {
         scrollView.contentInset.bottom = 16 // 스크롤이 올라올 때 텍스트가 잘리는 걸 막습니다. -page, 2025. 07. 11
         
         postButton.addAction(.touchUpInside({ [weak self] in
-            Logger.debug("button tapped")
             self?.send(.uploadButtonTapped)
         }))
         
