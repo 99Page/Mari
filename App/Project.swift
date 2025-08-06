@@ -10,6 +10,8 @@ let infoPlist: [String: Plist.Value] = [
     "NSLocationAlwaysUsageDescription": "사용자의 위치 정보를 받습니다",
     "NSLocationWhenInUseUsageDescription": "사용자의 위치 정보를 받습니다",
     "NSCameraUsageDescription": "사진을 찍기 위해 카메라 접근이 필요합니다.",
+    "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"], // 세로 모드만 허용
+    "UIUserInterfaceStyle": "Light", // 다크모드 끄기
     
     "UIApplicationSceneManifest": [
         "UIApplicationSupportsMultipleScenes": true,
@@ -23,7 +25,6 @@ let infoPlist: [String: Plist.Value] = [
             ]
         ]
     ],
-    
     "CFBundleURLTypes": [
         [
             "CFBundleURLName": "GoogleSignIn",
@@ -36,7 +37,7 @@ let infoPlist: [String: Plist.Value] = [
 
 let target = Target.target(
     name: "Rim",
-    destinations: .iOS,
+    destinations: [.iPhone],
     product: .app,
     bundleId: "com.page.rim",
     deploymentTargets: .iOS("17.0"),
@@ -80,7 +81,7 @@ let project = Project(
         target,
         .target(
             name: "RimTests",
-            destinations: .iOS,
+            destinations: [.iPhone],
             product: .unitTests,
             bundleId: "com.page.rim.tests",
             deploymentTargets: .iOS("17.0"),
