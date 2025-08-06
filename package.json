@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "@types/latlon-geohash": "^2.0.4",
+    "@types/ngeohash": "^0.6.8",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "ngeohash": "^0.6.3"
+  }
+}
