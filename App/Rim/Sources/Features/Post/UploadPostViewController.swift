@@ -13,6 +13,7 @@ import Core
 import CoreLocation
 import FirebaseFirestore
 import SwiftUI
+import NMapsMap
 
 @Reducer
 struct UploadPostFeature {
@@ -22,11 +23,13 @@ struct UploadPostFeature {
         @Presents var dismissDialog: ConfirmationDialogState<DialogAction>?
         @Shared(.uid) var uid
         
+        let photoLocation: NMGLatLng
         var isProgressViewPresented = false
-        
         var image: RimImageView.State
         var uploadTryCount = 0
         var imageURL: String?
+        var description = RimTextView.State(text: "", placeholder: "이곳을 설명해주세요.")
+        let maxImageUploadRetry = 3
         
         var postButton = RimLabel.State(
             text: "공유하기",
@@ -41,12 +44,9 @@ struct UploadPostFeature {
             placeholder: "여기는 어떤 곳인가요?",
         )
         
-        var description = RimTextView.State(text: "", placeholder: "이곳을 설명해주세요.")
-        
-        let maxImageUploadRetry = 3
-        
-        init(pickedImage: UIImage) {
+        init(pickedImage: UIImage, photoLocation: NMGLatLng) {
             self.image = RimImageView.State(image: .uiImage(uiImage: pickedImage))
+            self.photoLocation = photoLocation
         }
         
         var hasRetryLeft: Bool { uploadTryCount < maxImageUploadRetry }
@@ -165,7 +165,6 @@ struct UploadPostFeature {
                     await send(.delegate(.uploadSucceeded))
                 } catch: { error, send in
                     await send(.showUploadFailAlert)
-                    Logger.error("upload fail: \(error)")
                 }
                 
             case .dismissProgress:
@@ -238,6 +237,12 @@ struct UploadPostFeature {
         }
         .ifLet(\.$dismissDialog, action: \.dialog)
         .ifLet(\.$alert, action: \.alert)
+        .onChange(of: \.isProgressViewPresented) { _, newValue in
+            Reduce { state, action in
+                state.postButton.isEnabled = !newValue
+                return .none
+            }
+        }
     }
 }
 
@@ -301,7 +306,6 @@ class UploadPostViewController: UIViewController {
         scrollView.contentInset.bottom = 16 // 스크롤이 올라올 때 텍스트가 잘리는 걸 막습니다. -page, 2025. 07. 11
         
         postButton.addAction(.touchUpInside({ [weak self] in
-            Logger.debug("button tapped")
             self?.send(.uploadButtonTapped)
         }))
         
@@ -383,7 +387,7 @@ class UploadPostViewController: UIViewController {
 
 #Preview {
     let image = UIImage(resource: .rimLogo)
-    let state = UploadPostNavigationStack.State(pickedImage: image)
+    let state = UploadPostNavigationStack.State(pickedImage: image, photoLocation: NMGLatLng(lat: 0, lng: 0))
     let store = Store(initialState: state) {
         UploadPostNavigationStack()
     }

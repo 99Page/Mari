@@ -7,7 +7,11 @@
 
 import Foundation
 
-struct FetchNearPostsResponse: Decodable {
-    let posts: [PostDTO]
+struct FetchNearPostsResponse: Decodable, Stub {
+    static func stub() -> FetchNearPostsResponse {
+        FetchNearPostsResponse(posts: [.stub()], geohashBlocks: ["a", "b", "c"])
+    }
+    
+    let posts: [PostSummaryDTO]
     let geohashBlocks: [String]
 }

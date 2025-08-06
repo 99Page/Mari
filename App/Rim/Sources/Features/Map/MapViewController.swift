@@ -23,7 +23,9 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     }()
     
     private var markers: [NMFMarker] = []
+    
     private let locationManager = CLLocationManager()
+    private var isUserLocationInitialzed = false
     
     private let latestBackgroundView: RimView
     private let latestLabel: RimLabel
@@ -45,7 +47,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         self.latestBackgroundView = RimView(state: $binding.latestBackground)
         self.popularBackgroundView = RimView(state: $binding.popularBackground)
         
-        self.cameraButton = RimImageView(state: $binding.camera)
+        self.cameraButton = RimImageView(state: $binding.cameraButton)
         self.cameraBackgroundView = RimView(state: .constant(.init(borderColor: .gray, borderWidth: 1, cornerRadius: 20, backgroundColor: .systemBackground, shadowColor: .gray, shadowOpacity: 0.8, shadowOffset: CGSize(width: 0, height: 0.5), shadowRadius: 1)))
         
         super.init(nibName: nil, bundle: nil)
@@ -70,6 +72,10 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
             let viewController = UploadPostStackController(store: store)
             viewController.modalPresentationStyle = .fullScreen
             return viewController
+        }
+        
+        present(item: $store.scope(state: \.camera, action: \.camera)) { store in
+            CameraViewController(store: store)
         }
     }
     
@@ -175,7 +181,8 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         addOverlay()
         
         mapView.addCameraDelegate(delegate: self)
-        mapView.zoomLevel = 17
+        mapView.zoomLevel = store.zoomLevel
+        mapView.locationOverlay.hidden = false
         
         navigationController?.setNavigationBarHidden(true, animated: false)
         
@@ -191,7 +198,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         progressView.color = .gray
         
         cameraBackgroundView.addAction(.touchUpInside({ [weak self] in
-            self?.presentCamera()
+            self?.send(.cameraButtonTapped)
         }))
     }
     
@@ -241,9 +248,12 @@ extension MapViewController: CLLocationManagerDelegate {
         let coord = NMGLatLng(lat: location.coordinate.latitude,
                               lng: location.coordinate.longitude)
         
-        mapView.moveCamera(NMFCameraUpdate(scrollTo: coord))
+        if !isUserLocationInitialzed {
+            mapView.moveCamera(NMFCameraUpdate(scrollTo: coord))
+            isUserLocationInitialzed = true
+        }
         
-        locationManager.stopUpdatingLocation()
+        mapView.locationOverlay.location = coord
     }
     
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
@@ -251,28 +261,8 @@ extension MapViewController: CLLocationManagerDelegate {
     }
 }
 
-private extension MapViewController {
-    func presentCamera() {
-        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
-            print("Camera not available")
-            return
-        }
-        
-        let picker = UIImagePickerController()
-        picker.sourceType = .camera
-        picker.delegate = self
-        picker.allowsEditing = false
-        present(picker, animated: true)
-        
-    }
-}
-
-extension MapViewController: UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-        if let image = info[.originalImage] as? UIImage {
-            send(.cameraButtonTapped(image))
-        }
-    }
+extension MapViewController: UINavigationControllerDelegate {
+    
 }
 
 private extension MapViewController {

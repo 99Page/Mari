@@ -17,7 +17,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = (scene as? UIWindowScene) else { return }
         
-        debugPrint("setup root")
         let window = UIWindow(windowScene: windowScene)
         window.rootViewController = UINavigationController(rootViewController: ListViewController())
         window.makeKeyAndVisible()

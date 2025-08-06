@@ -59,6 +59,7 @@ public class RimLabel: RimView {
         observe { [weak self] in
             guard let self else { return }
             updateAttributedString()
+            isUserInteractionEnabled = labelState.isEnabled
         }
     }
     
@@ -104,8 +105,8 @@ public class RimLabel: RimView {
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = labelState.alignment
         paragraphStyle.lineSpacing = 0
-        paragraphStyle.minimumLineHeight = labelState.typography.size
-        paragraphStyle.maximumLineHeight = labelState.typography.size
+        paragraphStyle.minimumLineHeight = labelState.typography.lineHeight
+        paragraphStyle.maximumLineHeight = labelState.typography.lineHeight
         
         let attributes: [NSAttributedString.Key: Any] = [
             .foregroundColor: labelState.textColor,
@@ -126,6 +127,7 @@ public extension RimLabel {
         var alignment: NSTextAlignment
         
         var typography: Typography
+        public var isEnabled = true
         
         var appearance: RimView.State
         

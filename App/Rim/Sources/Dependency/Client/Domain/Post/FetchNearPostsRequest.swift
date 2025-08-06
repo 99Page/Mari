@@ -12,4 +12,5 @@ struct FetchNearPostsRequest: Encodable {
     let latitude: Double
     let longitude: Double
     let precision: Int
+    let groupSize: Int
 }

@@ -13,16 +13,21 @@ import FirebaseFunctions
 
 @DependencyClient
 struct PostClient {
-    var createPost: (_ request: CreatePostRequest) async throws -> PostDTO
-    var fetchNearPosts: (_ request: FetchNearPostsRequest) async throws -> FetchNearPostsResponse
-    var fetchPostByID: (_ id: String) async throws -> PostDTO
-    var incrementPostViewCount: (_ postID: String) async throws -> BaseResponse
+    var createPost: (_ request: CreatePostRequest) async throws -> APIResponse<PostDetailDTO>
+    var fetchNearPosts: (_ request: FetchNearPostsRequest) async throws -> APIResponse<FetchNearPostsResponse>
+    var fetchPostByID: (_ id: String) async throws -> APIResponse<PostDetailDTO>
+    var incrementPostViewCount: (_ postID: String) async throws -> APIResponse<EmptyResult>
+    // lastCreateAt는 커서의 역할을 합니다 -page, 2025. 07. 15
+    var fetchUserPosts: (_ lastCreatedAt: Date) async throws -> APIResponse<FetchUserPostsResponse>
+    var deletePost: (_ postID: String) async throws -> APIResponse<DeletePostResponse>
     
     enum PostAPI: APITarget {
         case createPost(request: CreatePostRequest)
         case fetchNearPosts(request: FetchNearPostsRequest)
         case fetchPostByID(id: String)
         case incrementPostViewCount(postID: String)
+        case fetchUserPosts(lastCreatedAt: Date)
+        case deletePost(postID: String)
         
         var method: HTTPMethod {
             switch self {
@@ -30,6 +35,8 @@ struct PostClient {
             case .fetchPostByID: .get
             case .createPost: .post
             case .incrementPostViewCount: .post
+            case .fetchUserPosts: .get
+            case .deletePost: .delete
             }
         }
         
@@ -39,6 +46,8 @@ struct PostClient {
             case .fetchNearPosts: nil
             case .fetchPostByID: nil
             case .incrementPostViewCount: nil
+            case .fetchUserPosts: nil
+            case .deletePost: nil
             }
         }
         
@@ -48,15 +57,10 @@ struct PostClient {
             @Dependency(\.keychain) var keychain
             
             switch self {
-            case .incrementPostViewCount:
-                let idToken = try? keychain.load(service: .firebase, account: .idToken)
-                headers["Authorization"] = "Bearer \(idToken ?? "")"
-            case .createPost:
+            case .incrementPostViewCount, .createPost, .fetchUserPosts, .deletePost, .fetchPostByID:
                 let idToken = try? keychain.load(service: .firebase, account: .idToken)
                 headers["Authorization"] = "Bearer \(idToken ?? "")"
             case .fetchNearPosts:
-                break
-            case .fetchPostByID:
                 break
             }
             return headers
@@ -68,10 +72,14 @@ struct PostClient {
             switch self {
             case .createPost: "/createPost"
             case let .fetchNearPosts(request):
-                "/getPosts/?latitude=\(request.latitude)&longitude=\(request.longitude)&precision=\(request.precision)&type=\(request.type)"
+                "/getPosts/?latitude=\(request.latitude)&longitude=\(request.longitude)&precision=\(request.precision)&type=\(request.type)&groupSize=\(request.groupSize)"
             case let .fetchPostByID(id): "/getPostById?id=\(id)"
             case let .incrementPostViewCount(postID):
                 "/increasePostViewCount/posts/\(postID)/views"
+            case let .fetchUserPosts(lastCreatedAt):
+                "/getPostsByUser?lastCreatedAt=\(lastCreatedAt)"
+            case let .deletePost(postID):
+                "/deletePost?id=\(postID)"
             }
         }
     }
@@ -87,6 +95,10 @@ extension PostClient: DependencyKey {
             try await Client.request(target: PostAPI.fetchPostByID(id: id))
         } incrementPostViewCount: { postID in
             try await Client.request(target: PostAPI.incrementPostViewCount(postID: postID))
+        } fetchUserPosts: { lastCreatedAt in
+            try await Client.request(target: PostAPI.fetchUserPosts(lastCreatedAt: lastCreatedAt))
+        } deletePost: { postID in
+            try await Client.request(target: PostAPI.deletePost(postID: postID))
         }
     }
     
@@ -94,14 +106,19 @@ extension PostClient: DependencyKey {
         PostClient { _ in
             return .stub()
         } fetchNearPosts: { _ in
-            return FetchNearPostsResponse(posts: [.stub()], geohashBlocks: ["a", "b", "c"])
+                .stub()
         } fetchPostByID: { _ in
             return .stub()
         } incrementPostViewCount: { _ in
-            BaseResponse(status: "status", message: "message")
+            APIResponse(status: "status", message: "message", result: .stub())
+        } fetchUserPosts: { _  in
+            APIResponse(status: "status", message: "message", result: .stub())
+        } deletePost: { _ in
+                .stub()
         }
-
     }
+    
+    static var previewValue: PostClient { testValue }
 }
 
 extension DependencyValues {

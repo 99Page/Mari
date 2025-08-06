@@ -14,7 +14,7 @@ import UIKit
 @MainActor
 struct MapFeatureTests {
     @Test
-    func refreshPosts_afterCreatePost() async throws {
+    func refreshPosts_whenLatestFilterSelected() async throws {
         @Shared(.uid) var uid = "uid"
         
         let uploadPostStack = UploadPostNavigationStack.State(pickedImage: UIImage())
@@ -43,7 +43,7 @@ struct MapFeatureTests {
     }
     
     @Test
-    func refreshPosts_afterCreatePost2() async throws {
+    func doesNotRefreshPosts_whenPopularFilterSelected() async throws {
         @Shared(.uid) var uid = "uid"
         
         let uploadPostStack = UploadPostNavigationStack.State(pickedImage: UIImage())

@@ -22,6 +22,9 @@ struct PostDetailFeature {
         var image: RimImageView.State
         var title: RimLabel.State
         var description: RimLabel.State
+        var isTrashButtonPresented = false
+        
+        var isProgressViewPresented = false
         
         init(postID: String) {
             self.postID = postID
@@ -35,23 +38,33 @@ struct PostDetailFeature {
         
         case incrementPostViewCount
         case fetchPostDetail
-        case setPostDetail(PostDTO)
+        case setPostDetail(PostDetailDTO)
         case showFetchFailAlert
+        case showDeleteFailAlert
         case view(UIAction)
         case alert(PresentationAction<AlertAction>)
         case delegate(Delegate)
+        case dismsisProgress
         
+        @CasePathable
         enum UIAction: BindableAction {
             case viewDidLoad
             case binding(BindingAction<State>)
+            case trashButtonTapped
         }
         
+        @CasePathable
         enum AlertAction {
             case dismissButtonTapped
+            case deleteButtonTapped
+            case dismissAlert
         }
         
+        @CasePathable
         enum Delegate {
             case dismiss
+            case removePostFromMap(id: String)
+            case removePostFromMyPosts(id: String)
         }
     }
     
@@ -69,12 +82,26 @@ struct PostDetailFeature {
                     .send(.incrementPostViewCount)
                 )
                 
+            case .view(.trashButtonTapped):
+                state.alert = AlertState {
+                    TextState("게시물을 삭제할까요? ")
+                } actions: {
+                    ButtonState(action: .dismissAlert) {
+                        TextState("취소")
+                    }
+                    
+                    ButtonState(role: .destructive, action: .deleteButtonTapped) {
+                        TextState("삭제")
+                    }
+                }
+                return .none
+                
             case .view(.binding(_)):
                 return .none
                 
             case .incrementPostViewCount:
                 return .run { [id = state.postID] send in
-                    let response = try await postClient.incrementPostViewCount(postID: id)
+                    let _ = try await postClient.incrementPostViewCount(postID: id)
                 } catch: { error, send in
                     Logger.error("increment fail: \(error)")
                 }
@@ -82,8 +109,8 @@ struct PostDetailFeature {
             case .fetchPostDetail:
                 return .run { [id = state.postID] send in
                     let response = try await postClient.fetchPostByID(id: id)
-                    await send(.setPostDetail(response))
-                } catch: { _, send in
+                    await send(.setPostDetail(response.result))
+                } catch: { error, send in
                     await send(.showFetchFailAlert)
                 }
             
@@ -91,6 +118,11 @@ struct PostDetailFeature {
                 state.image = .init(image: .custom(url: post.imageUrl))
                 state.title.text = post.title
                 state.description.text = post.content
+                state.isTrashButtonPresented = post.isMine
+                return .none
+                
+            case .alert(.presented(.dismissAlert)):
+                state.alert = nil
                 return .none
                 
             case .alert(.presented(.dismissButtonTapped)):
@@ -98,7 +130,34 @@ struct PostDetailFeature {
                     await dismiss()
                 }
                 
+            case .alert(.presented(.deleteButtonTapped)):
+                state.alert = nil
+                state.isProgressViewPresented = true
+                
+                return .run { [id = state.postID] send in
+                    let response = try await postClient.deletePost(postID: id)
+                    let id = response.result.id
+                    await send(.delegate(.removePostFromMap(id: id)))
+                    await send(.delegate(.removePostFromMyPosts(id: id)))
+                    await dismiss()
+                    await send(.dismsisProgress)
+                } catch: { _, send in
+                    await send(.dismsisProgress)
+                    await send(.showDeleteFailAlert)
+                }
+                
             case .alert(.dismiss):
+                return .none
+                
+            case .showDeleteFailAlert:
+                state.alert = AlertState {
+                    TextState("게시글을 삭제하지 못했어요")
+                } actions: {
+                    ButtonState(role: .cancel, action: .dismissAlert) {
+                        TextState("확인")
+                    }
+                }
+                
                 return .none
                 
             case .showFetchFailAlert:
@@ -112,11 +171,16 @@ struct PostDetailFeature {
                 
                 return .none
                 
-            case .delegate(.dismiss):
+            case .dismsisProgress:
+                state.isProgressViewPresented = false
+                return .none
+                
+            case .delegate:
                 return .none
             }
         }
         .ifLet(\.$alert, action: \.alert)
+        ._printChanges()
     }
 }
 
@@ -131,6 +195,8 @@ class PostDetailViewController: UIViewController {
     private let titleLabel: RimLabel
     private let descriptionLabel: RimLabel
     private let imageView: RimImageView
+    
+    private var trashButton = UIBarButtonItem()
     
     init(store: StoreOf<PostDetailFeature>) {
         @UIBindable var binding = store
@@ -151,17 +217,47 @@ class PostDetailViewController: UIViewController {
         super.viewDidLoad()
         makeConstraint()
         setupView()
-
+        updateView()
+        
         send(.viewDidLoad)
 
         present(item: $store.scope(state: \.alert, action: \.alert)) { store in
             UIAlertController(store: store)
+        }
+        
+        present(isPresented: $store.isProgressViewPresented) {
+            ProgressViewController()
+        }
+    }
+    
+    private func updateView() {
+        observe { [weak self] in
+            guard let self else { return }
+            
+            trashButton.tintColor = store.isTrashButtonPresented ? .white : .clear
+            trashButton.isEnabled = store.isTrashButtonPresented
         }
     }
     
     private func setupView() {
         view.backgroundColor = .systemBackground
         navigationController?.setNavigationBarHidden(false, animated: false)
+        
+        let trashImage = UIImage(systemName: "trash", withConfiguration: UIImage.SymbolConfiguration(weight: .heavy))
+        trashButton = UIBarButtonItem(
+            image: trashImage,
+            style: .plain,
+            target: self,
+            action: #selector(didTapTrashButton)
+        )
+        
+        navigationItem.rightBarButtonItem = trashButton
+        trashButton.tintColor = .clear
+        trashButton.isEnabled = false
+    }
+    
+    @objc private func didTapTrashButton() {
+        send(.trashButtonTapped)
     }
     
     private func makeConstraint() {
@@ -220,26 +316,16 @@ class PostDetailViewController: UIViewController {
 }
 
 #Preview("fetch success") {
-    let store = Store(initialState: PostDetailFeature.State(postID: "")) {
-        PostDetailFeature()
+    let stackState = MapNavigationStack.State(postDetail: .init(postID: "postID"))
+    let store = Store(initialState: stackState) {
+        MapNavigationStack()
     } withDependencies: {
-        $0.postClient.fetchPostByID = { _ in
-            PostDTO(
-                id: "",
-                title: "title",
-                content: "content",
-                imageUrl: "https://picsum.photos/200/300",
-                location: .init(latitude: 0, longitude: 0)
-            )
-        }
+        $0.postClient.fetchPostByID = { _ in .stub() }
     }
-    
-    
-    NavigationStack {
-        ViewControllerPreview {
-            PostDetailViewController(store: store)
-        }
-        .ignoresSafeArea()
+
+    ViewControllerPreview {
+        MapNavigationStackController(store: store)
     }
+    .ignoresSafeArea()
 }
 

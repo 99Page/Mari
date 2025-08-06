@@ -13,14 +13,14 @@ struct TabFeature {
     @ObservableState
     struct State: Equatable {
         var mapStack = MapNavigationStack.State()
-        var userAccount = UserAccountFeature.State() 
+        var userAccountStack = AccountNavigationStack.State()
         
         @Presents var alert: AlertState<AlertAction>?
     }
     
     enum Action: ViewAction {
         case mapStack(MapNavigationStack.Action)
-        case userAccount(UserAccountFeature.Action)
+        case userAccountStack(AccountNavigationStack.Action)
         case view(UIAction)
         case alert(PresentationAction<AlertAction>)
         case showRefreshFailAlert
@@ -43,16 +43,24 @@ struct TabFeature {
             MapNavigationStack()
         }
         
-        Scope(state: \.userAccount, action: \.userAccount) {
-            UserAccountFeature()
+        Scope(state: \.userAccountStack, action: \.userAccountStack) {
+            AccountNavigationStack()
         }
         
         Reduce<State, Action> { state, action in
             switch action {
+            case let .userAccountStack(.path(.element(id: _, action: .myPosts(.delegate(.removePostFromMap(id)))))):
+                return .send(.mapStack(.root(.removePost(id: id))))
+                
+            case let .userAccountStack(.path(.element(id: _, action: .postDetail(.delegate(.removePostFromMap(id)))))):
+                return .send(.mapStack(.root(.removePost(id: id))))
+                
             case .mapStack:
                 return .none
-            case .userAccount:
+                
+            case .userAccountStack:
                 return .none
+                
             case .view(.viewDidLoad):
                 return .run { send in
                     // https://firebase.google.com/docs/auth/admin/manage-sessions?utm_source=chatgpt.com&hl=ko
@@ -125,11 +133,11 @@ final class RimTabViewController: UITabBarController {
         let mapImage = UIImage(systemName: "map.fill")
         mapNavigationStackController.tabBarItem = UITabBarItem(title: "지도", image: mapImage, tag: 0)
         
-        let userAccountStore = store.scope(state: \.userAccount, action: \.userAccount)
-        let userAccountViewController = UserAccountViewController(store: userAccountStore)
+        let accountStackStore = store.scope(state: \.userAccountStack, action: \.userAccountStack)
+        let accountNavigationController = AccountNavigationStackController(store: accountStackStore)
         let accountImage = UIImage(systemName: "person.fill")
-        userAccountViewController.tabBarItem = UITabBarItem(title: "계정", image: accountImage, tag: 1)
+        accountNavigationController.tabBarItem = UITabBarItem(title: "계정", image: accountImage, tag: 1)
 
-        viewControllers = [mapNavigationStackController, userAccountViewController]
+        viewControllers = [mapNavigationStackController, accountNavigationController]
     }
 }

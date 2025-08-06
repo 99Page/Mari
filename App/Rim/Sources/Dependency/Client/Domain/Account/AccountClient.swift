@@ -21,6 +21,44 @@ struct AccountClient {
     var isLoggedIn: () -> Bool = { false }
     var signInFirebase: (_ credential: AuthCredential) async throws -> SignInResult
     var refreshIdToken: () async throws -> Void
+    var withdraw: () async throws -> APIResponse<EmptyResult>
+    
+    enum AccountAPI: APITarget {
+        case withdraw
+        
+        var method: HTTPMethod {
+            switch self {
+            case .withdraw: .post
+            }
+        }
+        
+        var body: (any Encodable)? {
+            switch self {
+            case .withdraw: nil
+            }
+        }
+        
+        var headers: [String : String] {
+            @Dependency(\.keychain) var keychain
+            var headers: [String: String] = [:]
+            
+            switch self {
+            case .withdraw:
+                let idToken = try? keychain.load(service: .firebase, account: .idToken)
+                headers["Authorization"] = "Bearer \(idToken ?? "")"
+            }
+            
+            return headers
+        }
+        
+        var baseURLString: String { functionsURL }
+        
+        var path: String {
+            switch self {
+            case .withdraw: "/withdrawAccount"
+            }
+        }
+    }
 }
 
 extension AccountClient: DependencyKey {
@@ -66,6 +104,8 @@ extension AccountClient: DependencyKey {
             guard let idToken else { throw ClientError.emptyToken }
             Logger.debug("idToken: \(idToken)", category: .auth)
             try keychain.save(value: idToken, service: .firebase, account: .idToken)
+        } withdraw: {
+            try await Client.request(target: AccountAPI.withdraw)
         }
     }
 }

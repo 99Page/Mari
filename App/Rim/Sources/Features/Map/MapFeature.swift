@@ -19,15 +19,16 @@ struct MapFeature {
     struct State: Equatable {
         @Presents var alert: AlertState<Action.Alert>?
         @Presents var uploadPost: UploadPostNavigationStack.State?
+        @Presents var camera: CameraFeature.State?
         
-        // 기본 줌 레벨 14
-        // 줌 레벨의 최대값 22, 최솟값은 약 0.67
+        // NaverMap에서 제공하는 줌 레벨의 최대값 22, 최솟값은 약 0.67
         // 값이 커질수록 확대됩니다 -page, 2025. 07. 04
-        var zoomLevel: Double = 17.0
+        var zoomLevel: Double = 18.0
         
         var posts = IdentifiedArrayOf<PostSummaryState>()
         var retrievedGeoHashes: Set<String> = []
-        var centerPosition = NMGLatLng(lat: 0, lng: 0)
+        var mapCameraCenterPosition = NMGLatLng(lat: 0, lng: 0)
+        var photoLocation: NMGLatLng?
         
         var latestFilter = RimLabel.State(text: "최신순", textColor: .black)
         var isProgressPresented = false
@@ -56,16 +57,36 @@ struct MapFeature {
         
         var selectedFilter = Filter.latest
         
-        var camera = RimImageView.State(image: .symbol(name: "camera", fgColor: .gray))
+        var cameraButton = RimImageView.State(image: .symbol(name: "camera", fgColor: .gray))
+        var lastFetchPrecision: Int = 7
         
         var precision: Geohash.Precision {
             switch zoomLevel {
-            case ..<15:
-                return .sixHundredTenMeters  // 0~14
-            case 15..<18:
-                return .seventySixMeters // 15~17
+            case 0..<5:
+                return .sixHundredThirtyKilometers
+            case 5..<7:
+                return .seventyEightKilometers
+            case 7..<10:
+                return .twentyKilometers
+            case 10..<12:
+                return .twentyFourHundredMeters
+            case 12..<16:
+                return .sixHundredTenMeters
+            case 16..<19:
+                return .seventySixMeters
+            case 19..<20:
+                return .nineteenMeters
+            case 20...22:
+                return .sixtyCentimeters
             default:
-                return .nineteenMeters // 17 이상
+                return .seventyFourMillimeters
+            }
+        }
+        
+        var groupSize: Int {
+            switch zoomLevel {
+            case 17: 1
+            default: 1
             }
         }
     }
@@ -81,29 +102,33 @@ struct MapFeature {
     }
     
     enum Action: ViewAction {
+        case alert(PresentationAction<Alert>)
+        case uploadPost(PresentationAction<UploadPostNavigationStack.Action>)
+        case camera(PresentationAction<CameraFeature.Action>)
+        case view(UIAction)
+        case removePost(id: String)
         case fetchPosts
         case setPosts(FetchNearPostsResponse)
-        case view(UIAction)
-        case alert(PresentationAction<Alert>)
         case showFetchFailAlert
-        case uploadPost(PresentationAction<UploadPostNavigationStack.Action>)
         case dismissProgress
         case setImage(postID: String, image: UIImage)
         case cancelSetPosts
+        case showFailedToGetPhotoLocationAlert
         
         enum UIAction: BindableAction {
-            case cameraButtonTapped(UIImage)
+            case cameraButtonTapped
             case binding(BindingAction<State>)
             case cameraDidMove(zoomLevel: Double, centerPosition: NMGLatLng)
         }
         
         enum Alert: Equatable {
-            
+            case openLocationSettings
         }
     }
     
     @Dependency(\.imageClient) var imageClient
     @Dependency(\.postClient) var postClient
+    @Dependency(\.locationManager) var locationManager
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
@@ -115,18 +140,16 @@ struct MapFeature {
         
         Reduce<State, Action> { state, action in
             switch action {
-                
-            case let .view(.cameraButtonTapped(image)):
-                state.uploadPost = .init(pickedImage: image)
+            case .view(.cameraButtonTapped):
+                state.camera = .init()
                 return .none
                 
             case let .view(.cameraDidMove(zoomLevel, cameraPosition)):
-                let centerGeoHash = Geohash.encode(latitude: cameraPosition.lat, longitude: cameraPosition.lng, precision: state.precision)
-                
-                guard !state.retrievedGeoHashes.contains(centerGeoHash) else { return .none}
-                
                 state.zoomLevel = zoomLevel
-                state.centerPosition = cameraPosition
+                state.mapCameraCenterPosition = cameraPosition
+                
+                let centerGeoHash = Geohash.encode(latitude: cameraPosition.lat, longitude: cameraPosition.lng, precision: state.precision)
+                guard !state.retrievedGeoHashes.contains(centerGeoHash) else { return .none }
                 
                 return .send(.fetchPosts)
                 
@@ -157,6 +180,24 @@ struct MapFeature {
             case .view(.binding):
                 return .none
                 
+            case let .camera(.presented(.photoPreview(.presented(.delegate(.usePhoto(image)))))):
+                guard let photoLocation = state.photoLocation else { return .none }
+                state.uploadPost = .init(pickedImage: image, photoLocation: photoLocation)
+                return .none
+                
+            case .camera(.presented(.delegate(.photoCaptured))):
+                let currentLocation = try? locationManager.getCurrentLocation()
+                
+                if let currentLocation {
+                    state.photoLocation = NMGLatLng(lat: currentLocation.coordinate.latitude, lng: currentLocation.coordinate.longitude)
+                } else {
+                    state.photoLocation = nil
+                }
+                return .none
+                
+            case .camera:
+                return .none
+                
             case .uploadPost(.presented(.root(.delegate(.uploadSucceeded)))):
                 state.uploadPost = nil
                 
@@ -165,19 +206,44 @@ struct MapFeature {
             case .uploadPost(_):
                 return .none
                 
+            case .alert(.presented(.openLocationSettings)):
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                     UIApplication.shared.open(url)
+                 }
+                return .none
+                
             case .alert:
                 return .none
                 
             case let .setPosts(response):
-                state.posts = IdentifiedArray(uniqueElements: response.posts.map { PostSummaryState(dto: $0) })
+                let oldIDs = Set(state.posts.map(\.id))
+                let newIDs = Set(response.posts.map(\.id))
+                let newPosts = response.posts.map { PostSummaryState(dto: $0) }
+                
+                let removedIDs = oldIDs.subtracting(newIDs)
+                
+                // 이미지 로드를 최소화하기 위해 added 상태 분리
+                // 현재는 이미지 캐싱이 별도로 되어 있지 않습니다.
+                // 이미지 캐싱 처리 후에는 remove/add 분리할 필요가 없습니다. -page 2025. 08. 06
+                let addedIDs = newIDs.subtracting(oldIDs)
+                let addedPosts = newPosts.filter { addedIDs.contains($0.id) }
+                
+                for removedPostId in removedIDs {
+                    state.posts.remove(id: removedPostId)
+                }
+                
+                for addedPost in addedPosts {
+                    state.posts.append(addedPost)
+                }
+                
                 state.retrievedGeoHashes = Set(response.geohashBlocks)
                 
-                return .run { [posts = state.posts] send in
-                    for post in posts {
+                return .run { send in
+                    for addedPost in addedPosts {
                         do {
                             let imageSize = CGSize(width: 80, height: 80)
-                            let image = try await imageClient.loadImage(url: post.imageURL, size: imageSize)
-                            await send(.setImage(postID: post.id, image: image))
+                            let image = try await imageClient.loadImage(url: addedPost.imageURL, size: imageSize)
+                            await send(.setImage(postID: addedPost.id, image: image))
                         } catch {
                             // 실패 무시 or 처리
                         }
@@ -208,14 +274,15 @@ struct MapFeature {
                 
                 let request = FetchNearPostsRequest(
                     type: state.selectedFilter.rawValue,
-                    latitude: state.centerPosition.lat,
-                    longitude: state.centerPosition.lng,
-                    precision: state.precision.rawValue
+                    latitude: state.mapCameraCenterPosition.lat,
+                    longitude: state.mapCameraCenterPosition.lng,
+                    precision: state.precision.rawValue,
+                    groupSize: state.groupSize
                 )
                 
                 return .run { send in
                     await send(.cancelSetPosts)
-                    let response = try await postClient.fetchNearPosts(request)
+                    let response = try await postClient.fetchNearPosts(request).result
                     await send(.setPosts(response))
                     await send(.dismissProgress)
                 } catch: { error, send in
@@ -226,11 +293,30 @@ struct MapFeature {
                 
             case .cancelSetPosts:
                 return .cancel(id: EffectID.setPosts)
+                
+            case let .removePost(id):
+                state.posts.remove(id: id)
+                return .none
+                
+            case .showFailedToGetPhotoLocationAlert:
+                state.alert = AlertState {
+                    TextState("현재 위치를 확인할 수 없어요")
+                } actions: {
+                    ButtonState(action: .openLocationSettings) {
+                        TextState("설정으로 이동")
+                    }
+                }
+                
+                return .none
             }
         }
         .ifLet(\.$alert, action: \.alert)
-        .ifLet(\.$uploadPost, action: \.uploadPost) {
-            UploadPostNavigationStack()
+        .ifLet(\.$uploadPost, action: \.uploadPost) { UploadPostNavigationStack() }
+        .ifLet(\.$camera, action: \.camera) { CameraFeature() }
+        .onChange(of: \.precision) { oldValue, newValue in
+            Reduce { _, _ in
+                return .send(.fetchPosts)
+            }
         }
     }
 }
