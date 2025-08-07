@@ -7,9 +7,9 @@ let infoPlist: [String: Plist.Value] = [
         "UIColorName": "",
         "UIImageName": "",
     ],
-    "NSLocationAlwaysUsageDescription": "사용자의 위치 정보를 받습니다",
-    "NSLocationWhenInUseUsageDescription": "사용자의 위치 정보를 받습니다",
-    "NSCameraUsageDescription": "사진을 찍기 위해 카메라 접근이 필요합니다.",
+    "NSLocationAlwaysUsageDescription": "사진의 위치를 표시하기 위해 사용자의 위치 정보를 사용합니다.",
+    "NSLocationWhenInUseUsageDescription": "사진의 위치를 표시하기 위해 사용자의 위치 정보를 사용합니다.",
+    "NSCameraUsageDescription": "게시글의 이미지를 제공하기 위해 카메라를 사용합니다.",
     "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"], // 세로 모드만 허용
     "UIUserInterfaceStyle": "Light", // 다크모드 끄기
     
