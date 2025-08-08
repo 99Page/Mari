@@ -1,4 +1,4 @@
-import { extractVerifiedToken } from '../auth/verifyToken';
+import { verifyAuthAndGetUid } from '../auth/verifyToken';
 import { onRequest } from "firebase-functions/v2/https";
 import { errors } from "../resopnse/errorResponse"
 import { db, adminInstance as admin } from "../utils/firebase";
@@ -15,7 +15,7 @@ export const reportPost = onRequest({ region: REGION }, async (req, res) => {
     return;
   }
 
-  const uid = await extractVerifiedToken(req, res);
+  const uid = await verifyAuthAndGetUid(req, res);
   if (uid == null) return; 
 
   const postId = req.body.postId as string;

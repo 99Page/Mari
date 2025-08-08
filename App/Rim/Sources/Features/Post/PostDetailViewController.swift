@@ -42,12 +42,12 @@ struct PostDetailFeature {
         case fetchPostDetail
         case setPostDetail(PostDetailDTO)
         case showFetchFailAlert
-        case showDeleteFailAlert
+        case showAlert(title: String)
         case view(UIAction)
         case alert(PresentationAction<AlertAction>)
         case postMenu(PresentationAction<PostMenuFeature.Action>)
         case delegate(Delegate)
-        case dismsisProgress
+        case dismissProgress
         
         @CasePathable
         enum UIAction: BindableAction {
@@ -111,8 +111,6 @@ struct PostDetailFeature {
                 state.title.text = post.title
                 state.description.text = post.content
                 state.menu = post.isMine ? [.delete] : [.block, .report]
-                
-                Logger.debug("isMine? \(post.isMine)")
                 return .none
                 
             case .alert(.presented(.dismissAlert)):
@@ -127,15 +125,14 @@ struct PostDetailFeature {
             case .alert(.dismiss):
                 return .none
                 
-            case .showDeleteFailAlert:
+            case let .showAlert(title):
                 state.alert = AlertState {
-                    TextState("게시글을 삭제하지 못했어요")
+                    TextState(title)
                 } actions: {
                     ButtonState(role: .cancel, action: .dismissAlert) {
                         TextState("확인")
                     }
                 }
-                
                 return .none
                 
             case .showFetchFailAlert:
@@ -149,12 +146,24 @@ struct PostDetailFeature {
                 
                 return .none
                 
-            case .dismsisProgress:
+            case .dismissProgress:
                 state.isProgressViewPresented = false
                 return .none
                 
             case .delegate:
                 return .none
+                
+            case .postMenu(.presented(.delegate(.reportPost))):
+                return .run { [id = state.postID] send in
+                    let response = try await postClient.report(postID: id)
+                    await send(.showAlert(title: response.message))
+                } catch: { error, send in
+                    if let errorResponse = error as? ErrorResponse {
+                        await send(.showAlert(title: errorResponse.message))
+                    } else {
+                        await send(.showAlert(title: "에러가 발생했어요"))
+                    }
+                }
                 
             case .postMenu(.presented(.delegate(.deletePost))):
                 state.isProgressViewPresented = true
@@ -165,10 +174,10 @@ struct PostDetailFeature {
                     await send(.delegate(.removePostFromMap(id: id)))
                     await send(.delegate(.removePostFromMyPosts(id: id)))
                     await dismiss()
-                    await send(.dismsisProgress)
+                    await send(.dismissProgress)
                 } catch: { _, send in
-                    await send(.dismsisProgress)
-                    await send(.showDeleteFailAlert)
+                    await send(.dismissProgress)
+                    await send(.showAlert(title: "게시글을 삭제하지 못했어요"))
                 }
                 
             case .postMenu(_):

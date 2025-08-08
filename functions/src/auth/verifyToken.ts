@@ -7,7 +7,7 @@ import * as admin from "firebase-admin";
 import { logger } from "firebase-functions";
 import { errors } from "../resopnse/errorResponse";
 
-export async function extractVerifiedToken(req: Request, res: Response): Promise<string | null> {
+export async function verifyAuthAndGetUid(req: Request, res: Response): Promise<string | null> {
   // Authorization 헤더 추출 (대소문자 구분 없이) & 문자열/배열 대응
   const raw = req.headers["authorization"]; // Express는 헤더 키를 소문자로 normalize
   const authHeader = Array.isArray(raw) ? raw[0] : raw; // 첫 값 사용
@@ -27,8 +27,8 @@ export async function extractVerifiedToken(req: Request, res: Response): Promise
   }
 
   try {
-    await admin.auth().verifyIdToken(idToken);
-    return idToken;
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    return decodedToken.uid
   } catch (error) {
     logger.error("Token verification failed", { error });
     res.status(401).json(errors.UNAUTHORIZED);

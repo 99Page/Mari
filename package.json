@@ -17,6 +17,7 @@
   "dependencies": {
     "firebase-admin": "latest",
     "firebase-functions": "latest",
-    "ngeohash": "^0.6.3"
+    "ngeohash": "^0.6.3",
+    "latlon-geohash": "^2.0.0"
   }
 }
