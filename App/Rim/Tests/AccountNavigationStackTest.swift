@@ -31,7 +31,7 @@ struct AccountNavigationStackTest {
         
         store.exhaustivity = .off
         
-        await store.send(.path(.element(id: 1, action: .postDetail(.view(.trashButtonTapped)))))
+        await store.send(.path(.element(id: 1, action: .postDetail(.view(.menuButtonTapped)))))
         await store.send(.path(.element(id: 1, action: .postDetail(.alert(.presented(.deleteButtonTapped))))))
         await store.receive(\.path[id: 1].postDetail.delegate.removePostFromMyPosts)
         await store.receive(\.path[id: 0].myPosts.removePostFromList)

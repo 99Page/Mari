@@ -15,11 +15,12 @@ import Core
 @Reducer
 struct PostMenuFeature {
     @ObservableState
-    struct State {
+    struct State: Equatable {
+        @Presents var alert: AlertState<Action.Alert>?
         
         let activeMenus: [Menu]
         
-        enum Menu {
+        enum Menu: Equatable {
             case delete
             case report
             case block
@@ -52,29 +53,64 @@ struct PostMenuFeature {
         }
     }
     
-    enum Action {
+    enum Action: ViewAction {
+        case alert(PresentationAction<Alert>)
+        case view(View)
         case delegate(Delegate)
         
-        enum Delegate {
+        @CasePathable
+        enum View: BindableAction {
+            case binding(BindingAction<State>)
             case deleteButtonTapped
             case reportButtonTapped
             case blockUserButtonTapped
         }
+        
+        @CasePathable
+        enum Delegate {
+            case deletePost
+            case reportPost
+        }
+        
+        @CasePathable
+        enum Alert: Equatable {
+            case report
+            case delete
+            case cancel
+        }
     }
     
     var body: some ReducerOf<Self> {
+        BindingReducer(action: \.view)
+        
         Reduce<State, Action> { state, action in
             switch action {
+            case .view(.deleteButtonTapped):
+                state.alert = .delete
+                return .none
+            case .view(.reportButtonTapped):
+                state.alert = .report
+                return .none
+            case .view:
+                return .none
+            case .alert(.presented(.report)):
+                return .send(.delegate(.reportPost))
+            case .alert(.presented(.delete)):
+                return .send(.delegate(.deletePost))
+            case .alert:
+                return .none
             case .delegate:
                 return .none
             }
         }
+        .ifLet(\.$alert, action: \.alert)
     }
 }
 
+@ViewAction(for: PostMenuFeature.self)
 class PostMenuViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
     
-    let store: StoreOf<PostMenuFeature>
+    @UIBindable var store: StoreOf<PostMenuFeature>
     private let tableView = UITableView()
     
     private var activeMenus: [PostMenuFeature.State.Menu] {
@@ -94,19 +130,36 @@ class PostMenuViewController: UIViewController, UITableViewDataSource, UITableVi
         super.viewDidLoad()
         setupView()
         makeConstraint()
+        
+        present(item: $store.scope(state: \.alert, action: \.alert)) { store in
+            UIAlertController(store: store)
+        }
     }
     
     private func makeConstraint() {
         view.addSubview(tableView)
         
         tableView.snp.makeConstraints { make in
-            make.edges.equalToSuperview().inset(16)
+            make.leading.trailing.equalToSuperview().inset(16)
+            make.top.bottom.equalToSuperview().inset(32)
         }
     }
     
     private func setupView() {
         view.backgroundColor = .white
         setupTableView()
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        tableView.layoutIfNeeded()
+
+        // 시트 최대 높이 한도 (화면의 90%)
+        let maxHeight = UIScreen.main.bounds.height * 0.9
+        let height = min(tableView.contentSize.height + 50, maxHeight)
+
+        // 시트가 참조할 컨텐츠 높이
+        preferredContentSize = CGSize(width: view.bounds.width, height: height)
     }
     
     private func setupTableView() {
@@ -156,11 +209,11 @@ class PostMenuViewController: UIViewController, UITableViewDataSource, UITableVi
         let menu = activeMenus[indexPath.row]
         switch menu {
         case .delete:
-            store.send(.delegate(.deleteButtonTapped))
+            send(.deleteButtonTapped)
         case .report:
-            store.send(.delegate(.reportButtonTapped))
+            send(.reportButtonTapped)
         case .block:
-            store.send(.delegate(.blockUserButtonTapped))
+            send(.blockUserButtonTapped)
         }
         
         tableView.deselectRow(at: indexPath, animated: true)
@@ -221,6 +274,32 @@ class PostMenuViewController: UIViewController, UITableViewDataSource, UITableVi
                 make.leading.trailing.equalToSuperview().inset(16)
                 make.bottom.equalToSuperview()
             }
+        }
+    }
+}
+
+private extension AlertState where Action == PostMenuFeature.Action.Alert {
+    static let report = AlertState {
+        TextState("이 게시글을 신고할까요?")
+    } actions: {
+        ButtonState(role: .destructive, action: .report) {
+            TextState("신고")
+        }
+        
+        ButtonState(role: .cancel, action: .cancel) {
+            TextState("취소")
+        }
+    }
+    
+    static let delete = AlertState {
+        TextState("이 게시글을 삭제할까요?")
+    } actions: {
+        ButtonState(role: .destructive, action: .delete) {
+            TextState("삭제")
+        }
+        
+        ButtonState(role: .cancel, action: .cancel) {
+            TextState("취소")
         }
     }
 }

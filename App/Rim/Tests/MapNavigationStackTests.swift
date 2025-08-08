@@ -31,7 +31,7 @@ struct MapNavigationStackTests {
         
         store.exhaustivity = .off
         
-        await store.send(.path(.element(id: 0, action: .postDetail(.view(.trashButtonTapped)))))
+        await store.send(.path(.element(id: 0, action: .postDetail(.view(.menuButtonTapped)))))
         await store.send(.path(.element(id: 0, action: .postDetail(.alert(.presented(.deleteButtonTapped))))))
         await store.receive(\.path[id: 0].postDetail.delegate.removePostFromMap)
         
