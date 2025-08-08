@@ -61,8 +61,11 @@ struct TabTests {
             
             store.exhaustivity = .off
             
+            await store.send(.userAccountStack(.path(.element(id: 1, action: .postDetail(.view(.viewDidLoad))))))
             await store.send(.userAccountStack(.path(.element(id: 1, action: .postDetail(.view(.menuButtonTapped))))))
-            await store.send(.userAccountStack(.path(.element(id: 1, action: .postDetail(.alert(.presented(.deleteButtonTapped)))))))
+            await store.send(.userAccountStack(.path(.element(id: 1, action: .postDetail(.postMenu(.presented(.view(.deleteButtonTapped))))))))
+            await store.send(.userAccountStack(.path(.element(id: 1, action: .postDetail(.postMenu(.presented(.alert(.presented(.delete)))))))))
+            await store.receive(\.userAccountStack.path[id: 1].postDetail.postMenu.delegate.deletePost)
             await store.receive(\.userAccountStack.path[id: 1].postDetail.delegate.removePostFromMap)
             await store.receive(\.mapStack.root.removePost)
             

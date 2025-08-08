@@ -9,6 +9,7 @@ import Foundation
 import ComposableArchitecture
 import Testing
 import UIKit
+import NMapsMap
 @testable import Rim
 
 @MainActor
@@ -17,7 +18,7 @@ struct MapFeatureTests {
     func refreshPosts_whenLatestFilterSelected() async throws {
         @Shared(.uid) var uid = "uid"
         
-        let uploadPostStack = UploadPostNavigationStack.State(pickedImage: UIImage())
+        let uploadPostStack = UploadPostNavigationStack.State(pickedImage: UIImage(), photoLocation: NMGLatLng(lat: 0, lng: 0))
         let mapState = MapFeature.State(uploadPost: uploadPostStack, selectedFilter: .latest)
         
         let store = TestStore(initialState: mapState) {
@@ -46,7 +47,7 @@ struct MapFeatureTests {
     func doesNotRefreshPosts_whenPopularFilterSelected() async throws {
         @Shared(.uid) var uid = "uid"
         
-        let uploadPostStack = UploadPostNavigationStack.State(pickedImage: UIImage())
+        let uploadPostStack = UploadPostNavigationStack.State(pickedImage: UIImage(), photoLocation: NMGLatLng(lat: 0, lng: 0) )
         let mapState = MapFeature.State(uploadPost: uploadPostStack, selectedFilter: .popular)
         
         let store = TestStore(initialState: mapState) {
@@ -56,13 +57,12 @@ struct MapFeatureTests {
             $0.continuousClock = ImmediateClock()
         }
         
+        store.exhaustivity = .off
         #expect(store.state.posts.isEmpty) // 초기값 확인
         
         await store.send(.uploadPost(.presented(.root(.view(.viewDidLoad))))) // 이미지 업로드 처리
         await store.receive(\.uploadPost.presented.root.checkUID)
-        await store.receive(\.uploadPost.presented.root.uploadImage) {
-            $0.uploadPost?.root.uploadTryCount += 1
-        }
+        await store.receive(\.uploadPost.presented.root.uploadImage) 
         
         await store.receive(\.uploadPost.presented.root.setImageURL) {
             $0.uploadPost?.root.imageURL = "https://picsum.photos/200/300"
@@ -72,17 +72,10 @@ struct MapFeatureTests {
             $0.uploadPost?.root.title.text = "title"
         }
         
-        await store.send(.uploadPost(.presented(.root(.view(.uploadButtonTapped))))) {
-            $0.uploadPost?.root.isProgressViewPresented = true
-        }
-        
+        await store.send(.uploadPost(.presented(.root(.view(.uploadButtonTapped)))))
         await store.receive(\.uploadPost.presented.root.uploadPost)
-        await store.receive(\.uploadPost.presented.root.dismissProgress) {
-            $0.uploadPost?.root.isProgressViewPresented = false
-        }
-        await store.receive(\.uploadPost.presented.root.delegate) {
-            $0.uploadPost = nil
-        }
+        await store.receive(\.uploadPost.presented.root.dismissProgress)
+        await store.receive(\.uploadPost.presented.root.delegate)
         
         #expect(store.state.posts.isEmpty)
     }

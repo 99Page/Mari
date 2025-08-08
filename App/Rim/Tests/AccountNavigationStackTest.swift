@@ -32,7 +32,9 @@ struct AccountNavigationStackTest {
         store.exhaustivity = .off
         
         await store.send(.path(.element(id: 1, action: .postDetail(.view(.menuButtonTapped)))))
-        await store.send(.path(.element(id: 1, action: .postDetail(.alert(.presented(.deleteButtonTapped))))))
+        await store.send(.path(.element(id: 1, action: .postDetail(.postMenu(.presented(.view(.deleteButtonTapped)))))))
+        await store.send(.path(.element(id: 1, action: .postDetail(.postMenu(.presented(.alert(.presented(.delete))))))))
+        await store.receive(\.path[id: 1].postDetail.postMenu.delegate.deletePost)
         await store.receive(\.path[id: 1].postDetail.delegate.removePostFromMyPosts)
         await store.receive(\.path[id: 0].myPosts.removePostFromList)
         

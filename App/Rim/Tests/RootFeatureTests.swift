@@ -8,6 +8,7 @@
 import Testing
 import ComposableArchitecture
 import UIKit
+import NMapsMap
 @testable import Rim
 
 @Suite("Root")
@@ -35,7 +36,7 @@ struct RootFeatureTests {
         @Test func singOut_afterMissingUID() async throws {
             @Shared(.uid) var uid = nil
             
-            let mapStack = MapNavigationStack.State(root: .init(uploadPost: .init(pickedImage: UIImage())))
+            let mapStack = MapNavigationStack.State(root: .init(uploadPost: .init(pickedImage: UIImage(), photoLocation: NMGLatLng(lat: 0, lng: 0))))
             let tab = TabFeature.State(mapStack: mapStack)
             let store: TestStoreOf<RootFeature> = TestStore(initialState: RootFeature.State(destination: .tab(tab))) {
                 RootFeature()
