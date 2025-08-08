@@ -21,4 +21,20 @@ export const errors = {
     code: "withdraw-failed",
     message,
   }),
+  POST_NOT_FOUND: {
+    code: "post-err-4827",
+    message: "게시글을 찾을 수 없습니다.",
+  },
+  CANNOT_REPORT_OWN_POST: {
+    code: "cannot-report-own-post",
+    message: "자신의 게시글은 신고할 수 없습니다.",
+  },
+  ALREADY_REPORTED_POST: {
+    code: "already-reported-post",
+    message: "이미 신고한 게시글입니다.",
+  },
+  REPORT_POST_FAILED: {
+    code: "report-post-failed",
+    message: "게시글 신고에 실패했습니다.",
+  },
 } as const;
