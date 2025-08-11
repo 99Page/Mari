@@ -37,4 +37,8 @@ export const errors = {
     code: "report-post-failed",
     message: "게시글 신고에 실패했습니다.",
   },
+  BANNED_WORD_DETECTED: (word: string): ErrorResponse => ({
+    code: "banned-word-detected",
+    message: `"${word}"를 포함할 수 없어요`,
+  }),
 } as const;

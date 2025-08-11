@@ -62,6 +62,15 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       return;
     }
 
+const bannedInTitle = hasBannedWord(title);
+const bannedInContent = hasBannedWord(content);
+const allBannedWords = [...bannedInTitle, ...bannedInContent];
+
+if (allBannedWords.length > 0) {
+  res.status(400).json(errors.BANNED_WORD_DETECTED(allBannedWords[0]));
+  return;
+}
+
     // GeoHash는 위치 기반 검색 최적화를 위해 사용됨
     // precision 값이 작을수록 더 넓은 범위를 커버하고, 클수록 정밀도가 높아짐
     // 예) precision 1 → 약 수천 km / precision 10 → 약 1m 단위의 위치 구분 가능
@@ -119,3 +128,22 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
     res.status(500).json(errorResponse);
   }
 });
+
+function hasBannedWord(text: string): string[] {
+  const normalizedText = text
+    .toLowerCase()
+    .replace(/[\s.,!?;:'"(){}\[\]<>@#$%^&*_+=~`|\\/\\-]/g, "");
+
+  const matchedWords = bannedWords.filter(word => normalizedText.includes(word.toLowerCase()));
+  return matchedWords;
+}
+
+const bannedWords: string[] = [
+  // 성적인 표현
+  "sex", "sexual", "porn", "porno", "pornography", "nude", "naked",
+  "섹스", 
+  
+  // 욕설/비하 (한글 초성·완성 혼합)
+  "fuck", "shit", "bitch", "bastard", "asshole", "jerk",
+  "개새", "개새끼", "씨발", "ㅅㅂ", "ㅂㅅ", "멍청이",
+];
