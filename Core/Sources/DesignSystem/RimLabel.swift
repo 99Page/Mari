@@ -60,6 +60,7 @@ public class RimLabel: RimView {
             guard let self else { return }
             updateAttributedString()
             isUserInteractionEnabled = labelState.isEnabled
+            label.numberOfLines = labelState.numberOfLines
         }
     }
     
@@ -130,13 +131,21 @@ public extension RimLabel {
         public var isEnabled = true
         
         var appearance: RimView.State
+        var numberOfLines: Int
         
-        public init(text: String, textColor: UIColor, typography: Typography = .contentDescription, alignment: NSTextAlignment = .center,
-                    appearance: RimView.State = .init()) {
+        public init(
+            text: String,
+            textColor: UIColor,
+            typography: Typography = .contentDescription,
+            alignment: NSTextAlignment = .center,
+            numberOfLines: Int = 1,
+            appearance: RimView.State = .init()
+        ) {
             self.text = text
             self.textColor = textColor
             self.typography = typography
             self.alignment = alignment
+            self.numberOfLines = numberOfLines
             self.appearance = appearance
         }
         

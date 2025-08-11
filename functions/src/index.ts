@@ -20,3 +20,6 @@ export { reportPost } from "./posts/reportPost"
 export { debugFirestorePath } from './debug/debugFirstorePath'
 
 export  { withdrawAccount} from './account/withdrawAccount'
+
+// userRelationships
+export { blocksUser } from './userRelationships/blocksUser'

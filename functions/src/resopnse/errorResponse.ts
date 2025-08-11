@@ -5,9 +5,14 @@ export type ErrorResponse = {
 
 // errorResponse.ts
 export const errors = {
+  // 일반
   METHOD_NOT_ALLOWED: {
     code: "method-not-allowed",
     message: "허용되지 않은 요청 메서드입니다.",
+  },
+  MISSING_REQUIRED_FIELDS: {
+    code: "missing-required-fields",
+    message: "필요한 정보가 누락됐어요.",
   },
   INVALID_AUTH_HEADER: {
     code: "invalid-auth-header",
@@ -21,6 +26,13 @@ export const errors = {
     code: "withdraw-failed",
     message,
   }),
+  INTERNAL_ERROR: {
+    code: "internal-error",
+    message: "서버 오류가 발생했어요",
+  },
+  
+
+  // 게시글
   POST_NOT_FOUND: {
     code: "post-err-4827",
     message: "게시글을 찾을 수 없습니다.",
@@ -41,4 +53,14 @@ export const errors = {
     code: "banned-word-detected",
     message: `"${word}"를 포함할 수 없어요`,
   }),
+
+  // UserRelatinoships
+  CANNOT_BLOCK_SELF: {
+    code: "cannot-block-self",
+    message: "자기 자신을 차단할 수 없습니다.",
+  },
+  ALREADY_BLOCKED_USER: {
+    code: "already-blocked-user",
+    message: "사용자를 이미 차단했어요",
+  },
 } as const;

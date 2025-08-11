@@ -60,7 +60,7 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       };
       res.status(400).json(errorResponse);
       return;
-    }
+}
 
 const bannedInTitle = hasBannedWord(title);
 const bannedInContent = hasBannedWord(content);

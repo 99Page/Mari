@@ -15,7 +15,7 @@ import Core
 struct PostDetailFeature {
     @ObservableState
     struct State: Equatable {
-        @Presents var alert: AlertState<Action.AlertAction>?
+        @Presents var alert: AlertState<Action.Alert>?
         @Presents var postMenu: PostMenuFeature.State?
         
         let postID: String
@@ -23,10 +23,13 @@ struct PostDetailFeature {
         var image: RimImageView.State
         var title: RimLabel.State
         var description: RimLabel.State
+        var creatorID: String?
         
         var isProgressViewPresented = false
         
         var menu: [PostMenuFeature.State.Menu] = []
+        
+        var isPostBlocked = false
         
         init(postID: String) {
             self.postID = postID
@@ -34,17 +37,22 @@ struct PostDetailFeature {
             self.title = .init(text: "", textColor: .black, typography: .contentTitle, alignment: .natural)
             self.description = .init(text: "", textColor: .black, alignment: .natural)
         }
+        
+        var navigationColor: UIColor {
+            isPostBlocked ? .black : .white
+        }
     }
     
     enum Action: ViewAction {
         
         case incrementPostViewCount
+        case blocksPost
         case fetchPostDetail
         case setPostDetail(PostDetailDTO)
         case showFetchFailAlert
         case showAlert(title: String)
         case view(UIAction)
-        case alert(PresentationAction<AlertAction>)
+        case alert(PresentationAction<Alert>)
         case postMenu(PresentationAction<PostMenuFeature.Action>)
         case delegate(Delegate)
         case dismissProgress
@@ -57,7 +65,7 @@ struct PostDetailFeature {
         }
         
         @CasePathable
-        enum AlertAction {
+        enum Alert {
             case dismissButtonTapped
             case dismissAlert
         }
@@ -72,6 +80,7 @@ struct PostDetailFeature {
     
     @Dependency(\.dismiss) var dismiss
     @Dependency(\.postClient) var postClient
+    @Dependency(\.userRelationClient) var userRelationClient
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
@@ -101,6 +110,7 @@ struct PostDetailFeature {
             case .fetchPostDetail:
                 return .run { [id = state.postID] send in
                     let response = try await postClient.fetchPostByID(id: id)
+                    Logger.debug("response: \(response)")
                     await send(.setPostDetail(response.result))
                 } catch: { error, send in
                     await send(.showFetchFailAlert)
@@ -111,6 +121,7 @@ struct PostDetailFeature {
                 state.title.text = post.title
                 state.description.text = post.content
                 state.menu = post.isMine ? [.delete] : [.block, .report]
+                state.creatorID = post.creatorID
                 return .none
                 
             case .alert(.presented(.dismissAlert)):
@@ -180,7 +191,24 @@ struct PostDetailFeature {
                     await send(.showAlert(title: "게시글을 삭제하지 못했어요"))
                 }
                 
+            case .postMenu(.presented(.delegate(.blocksUser))):
+                return .run { [creatorID = state.creatorID] send in
+                    let _ = try await userRelationClient.blocksUser(userId: creatorID)
+                    await send(.blocksPost)
+                } catch: { error, send in
+                    if let response = error as? ErrorResponse {
+                        
+                    } else {
+                        
+                    }
+                }
+                
             case .postMenu(_):
+                return .none
+                
+            case .blocksPost:
+                state.postMenu = nil
+                state.isPostBlocked = true
                 return .none
             }
         }
@@ -203,6 +231,8 @@ class PostDetailViewController: UIViewController {
     
     private var menuButton = UIBarButtonItem()
     
+    private let blockedPostView = BlockedPostView()
+    
     init(store: StoreOf<PostDetailFeature>) {
         @UIBindable var binding = store
         self.store = store
@@ -222,6 +252,7 @@ class PostDetailViewController: UIViewController {
         super.viewDidLoad()
         makeConstraint()
         setupView()
+        updateView()
         
         send(.viewDidLoad)
 
@@ -261,11 +292,26 @@ class PostDetailViewController: UIViewController {
             return vc
         }
     }
-   
+    
+    private func updateView() {
+        observe { [weak self] in
+            guard let self else { return }
+            
+            scrollView.isHidden = store.isPostBlocked
+            blockedPostView.isHidden = !store.isPostBlocked
+            menuButton.tintColor = store.navigationColor
+            navigationController?.navigationBar.tintColor = store.navigationColor
+        }
+    }
+    
     private func setupView() {
         view.backgroundColor = .systemBackground
         navigationController?.setNavigationBarHidden(false, animated: false)
         
+        setupMenuButton()
+    }
+    
+    private func setupMenuButton() {
         let trashImage = UIImage(systemName: "ellipsis", withConfiguration: UIImage.SymbolConfiguration(weight: .heavy))
         menuButton = UIBarButtonItem(
             image: trashImage,
@@ -275,7 +321,6 @@ class PostDetailViewController: UIViewController {
         )
         
         navigationItem.rightBarButtonItem = menuButton
-        menuButton.tintColor = .clear
         menuButton.isEnabled = true
         menuButton.tintColor = .white
     }
@@ -286,6 +331,7 @@ class PostDetailViewController: UIViewController {
     
     private func makeConstraint() {
         view.addSubview(scrollView)
+        view.addSubview(blockedPostView)
         
         scrollView.addSubview(contentView)
         
@@ -295,6 +341,10 @@ class PostDetailViewController: UIViewController {
         
         scrollView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
+        }
+        
+        blockedPostView.snp.makeConstraints { make in
+            make.centerX.centerY.equalToSuperview()
         }
         
         contentView.snp.makeConstraints { make in
@@ -353,3 +403,18 @@ class PostDetailViewController: UIViewController {
     .ignoresSafeArea()
 }
 
+#Preview("for block") {
+    let stackState = MapNavigationStack.State(postDetail: .init(postID: "postID"))
+    let store = Store(initialState: stackState) {
+        MapNavigationStack()
+    } withDependencies: {
+        let dto = PostDetailDTO(id: "", title: "", content: "", imageUrl: "", location: .init(latitude: 0, longitude: 0), creatorID: "", isMine: false)
+        $0.postClient.fetchPostByID = { _ in APIResponse(status: "", message: "", result: dto) }
+        $0.userRelationClient.blocksUser = { _ in .stub() }
+    }
+
+    ViewControllerPreview {
+        MapNavigationStackController(store: store)
+    }
+    .ignoresSafeArea()
+}

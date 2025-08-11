@@ -24,12 +24,14 @@ struct PostMenuFeature {
             case delete
             case report
             case block
+            case unblock
             
             var text: String {
                 switch self {
                 case .delete: "삭제"
                 case .report: "신고"
                 case .block: "사용자 차단"
+                case .unblock: "사용자 차단 해제"
                 }
             }
             
@@ -39,6 +41,7 @@ struct PostMenuFeature {
                 case .delete: "trash"
                 case .report: "exclamationmark.bubble"
                 case .block:  "person.fill.xmark"
+                case .unblock: "person.fill.checkmark"
                 }
             }
             
@@ -48,6 +51,7 @@ struct PostMenuFeature {
                 case .delete: .red
                 case .report: .red
                 case .block: .black
+                case .unblock: .black
                 }
             }
         }
@@ -64,19 +68,24 @@ struct PostMenuFeature {
             case deleteButtonTapped
             case reportButtonTapped
             case blockUserButtonTapped
+            case unblockUserButtonTapped
         }
         
         @CasePathable
         enum Delegate {
             case deletePost
             case reportPost
+            case blocksUser
+            case unblocksUser
         }
         
         @CasePathable
         enum Alert: Equatable {
             case report
             case delete
+            case block
             case cancel
+            case unblock
         }
     }
     
@@ -88,11 +97,21 @@ struct PostMenuFeature {
             case .view(.deleteButtonTapped):
                 state.alert = .delete
                 return .none
+            case .view(.unblockUserButtonTapped):
+                state.alert = .unblock
+                return .none
             case .view(.reportButtonTapped):
                 state.alert = .report
                 return .none
-            case .view:
+            case .view(.blockUserButtonTapped):
+                state.alert = .block
                 return .none
+            case .view(.binding):
+                return .none
+            case .alert(.presented(.unblock)):
+                return .send(.delegate(.unblocksUser))
+            case .alert(.presented(.block)):
+                return .send(.delegate(.blocksUser))
             case .alert(.presented(.report)):
                 return .send(.delegate(.reportPost))
             case .alert(.presented(.delete)):
@@ -214,6 +233,8 @@ class PostMenuViewController: UIViewController, UITableViewDataSource, UITableVi
             send(.reportButtonTapped)
         case .block:
             send(.blockUserButtonTapped)
+        case .unblock:
+            send(.unblockUserButtonTapped)
         }
         
         tableView.deselectRow(at: indexPath, animated: true)
@@ -279,6 +300,30 @@ class PostMenuViewController: UIViewController, UITableViewDataSource, UITableVi
 }
 
 private extension AlertState where Action == PostMenuFeature.Action.Alert {
+    static let block = AlertState {
+        TextState("사용자를 차단할까요?")
+    } actions: {
+        ButtonState(role: .destructive, action: .block) {
+            TextState("차단")
+        }
+        
+        ButtonState(role: .cancel, action: .cancel) {
+            TextState("취소")
+        }
+    }
+    
+    static let unblock = AlertState {
+        TextState("사용자 차단을 해제할까요?")
+    } actions: {
+        ButtonState(role: .destructive, action: .unblock) {
+            TextState("해제")
+        }
+        
+        ButtonState(role: .cancel, action: .cancel) {
+            TextState("취소")
+        }
+    }
+    
     static let report = AlertState {
         TextState("이 게시글을 신고할까요?")
     } actions: {
@@ -305,7 +350,7 @@ private extension AlertState where Action == PostMenuFeature.Action.Alert {
 }
 
 
-#Preview("Others") {
+#Preview("unblocked user") {
     let store = Store(initialState: PostMenuFeature.State(activeMenus: [.block, .report])) {
         PostMenuFeature()
     }
@@ -314,6 +359,17 @@ private extension AlertState where Action == PostMenuFeature.Action.Alert {
         PostMenuViewController(store: store)
     }
 }
+
+#Preview("blocked user") {
+    let store = Store(initialState: PostMenuFeature.State(activeMenus: [.unblock])) {
+        PostMenuFeature()
+    }
+    
+    ViewControllerPreview {
+        PostMenuViewController(store: store)
+    }
+}
+
 
 #Preview("Mine") {
     let store = Store(initialState: PostMenuFeature.State(activeMenus: [.delete])) {
