@@ -145,4 +145,26 @@ struct RootFeatureTests {
             #expect(store.state.destination == .signIn(.init()))
         }
     }
+    
+    @MainActor
+    @Suite("Tab")
+    struct Tab {
+        @Test func signOut_whenUserDisagreesToEULA() async throws {
+            let store = TestStore(initialState: RootFeature.State(destination: .tab(.init()))) {
+                RootFeature()
+            } withDependencies: {
+                $0.continuousClock = TestClock()
+                $0.accountClient.logout = { }
+            }
+            
+            
+            store.exhaustivity = .off
+            
+            await store.send(.destination(.tab(.view(.viewDidLoad))))
+            await store.send(.destination(.tab(.alert(.presented(.disagreeToEULA)))))
+            await store.receive(\.signOut)
+            
+            #expect(store.state.destination == .signIn(.init()))
+        }
+    }
 }

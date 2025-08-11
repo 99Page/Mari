@@ -75,6 +75,30 @@ struct TabTests {
     }
     
     @MainActor
+    @Suite("EULA")
+    struct EULA {
+        @Test func agreeToEULA_setsFlagToTrue() async throws {
+            @Shared(.hasAgreedToEULA) var hasAgreedToEULA = false
+            
+            let store = TestStore(initialState: TabFeature.State()) {
+                TabFeature()
+            } withDependencies: {
+                $0.continuousClock = TestClock()
+            }
+            
+            store.exhaustivity = .off
+            
+            #expect(store.state.$hasAgreedToEULA.wrappedValue == false) // 초기값 확인
+            
+            await store.send(.view(.viewDidLoad))
+            await store.send(.alert(.presented(.agreeToEULA)))
+            
+            #expect(store.state.$hasAgreedToEULA.wrappedValue == true)
+            
+        }
+    }
+    
+    @MainActor
     @Suite("Token")
     struct Token {
         @Test func refreshIdToken_isTriggeredAfter50Minutes() async throws {
