@@ -26,6 +26,7 @@ struct PostDetailFeature {
         var creatorID: String?
         
         var isProgressViewPresented = false
+        var isMenuButtonPresented = false
         
         var menu: [PostMenuFeature.State.Menu] = []
         
@@ -122,6 +123,7 @@ struct PostDetailFeature {
                 state.description.text = post.content
                 state.menu = post.isMine ? [.delete] : [.block, .report]
                 state.creatorID = post.creatorID
+                state.isMenuButtonPresented = true
                 return .none
                 
             case .alert(.presented(.dismissAlert)):
@@ -299,6 +301,8 @@ class PostDetailViewController: UIViewController {
             
             scrollView.isHidden = store.isPostBlocked
             blockedPostView.isHidden = !store.isPostBlocked
+            
+            menuButton.isHidden = !store.isMenuButtonPresented
             menuButton.tintColor = store.navigationColor
             navigationController?.navigationBar.tintColor = store.navigationColor
         }

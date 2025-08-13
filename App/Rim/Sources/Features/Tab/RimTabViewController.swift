@@ -7,17 +7,18 @@
 
 import UIKit
 import ComposableArchitecture
+import Core
 
 @Reducer
 struct TabFeature {
     @ObservableState
     struct State: Equatable {
         @Shared(.hasAgreedToEULA) var hasAgreedToEULA = false
+        @Shared(.blockedUserIds) var blockedUserIds = Set()
+        @Presents var alert: AlertState<Action.Alert>?
         
         var mapStack = MapNavigationStack.State()
         var userAccountStack = AccountNavigationStack.State()
-        
-        @Presents var alert: AlertState<Action.Alert>?
     }
     
     enum Action: ViewAction {
@@ -28,8 +29,14 @@ struct TabFeature {
         case alert(PresentationAction<Alert>)
         case showRefreshFailAlert
         
+        // blockedUser
+        case fetchBlockedUserIds
+        case setBlockedUserIds([String])
+        case showFailToFetchBlockedUsersAlert
+        
         @CasePathable
-        enum View {
+        enum View: BindableAction {
+            case binding(BindingAction<State>)
             case viewDidLoad
         }
         
@@ -43,13 +50,17 @@ struct TabFeature {
             case showSignIn
             case agreeToEULA
             case disagreeToEULA
+            case retryToFetchBlockedUsers
         }
     }
     
     @Dependency(\.continuousClock) var clock
     @Dependency(\.accountClient) var accountClient
+    @Dependency(\.userRelationClient) var userRelationClient
     
     var body: some ReducerOf<Self> {
+        BindingReducer(action: \.view)
+        
         Scope(state: \.mapStack, action: \.mapStack) {
             MapNavigationStack()
         }
@@ -72,12 +83,17 @@ struct TabFeature {
             case .userAccountStack:
                 return .none
                 
+            case .view(.binding):
+                return .none
+                
             case .view(.viewDidLoad):
                 if !state.$hasAgreedToEULA.wrappedValue {
                     state.alert = .eula
                 }
                 
                 return .run { send in
+                    await send(.fetchBlockedUserIds)
+                    
                     // https://firebase.google.com/docs/auth/admin/manage-sessions?utm_source=chatgpt.com&hl=ko
                     // id 토큰은 1시간동안 지속됩니다.
                     // 주기적으로 갱신해야합니다. -page, 2025. 07. 04
@@ -98,6 +114,9 @@ struct TabFeature {
             case .alert(.presented(.disagreeToEULA)):
                 return .send(.delegate(.signOut))
                 
+            case .alert(.presented(.retryToFetchBlockedUsers)):
+                return .send(.fetchBlockedUserIds)
+                
             case .alert:
                 return .none
                 
@@ -113,9 +132,26 @@ struct TabFeature {
                 
             case .delegate(_):
                 return .none
+                
+            case .fetchBlockedUserIds:
+                return .run { send in
+                    let response = try await userRelationClient.fetchBlockedUserIds()
+                    await send(.setBlockedUserIds(response.result.blockedUserIds))
+                } catch: { error, send in
+                    await send(.showFailToFetchBlockedUsersAlert)
+                }
+                
+            case let .setBlockedUserIds(ids):
+                state.$blockedUserIds.withLock { $0 = Set(ids) }
+                return .none
+                
+            case .showFailToFetchBlockedUsersAlert:
+                state.alert = .failToFetchBlockedUsers
+                return .none
             }
         }
         .ifLet(\.$alert, action: \.alert)
+        ._printChanges()
     }
 }
 
@@ -135,6 +171,8 @@ final class RimTabViewController: UITabBarController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        Logger.debug("viewDidLoad")
         
         setupView()
         buildViewControllers()
@@ -190,5 +228,13 @@ private extension AlertState where Action == TabFeature.Action.Alert {
             4. 이용자는 본 약관에 동의해야 서비스를 사용할 수 있습니다.
             """
         )
+    }
+    
+    static let failToFetchBlockedUsers = AlertState {
+        TextState("서비스 설정에 문제가 발생했어요")
+    } actions: {
+        ButtonState(role: .cancel, action: .retryToFetchBlockedUsers) {
+            TextState("다시 시도")
+        }
     }
 }

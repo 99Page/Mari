@@ -12,13 +12,16 @@ import DependenciesMacros
 @DependencyClient
 struct UserRelationClient {
     var blocksUser: (_ userId: String?) async throws -> APIResponse<EmptyResult>
+    var fetchBlockedUserIds: () async throws -> APIResponse<BlockedUserIdsResponse>
     
     enum UserRelationAPI: APITarget {
         case blocksUser(userId: String?)
+        case fetchBlockedUserIds
         
         var method: HTTPMethod {
             switch self {
             case .blocksUser: .post
+            case .fetchBlockedUserIds: .get
             }
         }
         
@@ -26,6 +29,7 @@ struct UserRelationClient {
             switch self {
             case .blocksUser(let userId):
                 return ["targetUserId": userId]
+            case .fetchBlockedUserIds: return nil
             }
         }
         
@@ -34,7 +38,7 @@ struct UserRelationClient {
             var headers: [String: String] = [:]
             
             switch self {
-            case .blocksUser:
+            case .blocksUser, .fetchBlockedUserIds:
                 let idToken = try? keychain.load(service: .firebase, account: .idToken)
                 headers["Authorization"] = "Bearer \(idToken ?? "")"
             }
@@ -46,8 +50,8 @@ struct UserRelationClient {
          
         var path: String {
             switch self {
-            case .blocksUser:
-                "/blocksUser"
+            case .blocksUser: "/blocksUser"
+            case .fetchBlockedUserIds: "/fetchBlockedUserIds"
             }
         }
     }
@@ -57,6 +61,8 @@ extension UserRelationClient: DependencyKey {
     static var liveValue: UserRelationClient {
         UserRelationClient { targetUserId in
             try await Client.request(target: UserRelationAPI.blocksUser(userId: targetUserId))
+        } fetchBlockedUserIds: {
+            try await Client.request(target: UserRelationAPI.fetchBlockedUserIds)
         }
     }
 }
