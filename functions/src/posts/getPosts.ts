@@ -290,6 +290,7 @@ function filterLatestPostPerGroup(
         id: post.id,
         title: post.title,
         imageUrl: post.imageUrl,
+        creatorID: post.creatorID,
         location: post.location
       });
       seenGroups.add(groupIndex);

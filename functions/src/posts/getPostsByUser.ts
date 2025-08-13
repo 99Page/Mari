@@ -59,6 +59,7 @@ export const getPostsByUser = onRequest({ region: REGION }, async (req, res) => 
         id: doc.id,
         title: data.title,
         imageUrl: data.imageUrl,
+        creatorID: data.creatorID,
         location: data.location
       };
     });

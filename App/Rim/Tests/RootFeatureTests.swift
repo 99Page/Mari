@@ -8,6 +8,7 @@
 import Testing
 import ComposableArchitecture
 import UIKit
+import NMapsMap
 @testable import Rim
 
 @Suite("Root")
@@ -35,7 +36,7 @@ struct RootFeatureTests {
         @Test func singOut_afterMissingUID() async throws {
             @Shared(.uid) var uid = nil
             
-            let mapStack = MapNavigationStack.State(root: .init(uploadPost: .init(pickedImage: UIImage())))
+            let mapStack = MapNavigationStack.State(root: .init(uploadPost: .init(pickedImage: UIImage(), photoLocation: NMGLatLng(lat: 0, lng: 0))))
             let tab = TabFeature.State(mapStack: mapStack)
             let store: TestStoreOf<RootFeature> = TestStore(initialState: RootFeature.State(destination: .tab(tab))) {
                 RootFeature()
@@ -139,6 +140,28 @@ struct RootFeatureTests {
             await store.send(.destination(.tab(.userAccountStack(.root(.view(.withdrawalButtonTapped))))))
             await store.send(.destination(.tab(.userAccountStack(.root(.alert(.presented(.confirmWithdrawal)))))))
             await store.receive(\.destination.tab.userAccountStack.root.delegate.logout)
+            await store.receive(\.signOut)
+            
+            #expect(store.state.destination == .signIn(.init()))
+        }
+    }
+    
+    @MainActor
+    @Suite("Tab")
+    struct Tab {
+        @Test func signOut_whenUserDisagreesToEULA() async throws {
+            let store = TestStore(initialState: RootFeature.State(destination: .tab(.init()))) {
+                RootFeature()
+            } withDependencies: {
+                $0.continuousClock = TestClock()
+                $0.accountClient.logout = { }
+            }
+            
+            
+            store.exhaustivity = .off
+            
+            await store.send(.destination(.tab(.view(.viewDidLoad))))
+            await store.send(.destination(.tab(.alert(.presented(.disagreeToEULA)))))
             await store.receive(\.signOut)
             
             #expect(store.state.destination == .signIn(.init()))

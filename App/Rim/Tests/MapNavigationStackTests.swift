@@ -25,14 +25,20 @@ struct MapNavigationStackTests {
             MapNavigationStack()
         } withDependencies: {
             // postDetail과 동일한 아이디 사용
-            $0.postClient.fetchPostByID = { _ in .init(id: "post1", title: "title", content: "content", imageUrl: "", location: .init(latitude: 0, longitude: 0), isMine: true)}
+            $0.postClient.fetchPostByID = { _ in
+                let dto = PostDetailDTO(id: "post1", title: "title", content: "content", imageUrl: "", location: .init(latitude: 0, longitude: 0), creatorID: "creatorID", isMine: true)
+                return .init(status: "", message: "", result: dto)
+            }
             $0.postClient.deletePost = { _ in .init(status: "", message: "", result: .init(id: "post1"))}
         }
         
         store.exhaustivity = .off
         
-        await store.send(.path(.element(id: 0, action: .postDetail(.view(.trashButtonTapped)))))
-        await store.send(.path(.element(id: 0, action: .postDetail(.alert(.presented(.deleteButtonTapped))))))
+        await store.send(.path(.element(id: 0, action: .postDetail(.view(.viewDidLoad)))))
+        await store.send(.path(.element(id: 0, action: .postDetail(.view(.menuButtonTapped)))))
+        await store.send(.path(.element(id: 0, action: .postDetail(.postMenu(.presented(.view(.deleteButtonTapped)))))))
+        await store.send(.path(.element(id: 0, action: .postDetail(.postMenu(.presented(.alert(.presented(.delete))))))))
+        await store.receive(\.path[id: 0].postDetail.postMenu.delegate.deletePost)
         await store.receive(\.path[id: 0].postDetail.delegate.removePostFromMap)
         
         #expect(store.state.root.posts[id: "post1"] == nil)

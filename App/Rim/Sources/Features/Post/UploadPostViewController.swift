@@ -76,6 +76,7 @@ struct UploadPostFeature {
         case alert(PresentationAction<AlertAction>)
         case showUploadFailAlert
         case showMissingTitleAlert
+        case showAlert(title: String)
         case checkUID
         
         enum View: BindableAction {
@@ -164,7 +165,11 @@ struct UploadPostFeature {
                     await send(.dismissProgress)
                     await send(.delegate(.uploadSucceeded))
                 } catch: { error, send in
-                    await send(.showUploadFailAlert)
+                    if let response = error as? ErrorResponse {
+                        await send(.showAlert(title: response.message))
+                    } else {
+                        await send(.showUploadFailAlert)
+                    }
                 }
                 
             case .dismissProgress:
@@ -187,6 +192,16 @@ struct UploadPostFeature {
                 } catch: { error, send in
                     await send(.uploadImage)
                 }
+                
+            case let .showAlert(title):
+                state.alert = AlertState {
+                    TextState(title)
+                } actions: {
+                    ButtonState(role: .cancel, action: .confirm) {
+                        TextState("확인")
+                    }
+                }
+                return .none
                 
             case let .setImageURL(url):
                 state.imageURL = url

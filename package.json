@@ -1,10 +1,23 @@
 {
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "serve:functions": "npm run build && firebase emulators:start --only functions",
+    "deploy:functions": "npm run build && firebase deploy --only functions"
+  },
   "devDependencies": {
     "@types/latlon-geohash": "^2.0.4",
     "@types/ngeohash": "^0.6.8",
+    "@types/node": "^20.0.0",
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "ngeohash": "^0.6.3"
+    "firebase-admin": "latest",
+    "firebase-functions": "latest",
+    "ngeohash": "^0.6.3",
+    "latlon-geohash": "^2.0.0"
   }
 }

@@ -99,7 +99,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     private func addNewMarkers() {
         for post in store.posts {
             let lat: Double = post.location.coordinate.latitude
-            let lng: Double = post.location.coordinate.longitude            
+            let lng: Double = post.location.coordinate.longitude
             let marker = NMFMarker(position: NMGLatLng(lat: lat, lng: lng))
 
             marker.touchHandler = { [weak self] (o: NMFOverlay) -> Bool in
@@ -111,7 +111,14 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
             marker.width = 80
             marker.height = 80
             
-            let iconImage = post.image ?? UIImage(resource: .placeholder)
+            let iconImage: UIImage
+            
+            if store.blockedUserIds.contains(post.creatorID) {
+                iconImage = resizedImage(UIImage(systemName: "lock.circle")!, size: CGSize(width: 80, height: 80))
+            } else {
+                iconImage = post.image ?? UIImage(resource: .placeholder)
+            }
+            
             marker.iconImage = NMFOverlayImage(image: iconImage)
             marker.mapView = mapView
             

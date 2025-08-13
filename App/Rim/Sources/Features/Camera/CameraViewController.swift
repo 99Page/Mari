@@ -149,12 +149,13 @@ final class CameraViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupCamera()
+
+        checkCameraPermissionAndSetup()
         setupView()
         setupLocation()
         setupEvents()
         makeConstraint()
-        
+
         present(item: $store.scope(state: \.photoPreview, action: \.photoPreview)) { store in
             PhotoPreviewController(store: store)
         }
@@ -303,6 +304,48 @@ final class CameraViewController: UIViewController {
             lastZoomFactor = device.videoZoomFactor
         }
     }
+    
+    private func checkCameraPermissionAndSetup() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            setupCamera()
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+                DispatchQueue.main.async {
+                    if granted {
+                        self?.setupCamera()
+                    } else {
+                        self?.showCameraPermissionDeniedAlert()
+                    }
+                }
+            }
+        case .denied, .restricted:
+            showCameraPermissionDeniedAlert()
+        @unknown default:
+            break
+        }
+    }
+
+    private func showCameraPermissionDeniedAlert() {
+        let alert = UIAlertController(
+            title: "카메라 권한 필요",
+            message: "카메라 사용을 위해 설정에서 권한을 허용해주세요.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "설정으로 이동", style: .default) { _ in
+            if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(settingsURL)
+            }
+        })
+        
+        alert.addAction(UIAlertAction(title: "취소", style: .cancel, handler: { [weak self] _ in
+            self?.dismiss(animated: true)
+        }))
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            self?.present(alert, animated: true)
+        }
+    }
 }
 
 extension CameraViewController: AVCapturePhotoCaptureDelegate {
@@ -333,3 +376,4 @@ extension CameraViewController: CLLocationManagerDelegate {
     }
     .ignoresSafeArea()
 }
+

@@ -7,38 +7,60 @@
 
 import UIKit
 import ComposableArchitecture
+import Core
 
 @Reducer
 struct TabFeature {
     @ObservableState
     struct State: Equatable {
+        @Shared(.hasAgreedToEULA) var hasAgreedToEULA = false
+        @Shared(.blockedUserIds) var blockedUserIds = Set()
+        @Presents var alert: AlertState<Action.Alert>?
+        
         var mapStack = MapNavigationStack.State()
         var userAccountStack = AccountNavigationStack.State()
-        
-        @Presents var alert: AlertState<AlertAction>?
     }
     
     enum Action: ViewAction {
+        case delegate(Delegate)
         case mapStack(MapNavigationStack.Action)
         case userAccountStack(AccountNavigationStack.Action)
-        case view(UIAction)
-        case alert(PresentationAction<AlertAction>)
+        case view(View)
+        case alert(PresentationAction<Alert>)
         case showRefreshFailAlert
         
-        enum UIAction {
+        // blockedUser
+        case fetchBlockedUserIds
+        case setBlockedUserIds([String])
+        case showFailToFetchBlockedUsersAlert
+        
+        @CasePathable
+        enum View: BindableAction {
+            case binding(BindingAction<State>)
             case viewDidLoad
         }
-    }
-    
-    @CasePathable
-    enum AlertAction: Equatable {
-        case showSignIn
+        
+        @CasePathable
+        enum Delegate {
+            case signOut
+        }
+        
+        @CasePathable
+        enum Alert: Equatable {
+            case showSignIn
+            case agreeToEULA
+            case disagreeToEULA
+            case retryToFetchBlockedUsers
+        }
     }
     
     @Dependency(\.continuousClock) var clock
     @Dependency(\.accountClient) var accountClient
+    @Dependency(\.userRelationClient) var userRelationClient
     
     var body: some ReducerOf<Self> {
+        BindingReducer(action: \.view)
+        
         Scope(state: \.mapStack, action: \.mapStack) {
             MapNavigationStack()
         }
@@ -61,8 +83,17 @@ struct TabFeature {
             case .userAccountStack:
                 return .none
                 
+            case .view(.binding):
+                return .none
+                
             case .view(.viewDidLoad):
+                if !state.$hasAgreedToEULA.wrappedValue {
+                    state.alert = .eula
+                }
+                
                 return .run { send in
+                    await send(.fetchBlockedUserIds)
+                    
                     // https://firebase.google.com/docs/auth/admin/manage-sessions?utm_source=chatgpt.com&hl=ko
                     // id 토큰은 1시간동안 지속됩니다.
                     // 주기적으로 갱신해야합니다. -page, 2025. 07. 04
@@ -72,6 +103,19 @@ struct TabFeature {
                 } catch: { error, send in
                     await send(.showRefreshFailAlert)
                 }
+                
+            case .alert(.presented(.agreeToEULA)):
+                state.$hasAgreedToEULA.withLock {
+                    $0 = true
+                }
+                
+                return .none
+                
+            case .alert(.presented(.disagreeToEULA)):
+                return .send(.delegate(.signOut))
+                
+            case .alert(.presented(.retryToFetchBlockedUsers)):
+                return .send(.fetchBlockedUserIds)
                 
             case .alert:
                 return .none
@@ -84,6 +128,25 @@ struct TabFeature {
                         TextState("확인")
                     }
                 }
+                return .none
+                
+            case .delegate(_):
+                return .none
+                
+            case .fetchBlockedUserIds:
+                return .run { send in
+                    let response = try await userRelationClient.fetchBlockedUserIds()
+                    await send(.setBlockedUserIds(response.result.blockedUserIds))
+                } catch: { error, send in
+                    await send(.showFailToFetchBlockedUsersAlert)
+                }
+                
+            case let .setBlockedUserIds(ids):
+                state.$blockedUserIds.withLock { $0 = Set(ids) }
+                return .none
+                
+            case .showFailToFetchBlockedUsersAlert:
+                state.alert = .failToFetchBlockedUsers
                 return .none
             }
         }
@@ -139,5 +202,36 @@ final class RimTabViewController: UITabBarController {
         accountNavigationController.tabBarItem = UITabBarItem(title: "계정", image: accountImage, tag: 1)
 
         viewControllers = [mapNavigationStackController, accountNavigationController]
+    }
+}
+
+private extension AlertState where Action == TabFeature.Action.Alert {
+    static let eula = AlertState {
+        TextState("최종 사용자 사용권 계약 (EULA)")
+    } actions: {
+        ButtonState(role: .destructive, action: .disagreeToEULA) {
+            TextState("거부")
+        }
+        
+        ButtonState(role: .cancel, action: .agreeToEULA) {
+            TextState("동의")
+        }
+    } message: {
+        TextState(
+            """
+            1. 본 서비스는 불쾌하거나 부적절한 콘텐츠를 허용하지 않습니다.
+            2. 사용자는 다른 사용자의 콘텐츠를 신고하거나 해당 사용자를 차단할 수 있습니다.
+            3. 신고된 콘텐츠와 사용자를 검토 후 적절히 조치합니다.
+            4. 이용자는 본 약관에 동의해야 서비스를 사용할 수 있습니다.
+            """
+        )
+    }
+    
+    static let failToFetchBlockedUsers = AlertState {
+        TextState("서비스 설정에 문제가 발생했어요")
+    } actions: {
+        ButtonState(role: .cancel, action: .retryToFetchBlockedUsers) {
+            TextState("다시 시도")
+        }
     }
 }

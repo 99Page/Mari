@@ -61,8 +61,11 @@ struct TabTests {
             
             store.exhaustivity = .off
             
-            await store.send(.userAccountStack(.path(.element(id: 1, action: .postDetail(.view(.trashButtonTapped))))))
-            await store.send(.userAccountStack(.path(.element(id: 1, action: .postDetail(.alert(.presented(.deleteButtonTapped)))))))
+            await store.send(.userAccountStack(.path(.element(id: 1, action: .postDetail(.view(.viewDidLoad))))))
+            await store.send(.userAccountStack(.path(.element(id: 1, action: .postDetail(.view(.menuButtonTapped))))))
+            await store.send(.userAccountStack(.path(.element(id: 1, action: .postDetail(.postMenu(.presented(.view(.deleteButtonTapped))))))))
+            await store.send(.userAccountStack(.path(.element(id: 1, action: .postDetail(.postMenu(.presented(.alert(.presented(.delete)))))))))
+            await store.receive(\.userAccountStack.path[id: 1].postDetail.postMenu.delegate.deletePost)
             await store.receive(\.userAccountStack.path[id: 1].postDetail.delegate.removePostFromMap)
             await store.receive(\.mapStack.root.removePost)
             
@@ -72,8 +75,32 @@ struct TabTests {
     }
     
     @MainActor
-    @Suite("Token")
-    struct Token {
+    @Suite("EULA")
+    struct EULA {
+        @Test func agreeToEULA_setsFlagToTrue() async throws {
+            @Shared(.hasAgreedToEULA) var hasAgreedToEULA = false
+            
+            let store = TestStore(initialState: TabFeature.State()) {
+                TabFeature()
+            } withDependencies: {
+                $0.continuousClock = TestClock()
+            }
+            
+            store.exhaustivity = .off
+            
+            #expect(store.state.$hasAgreedToEULA.wrappedValue == false) // 초기값 확인
+            
+            await store.send(.view(.viewDidLoad))
+            await store.send(.alert(.presented(.agreeToEULA)))
+            
+            #expect(store.state.$hasAgreedToEULA.wrappedValue == true)
+            
+        }
+    }
+    
+    @MainActor
+    @Suite("Service Setting")
+    struct ServiceSetting {
         @Test func refreshIdToken_isTriggeredAfter50Minutes() async throws {
             // 실제 ID 토큰은 키체인에 저장되므로 유닛 테스트에서는 직접 확인할 수 없습니다.
             // 따라서 refreshIdToken이 주기적으로 호출되는지만 확인하기 위해,
@@ -98,6 +125,29 @@ struct TabTests {
             
             await clock.advance(by: .seconds(60 * 1)) // 정확히 50분에 토큰 값 변경
             #expect(idToken == 1)
+        }
+        
+        @Test func fetchBlockedUserIds() async throws {
+            @Shared(.blockedUserIds) var blockedUserIds: Set<String> = []
+            
+            let store = TestStore(initialState: TabFeature.State()) {
+                TabFeature()
+            } withDependencies: {
+                $0.userRelationClient.fetchBlockedUserIds = { .init(status: "", message: "", result: .init(blockedUserIds: ["id1", "id2"])) }
+                $0.continuousClock = ImmediateClock()
+                $0.accountClient.refreshIdToken = { }
+            }
+            
+            store.exhaustivity = .off
+            
+            // 초기값 확인
+            #expect(store.state.$blockedUserIds.wrappedValue == [])
+            
+            await store.send(.view(.viewDidLoad))
+            await store.receive(\.fetchBlockedUserIds)
+            await store.receive(\.setBlockedUserIds)
+            
+            #expect(store.state.$blockedUserIds.wrappedValue == ["id1", "id2"])
         }
     }
 }
