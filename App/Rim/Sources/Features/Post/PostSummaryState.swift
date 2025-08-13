@@ -14,19 +14,22 @@ struct PostSummaryState: Equatable, Identifiable, Hashable {
     let imageURL: String
     let title: String
     let location: CLLocation
+    let creatorID: String
     var image: UIImage?
     
-    init(id: String, imageURL: String, title: String, coordinate: CLLocation) {
+    init(id: String, imageURL: String, title: String, coordinate: CLLocation, creatorID: String) {
         self.id = id
         self.imageURL = imageURL
         self.title = title
         self.location = coordinate
+        self.creatorID = creatorID
     }
     
     init(dto: PostDetailDTO) {
         self.id = dto.id
         self.imageURL = dto.imageUrl
         self.title = dto.title
+        self.creatorID = dto.creatorID
         self.location = CLLocation(latitude: dto.location.latitude, longitude: dto.location.longitude)
     }
     
@@ -34,6 +37,7 @@ struct PostSummaryState: Equatable, Identifiable, Hashable {
         self.id = dto.id
         self.imageURL = dto.imageUrl
         self.title = dto.title
+        self.creatorID = dto.creatorID
         self.location = CLLocation(latitude: dto.location.latitude, longitude: dto.location.longitude)
     }
 }

@@ -26,6 +26,7 @@ struct PostSummaryDTO: Decodable, Stub {
     let id: String
     let title: String
     let imageUrl: String
+    let creatorID: String
     let location: CoordinateDTO
     
     static func stub() -> Self {
@@ -33,6 +34,7 @@ struct PostSummaryDTO: Decodable, Stub {
             id: UUID().uuidString,
             title: "title",
             imageUrl: "https://picsum.photos/200/300",
+            creatorID: "creatorID",
             location: .init(latitude: 0, longitude: 0)
         )
     }

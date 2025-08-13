@@ -17,6 +17,7 @@ import Geohash
 struct MapFeature {
     @ObservableState
     struct State: Equatable {
+        @Shared(.blockedUserIds) var blockedUserIds = Set()
         @Presents var alert: AlertState<Action.Alert>?
         @Presents var uploadPost: UploadPostNavigationStack.State?
         @Presents var camera: CameraFeature.State?
