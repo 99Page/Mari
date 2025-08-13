@@ -17,7 +17,7 @@ struct PostDetailFeatureTests {
             PostDetailFeature()
         } withDependencies: {
             $0.postClient.fetchPostByID = { _ in
-                let dto = PostDetailDTO(id: "id", title: "title", content: "content", imageUrl: "", location: .init(latitude: 0, longitude: 0), isMine: true)
+                let dto = PostDetailDTO(id: "id", title: "title", content: "content", imageUrl: "", location: .init(latitude: 0, longitude: 0), creatorID: "creatorID", isMine: true)
                 return  .init(status: "", message: "", result: dto)
             }
         }
@@ -36,7 +36,7 @@ struct PostDetailFeatureTests {
             PostDetailFeature()
         } withDependencies: {
             $0.postClient.fetchPostByID = { _ in
-                let dto = PostDetailDTO(id: "id", title: "title", content: "content", imageUrl: "", location: .init(latitude: 0, longitude: 0), isMine: false)
+                let dto = PostDetailDTO(id: "id", title: "title", content: "content", imageUrl: "", location: .init(latitude: 0, longitude: 0), creatorID: "creatorID", isMine: false)
                 return  .init(status: "", message: "", result: dto)
             }
         }

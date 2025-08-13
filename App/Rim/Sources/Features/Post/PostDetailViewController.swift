@@ -15,6 +15,7 @@ import Core
 struct PostDetailFeature {
     @ObservableState
     struct State: Equatable {
+        @Shared(.blockedUserIds) var blockedUserIds = Set()
         @Presents var alert: AlertState<Action.Alert>?
         @Presents var postMenu: PostMenuFeature.State?
         
@@ -27,16 +28,26 @@ struct PostDetailFeature {
         
         var isProgressViewPresented = false
         var isMenuButtonPresented = false
-        
-        var menu: [PostMenuFeature.State.Menu] = []
-        
-        var isPostBlocked = false
+        var isMyPost = false
         
         init(postID: String) {
             self.postID = postID
             self.image = .init(image: .custom(url: nil))
             self.title = .init(text: "", textColor: .black, typography: .contentTitle, alignment: .natural)
             self.description = .init(text: "", textColor: .black, alignment: .natural)
+        }
+        
+        var menu: [PostMenuFeature.State.Menu] {
+            isMyPost ? [.delete] : othersPostMenu
+        }
+        
+        private var othersPostMenu: [PostMenuFeature.State.Menu] {
+            isPostBlocked ? [.unblock] : [.block, .report]
+        }
+        
+        var isPostBlocked: Bool {
+            guard let creatorID else { return false }
+            return blockedUserIds.contains(creatorID)
         }
         
         var navigationColor: UIColor {
@@ -46,8 +57,9 @@ struct PostDetailFeature {
     
     enum Action: ViewAction {
         
+        case appendBlockedUserID(String)
         case incrementPostViewCount
-        case blocksPost
+        case dismissMenu
         case fetchPostDetail
         case setPostDetail(PostDetailDTO)
         case showFetchFailAlert
@@ -121,7 +133,7 @@ struct PostDetailFeature {
                 state.image = .init(image: .custom(url: post.imageUrl))
                 state.title.text = post.title
                 state.description.text = post.content
-                state.menu = post.isMine ? [.delete] : [.block, .report]
+                state.isMyPost = post.isMine
                 state.creatorID = post.creatorID
                 state.isMenuButtonPresented = true
                 return .none
@@ -195,8 +207,9 @@ struct PostDetailFeature {
                 
             case .postMenu(.presented(.delegate(.blocksUser))):
                 return .run { [creatorID = state.creatorID] send in
-                    let _ = try await userRelationClient.blocksUser(userId: creatorID)
-                    await send(.blocksPost)
+                    let response = try await userRelationClient.blocksUser(userId: creatorID)
+                    await send(.appendBlockedUserID(response.result.relationshipId))
+                    await send(.dismissMenu)
                 } catch: { error, send in
                     if let response = error as? ErrorResponse {
                         
@@ -208,9 +221,14 @@ struct PostDetailFeature {
             case .postMenu(_):
                 return .none
                 
-            case .blocksPost:
+            case let .appendBlockedUserID(id):
+                let _ = state.$blockedUserIds.withLock {
+                    $0.insert(id)
+                }
+                return .none
+                
+            case .dismissMenu:
                 state.postMenu = nil
-                state.isPostBlocked = true
                 return .none
             }
         }

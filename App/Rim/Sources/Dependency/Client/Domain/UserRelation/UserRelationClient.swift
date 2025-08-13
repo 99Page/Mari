@@ -11,7 +11,7 @@ import DependenciesMacros
 
 @DependencyClient
 struct UserRelationClient {
-    var blocksUser: (_ userId: String?) async throws -> APIResponse<EmptyResult>
+    var blocksUser: (_ userId: String?) async throws -> APIResponse<BlockUserResponse>
     var fetchBlockedUserIds: () async throws -> APIResponse<BlockedUserIdsResponse>
     
     enum UserRelationAPI: APITarget {
@@ -64,6 +64,15 @@ extension UserRelationClient: DependencyKey {
         } fetchBlockedUserIds: {
             try await Client.request(target: UserRelationAPI.fetchBlockedUserIds)
         }
+    }
+    
+    static var testValue: UserRelationClient {
+        UserRelationClient { _ in
+            return .stub()
+        } fetchBlockedUserIds: {
+            return .stub()
+        }
+
     }
 }
 

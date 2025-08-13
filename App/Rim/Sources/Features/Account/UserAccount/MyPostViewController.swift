@@ -152,7 +152,6 @@ struct MyPostFeature {
             }
         }
         .ifLet(\.$alert, action: \.alert)
-        ._printChanges()
     }
 }
 
@@ -267,7 +266,6 @@ extension MyPostViewController: UITableViewDelegate {
 #Preview {
     let store = Store(initialState: MyPostFeature.State()) {
         MyPostFeature()
-            ._printChanges()
     }
     
     ViewControllerPreview {

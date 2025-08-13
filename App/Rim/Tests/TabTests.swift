@@ -99,8 +99,8 @@ struct TabTests {
     }
     
     @MainActor
-    @Suite("Token")
-    struct Token {
+    @Suite("Service Setting")
+    struct ServiceSetting {
         @Test func refreshIdToken_isTriggeredAfter50Minutes() async throws {
             // 실제 ID 토큰은 키체인에 저장되므로 유닛 테스트에서는 직접 확인할 수 없습니다.
             // 따라서 refreshIdToken이 주기적으로 호출되는지만 확인하기 위해,
@@ -125,6 +125,29 @@ struct TabTests {
             
             await clock.advance(by: .seconds(60 * 1)) // 정확히 50분에 토큰 값 변경
             #expect(idToken == 1)
+        }
+        
+        @Test func fetchBlockedUserIds() async throws {
+            @Shared(.blockedUserIds) var blockedUserIds: Set<String> = []
+            
+            let store = TestStore(initialState: TabFeature.State()) {
+                TabFeature()
+            } withDependencies: {
+                $0.userRelationClient.fetchBlockedUserIds = { .init(status: "", message: "", result: .init(blockedUserIds: ["id1", "id2"])) }
+                $0.continuousClock = ImmediateClock()
+                $0.accountClient.refreshIdToken = { }
+            }
+            
+            store.exhaustivity = .off
+            
+            // 초기값 확인
+            #expect(store.state.$blockedUserIds.wrappedValue == [])
+            
+            await store.send(.view(.viewDidLoad))
+            await store.receive(\.fetchBlockedUserIds)
+            await store.receive(\.setBlockedUserIds)
+            
+            #expect(store.state.$blockedUserIds.wrappedValue == ["id1", "id2"])
         }
     }
 }

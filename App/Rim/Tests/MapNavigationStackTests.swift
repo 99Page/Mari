@@ -26,7 +26,7 @@ struct MapNavigationStackTests {
         } withDependencies: {
             // postDetail과 동일한 아이디 사용
             $0.postClient.fetchPostByID = { _ in
-                let dto = PostDetailDTO(id: "post1", title: "title", content: "content", imageUrl: "", location: .init(latitude: 0, longitude: 0), isMine: true)
+                let dto = PostDetailDTO(id: "post1", title: "title", content: "content", imageUrl: "", location: .init(latitude: 0, longitude: 0), creatorID: "creatorID", isMine: true)
                 return .init(status: "", message: "", result: dto)
             }
             $0.postClient.deletePost = { _ in .init(status: "", message: "", result: .init(id: "post1"))}
