@@ -17,6 +17,14 @@ struct RootFeature {
         @Shared(.uid) var uid
         @Presents var alert: AlertState<AlertAction>?
         var destination: Destination.State = .splash(.init())
+        
+        var destinationID: Int {
+            switch destination {
+            case .signIn: 0
+            case .splash: 1
+            case .tab: 2
+            }
+        }
     }
     
     @Reducer
@@ -151,7 +159,8 @@ class RootViewController: UIViewController {
     
     @UIBindable var store: StoreOf<RootFeature>
     private var current: UIViewController?
-    private var previousDestination: RootFeature.Destination.State?
+    
+    private var previousDestinationID: Int?
     
     init(store: StoreOf<RootFeature>) {
         self.store = store
@@ -164,6 +173,7 @@ class RootViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         updateView()
         setupView()
         send(.viewDidLoad)
@@ -193,13 +203,10 @@ class RootViewController: UIViewController {
     }
     
     private func updateView() {
-        
         observe { [weak self] in
             guard let self else { return }
             
-            let newDestination = store.destination
-            guard previousDestination != newDestination else { return }
-            previousDestination = newDestination
+            guard (previousDestinationID != store.destinationID) || previousDestinationID == nil else { return }
             
             // store의 모든 상태를 읽고 있기때문에, 아래 과정들은 반복 호출됩니다.
             // 현재 뷰컨트롤러와 비교하는 과정이 필요합니다. -page 2025. 06. 26
@@ -220,6 +227,8 @@ class RootViewController: UIViewController {
                     transition(to: splashVC)
                 }
             }
+            
+            previousDestinationID = store.destinationID
         }
     }
     

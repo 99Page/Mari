@@ -58,6 +58,7 @@ struct PostDetailFeature {
     enum Action: ViewAction {
         
         case appendBlockedUserID(String)
+        case removeBlockedUserID(String)
         case incrementPostViewCount
         case dismissMenu
         case fetchPostDetail
@@ -123,7 +124,6 @@ struct PostDetailFeature {
             case .fetchPostDetail:
                 return .run { [id = state.postID] send in
                     let response = try await postClient.fetchPostByID(id: id)
-                    Logger.debug("response: \(response)")
                     await send(.setPostDetail(response.result))
                 } catch: { error, send in
                     await send(.showFetchFailAlert)
@@ -218,6 +218,15 @@ struct PostDetailFeature {
                     }
                 }
                 
+            case .postMenu(.presented(.delegate(.unblocksUser))):
+                return .run { [creatorID = state.creatorID] send in
+                    let response = try await userRelationClient.unblocksUser(userId: creatorID)
+                    await send(.removeBlockedUserID(response.result.relationshipId))
+                    await send(.dismissMenu)
+                } catch: { error, send in
+                    
+                }
+                
             case .postMenu(_):
                 return .none
                 
@@ -229,6 +238,10 @@ struct PostDetailFeature {
                 
             case .dismissMenu:
                 state.postMenu = nil
+                return .none
+                
+            case let .removeBlockedUserID(id):
+                let _ = state.$blockedUserIds.withLock { $0.remove(id) }
                 return .none
             }
         }

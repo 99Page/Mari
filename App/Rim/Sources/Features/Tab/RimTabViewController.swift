@@ -171,8 +171,6 @@ final class RimTabViewController: UITabBarController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        Logger.debug("viewDidLoad")
-        
         setupView()
         buildViewControllers()
         

@@ -26,3 +26,4 @@ export  { withdrawAccount} from './account/withdrawAccount'
 // userRelationships
 export { blocksUser } from './userRelationships/blocksUser'
 export { fetchBlockedUserIds } from './userRelationships/fetchBlockedUserIds'
+export { unblocksUser } from './userRelationships/unblocksUser'

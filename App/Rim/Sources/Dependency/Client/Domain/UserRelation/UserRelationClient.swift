@@ -12,22 +12,25 @@ import DependenciesMacros
 @DependencyClient
 struct UserRelationClient {
     var blocksUser: (_ userId: String?) async throws -> APIResponse<BlockUserResponse>
+    var unblocksUser: (_ userId: String?) async throws -> APIResponse<BlockUserResponse>
     var fetchBlockedUserIds: () async throws -> APIResponse<BlockedUserIdsResponse>
     
     enum UserRelationAPI: APITarget {
         case blocksUser(userId: String?)
+        case unblocksUser(userId: String?)
         case fetchBlockedUserIds
         
         var method: HTTPMethod {
             switch self {
             case .blocksUser: .post
+            case .unblocksUser: .delete
             case .fetchBlockedUserIds: .get
             }
         }
         
         var body: (any Encodable)? {
             switch self {
-            case .blocksUser(let userId):
+            case let .blocksUser(userId), let .unblocksUser(userId):
                 return ["targetUserId": userId]
             case .fetchBlockedUserIds: return nil
             }
@@ -38,7 +41,7 @@ struct UserRelationClient {
             var headers: [String: String] = [:]
             
             switch self {
-            case .blocksUser, .fetchBlockedUserIds:
+            case .blocksUser, .fetchBlockedUserIds, .unblocksUser:
                 let idToken = try? keychain.load(service: .firebase, account: .idToken)
                 headers["Authorization"] = "Bearer \(idToken ?? "")"
             }
@@ -51,6 +54,7 @@ struct UserRelationClient {
         var path: String {
             switch self {
             case .blocksUser: "/blocksUser"
+            case .unblocksUser: "/unblocksUser"
             case .fetchBlockedUserIds: "/fetchBlockedUserIds"
             }
         }
@@ -61,6 +65,8 @@ extension UserRelationClient: DependencyKey {
     static var liveValue: UserRelationClient {
         UserRelationClient { targetUserId in
             try await Client.request(target: UserRelationAPI.blocksUser(userId: targetUserId))
+        } unblocksUser: { userId in
+            try await Client.request(target: UserRelationAPI.unblocksUser(userId: userId))
         } fetchBlockedUserIds: {
             try await Client.request(target: UserRelationAPI.fetchBlockedUserIds)
         }
@@ -69,6 +75,8 @@ extension UserRelationClient: DependencyKey {
     static var testValue: UserRelationClient {
         UserRelationClient { _ in
             return .stub()
+        } unblocksUser: { userId in
+            return .init(status: "", message: "", result: .init(blocked: false, relationshipId: "id"))
         } fetchBlockedUserIds: {
             return .stub()
         }

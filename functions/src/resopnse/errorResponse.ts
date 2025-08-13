@@ -63,4 +63,8 @@ export const errors = {
     code: "already-blocked-user",
     message: "사용자를 이미 차단했어요",
   },
+  NOT_BLOCKED_USER: {
+    code: "not-blocked-user",
+    message: "차단하지 않은 사용자입니다.",
+  },
 } as const;
