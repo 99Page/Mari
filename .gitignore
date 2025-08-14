@@ -71,4 +71,8 @@ Tuist/.build
 
 ### Firebase ###
 node_modules/
-*.log
+*.logSecrets.xcconfig
+
+Secrets.xcconfig
+GoogleService-Info.plist
+GoogleService-Info-dev.plist

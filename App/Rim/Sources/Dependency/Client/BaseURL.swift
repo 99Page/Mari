@@ -7,4 +7,11 @@
 
 import Foundation
 
-let functionsURL = "https://asia-northeast3-mari-4baca.cloudfunctions.net"
+let functionsURL: String = {
+    guard let urlString = Bundle.main.infoDictionary?["BASE_URL"] as? String else {
+        assertionFailure("BASE_URL not set in Info.plist")
+        return ""
+    }
+    
+    return urlString
+}()
