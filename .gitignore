@@ -72,3 +72,5 @@ Tuist/.build
 ### Firebase ###
 node_modules/
 *.logSecrets.xcconfig
+
+Secrets.xcconfig
