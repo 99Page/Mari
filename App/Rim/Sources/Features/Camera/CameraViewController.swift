@@ -19,8 +19,10 @@ struct CameraFeature {
     struct State: Equatable {
         var cancelButton = RimLabel.State(text: "취소", textColor: UIColor(.white), typography: .primaryAction)
         var flipCameraButton = RimImageView.State(image: .symbol(name: "arrow.trianglehead.2.clockwise.rotate.90", fgColor: .white))
-        var flashButton = RimImageView.State(image: .symbol(name: "bolt.badge.automatic.fill", fgColor: .white))
-        var flashMode = Flash.auto
+        var flashButton = RimImageView.State(image: .symbol(name: "bolt.slash.fill", fgColor: .white))
+        
+        // 플래시가 없는 디바이스도 있으니 기본 값은 off
+        var flashMode = Flash.off
         
         @Presents var photoPreview: PhotoPreviewFeature.State?
         
@@ -85,7 +87,10 @@ struct CameraFeature {
                 }
                 
             case .view(.flashButtonTapped):
-                state.flashMode = state.flashMode.next
+                let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
+                let hasDeviceFlash = device?.hasFlash ?? false
+                
+                state.flashMode = hasDeviceFlash ? state.flashMode.next : .off
                 state.flashButton = .init(image: .symbol(name: state.flashMode.symbol, fgColor: .white))
                 return .none
                 
@@ -123,9 +128,6 @@ final class CameraViewController: UIViewController {
     private var previewLayer: AVCaptureVideoPreviewLayer!
     private var currentCameraPosition: AVCaptureDevice.Position = .back
     
-    private let locationManager = CLLocationManager()
-    private var currentLocation: CLLocation?
-    
     private let cancelButton: RimLabel
     private let flipCameraButton: RimImageView
     private let captureButton = CaptureButton()
@@ -152,7 +154,6 @@ final class CameraViewController: UIViewController {
 
         checkCameraPermissionAndSetup()
         setupView()
-        setupLocation()
         setupEvents()
         makeConstraint()
 
@@ -217,7 +218,7 @@ final class CameraViewController: UIViewController {
         
         previewContentView.snp.makeConstraints { make in
             make.height.equalTo(view.snp.height).multipliedBy(0.7)
-            make.centerY.equalToSuperview()
+            make.top.equalTo(flashButton.snp.bottom).offset(40)
             make.leading.trailing.equalToSuperview()
         }
         
@@ -251,12 +252,6 @@ final class CameraViewController: UIViewController {
         view.addGestureRecognizer(pinchGesture)
     }
     
-    private func setupLocation() {
-        locationManager.delegate = self
-        locationManager.requestWhenInUseAuthorization()
-        locationManager.startUpdatingLocation()
-    }
-    
     private func setupCamera() {
         captureSession.beginConfiguration()
         captureSession.sessionPreset = .photo
@@ -274,7 +269,10 @@ final class CameraViewController: UIViewController {
         }
         
         captureSession.commitConfiguration()
-        captureSession.startRunning()
+        
+        Task { @MainActor in
+            captureSession.startRunning()
+        }
     }
     
     @objc private func capturePhoto() {
@@ -357,12 +355,6 @@ extension CameraViewController: AVCapturePhotoCaptureDelegate {
 
         store.photoPreview = .init(capturedPhoto: image)
         send(.photoCaptured)
-    }
-}
-
-extension CameraViewController: CLLocationManagerDelegate {
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        currentLocation = locations.last
     }
 }
 
