@@ -28,9 +28,15 @@ let infoPlist: [String: Plist.Value] = [
     "CFBundleURLTypes": [
         [
             "CFBundleURLName": "GoogleSignIn",
-            "CFBundleURLSchemes":
-                // GoogleService-Info.plist - REVERSED_CLIENT_ID 값
-                ["com.googleusercontent.apps.944288474620-7pbohckkv136fdhfr0s8bt1rf0d0qv9d"]
+            "CFBundleURLSchemes": [
+                "com.googleusercontent.apps.944288474620-7pbohckkv136fdhfr0s8bt1rf0d0qv9d" // release
+            ]
+        ],
+        [
+            "CFBundleURLName": "GoogleSignIn-Dev",
+            "CFBundleURLSchemes": [
+                "com.googleusercontent.apps.637646465807-gs0sqkefc83oi84atssg6q39qducomc3" // dev
+            ]
         ]
     ]
 ]
@@ -60,9 +66,24 @@ let target = Target.target(
     ],
     settings: .settings(
         base: [
+            "MARKETING_VERSION": "1.0.1",
             "CODE_SIGN_STYLE": "Automatic",
             "DEVELOPMENT_TEAM": "MAU8HFALP8", // 개인 개발 계정 ✅ 공개 상관 없는 값
             "ENABLE_SWIFT_MACROS": "YES"
+        ],
+        configurations: [
+            .debug(name: "Debug", settings: [
+                "PRODUCT_BUNDLE_IDENTIFIER": "com.page.rim.dev",
+                "INFOPLIST_KEY_CFBundleDisplayName": "Rim Dev",
+                "INFOPLIST_KEY_CFBundleName": "Rim Dev",
+                "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon-Dev"
+            ]),
+            .release(name: "Release", settings: [
+                "PRODUCT_BUNDLE_IDENTIFIER": "com.page.rim",
+                "INFOPLIST_KEY_CFBundleDisplayName": "Rim",
+                "INFOPLIST_KEY_CFBundleName": "Rim",
+                "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon"
+            ])
         ]
     )
 )

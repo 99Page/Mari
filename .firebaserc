@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "mari-4baca"
+    "default": "mari-4baca",
+    "dev": "rim-dev-72ae2"
   }
 }
