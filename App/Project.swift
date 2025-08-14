@@ -2,7 +2,7 @@ import ProjectDescription
 
 
 let infoPlist: [String: Plist.Value] = [
-    "NMFNcpKeyId": "s0lzvlyvnh", // https://navermaps.github.io/ios-map-sdk/guide-ko/1.html
+    "NMFNcpKeyId": "$(NMF_NCP_KEY_ID)", // https://navermaps.github.io/ios-map-sdk/guide-ko/1.html
     "UILaunchScreen": [
         "UIColorName": "",
         "UIImageName": "",
@@ -12,6 +12,7 @@ let infoPlist: [String: Plist.Value] = [
     "NSCameraUsageDescription": "게시글의 이미지를 제공하기 위해 카메라를 사용합니다.",
     "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"], // 세로 모드만 허용
     "UIUserInterfaceStyle": "Light", // 다크모드 끄기
+    "BASE_URL": "$(BASE_URL)",
     
     "UIApplicationSceneManifest": [
         "UIApplicationSupportsMultipleScenes": true,
@@ -29,13 +30,13 @@ let infoPlist: [String: Plist.Value] = [
         [
             "CFBundleURLName": "GoogleSignIn",
             "CFBundleURLSchemes": [
-                "com.googleusercontent.apps.944288474620-7pbohckkv136fdhfr0s8bt1rf0d0qv9d" // release
+                "$(GOOGLE_SIGNIN_REVERSED_CLIENT_ID_PROD)"
             ]
         ],
         [
             "CFBundleURLName": "GoogleSignIn-Dev",
             "CFBundleURLSchemes": [
-                "com.googleusercontent.apps.637646465807-gs0sqkefc83oi84atssg6q39qducomc3" // dev
+                "$(GOOGLE_SIGNIN_REVERSED_CLIENT_ID_DEV)"
             ]
         ]
     ]
@@ -72,18 +73,28 @@ let target = Target.target(
             "ENABLE_SWIFT_MACROS": "YES"
         ],
         configurations: [
-            .debug(name: "Debug", settings: [
+            .debug(
+                name: "Debug",
+                settings: [
                 "PRODUCT_BUNDLE_IDENTIFIER": "com.page.rim.dev",
                 "INFOPLIST_KEY_CFBundleDisplayName": "Rim Dev",
                 "INFOPLIST_KEY_CFBundleName": "Rim Dev",
-                "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon-Dev"
-            ]),
-            .release(name: "Release", settings: [
+                "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon-Dev",
+                "BASE_URL": "$(BASE_URL_DEV)",
+                ],
+                xcconfig: .relativeToRoot("Secrets.xcconfig")
+            ),
+            .release(
+                name: "Release",
+                settings: [
                 "PRODUCT_BUNDLE_IDENTIFIER": "com.page.rim",
                 "INFOPLIST_KEY_CFBundleDisplayName": "Rim",
                 "INFOPLIST_KEY_CFBundleName": "Rim",
-                "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon"
-            ])
+                "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+                "BASE_URL": "$(BASE_URL_PROD)"
+                ],
+                xcconfig: .relativeToRoot("Secrets.xcconfig")
+            )
         ]
     )
 )

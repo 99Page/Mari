@@ -7,8 +7,11 @@
 
 import Foundation
 
-#if DEBUG
-let functionsURL = "https://asia-northeast3-rim-dev-72ae2.cloudfunctions.net"
-#else
-let functionsURL = "https://asia-northeast3-mari-4baca.cloudfunctions.net"
-#endif
+let functionsURL: String = {
+    guard let urlString = Bundle.main.infoDictionary?["BASE_URL"] as? String else {
+        assertionFailure("BASE_URL not set in Info.plist")
+        return ""
+    }
+    
+    return urlString
+}()
