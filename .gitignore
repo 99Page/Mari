@@ -74,3 +74,5 @@ node_modules/
 *.logSecrets.xcconfig
 
 Secrets.xcconfig
+GoogleService-Info.plist
+GoogleService-Info-dev.plist
