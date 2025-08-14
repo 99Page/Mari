@@ -31,7 +31,11 @@ extension Array: Stub where Element: Stub {
     }
 }
 
-struct ErrorResponse: Decodable, Error {
+struct ErrorResponse: Decodable, Error, LocalizedError, CustomStringConvertible {
     let code: String
     let message: String
+
+    var description: String { "code: \(code), message: \(message)" }
+
+    var errorDescription: String? { description }
 }
