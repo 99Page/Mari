@@ -28,7 +28,7 @@ struct UploadPostFeature {
         var image: RimImageView.State
         var uploadTryCount = 0
         var imageURL: String?
-        var description = RimTextView.State(text: "", placeholder: "이곳을 설명해주세요.")
+        var description = RimTextView.State(text: "", placeholder: "더 자세한 내용을 알려주세요.")
         let maxImageUploadRetry = 3
         
         var postButton = RimLabel.State(
@@ -270,6 +270,7 @@ class UploadPostViewController: UIViewController {
     private let scrollView = UIScrollView(frame: .zero)
     private let photoImage: RimImageView
     private let titleTextField: RimTextField
+    private let restrictionLabel: RimLabel
     private let contentTextView: RimTextView
     private let postButton: RimLabel
     
@@ -281,6 +282,7 @@ class UploadPostViewController: UIViewController {
         self.photoImage = RimImageView(state: $binding.image)
         self.contentTextView = RimTextView(state: $binding.description)
         self.titleTextField = RimTextField(state: $binding.title)
+        self.restrictionLabel = RimLabel(state: .constant(.init(text: "부적절하거나 불쾌감을 줄 수 있는 게시글은 제재를 받을 수 있습니다.", textColor: .gray, typography: .hint)))
         
         super.init(nibName: nil, bundle: nil)
     }
@@ -362,6 +364,7 @@ class UploadPostViewController: UIViewController {
         scrollView.addSubview(photoImage)
         scrollView.addSubview(titleTextField)
         scrollView.addSubview(contentTextView)
+        scrollView.addSubview(restrictionLabel)
         
         postButton.withKeyboardAvoid(height: 50) { make in
             make.leading.trailing.equalToSuperview().inset(16)
@@ -395,7 +398,12 @@ class UploadPostViewController: UIViewController {
         contentTextView.snp.makeConstraints { make in
             make.leading.trailing.equalToSuperview().inset(16)
             make.top.equalTo(titleTextField.snp.bottom).offset(16)
+        }
+        
+        restrictionLabel.snp.makeConstraints { make in
+            make.top.equalTo(contentTextView.snp.bottom).offset(4)
             make.bottom.equalTo(scrollView.contentLayoutGuide.snp.bottom)
+            make.leading.trailing.equalToSuperview().inset(16)
         }
     }
 }
