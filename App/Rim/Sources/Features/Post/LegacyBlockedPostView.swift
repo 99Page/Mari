@@ -20,8 +20,8 @@ import SwiftUI
 ///  
 /// @View
 /// class BlockedPostView: UIView {
-///   var view: some UIView {
-///     VStack("stack") {
+///   var blueprint: some UIView {
+///     VerticalLayout("stack") {
 ///       RimImageView("lockImage") {
 ///         $0.image = .symbol(name: "lock.circle")
 ///         $0.fgColor = .gray
@@ -41,6 +41,28 @@ import SwiftUI
 ///   }
 /// }
 /// ```
+///
+/// # Expand
+///
+/// ```swift
+/// class BlockedPostView: UIView {
+///     let stack = VStack()
+///
+///     init() {
+///         super.init(frame: .zero)
+///         updateView()
+///         makeConstraint()
+///     }
+///
+///     func makeConstraint() {
+///         var parent = self
+///         parent.addSubview(stack)
+///
+///         stack.snp.make
+///     }
+/// }
+/// ```
+///
 /// # Before
 ///  
 /// ```swift
@@ -94,7 +116,20 @@ import SwiftUI
 ///}
 /// ```
 
-class BlockedPostView: UIView {
+class BlockedPostView: CoreView {
+    
+    var blueprint: UIView {
+        VerticalLayout("layout") {
+            UITextField()
+            UITextField()
+        }
+        .spacing(16)
+        .alignment(.center)
+        .constraint(fromX: \.centerX, toX: \.centerX, fromY: \.centerY, toY: \.centerY)
+    }
+}
+
+class LegacyBlockedPostView: UIView {
     private let blockedIconView: RimImageView
     private let blockedMessageLabel: RimLabel
     private let stackView = UIStackView()
@@ -134,6 +169,9 @@ class BlockedPostView: UIView {
     
     private func makeConstraint() {
         stackView.snp.makeConstraints { make in
+            make.centerX.equalTo(self.snp.centerX)
+        }
+        stackView.snp.makeConstraints { make in
             make.center.equalToSuperview()
         }
 
@@ -146,6 +184,6 @@ class BlockedPostView: UIView {
 @available(iOS 16.0, *)
 #Preview {
     ViewPreview(fromY: \.centerY, toY: \.centerY) {
-        BlockedPostView()
+        LegacyBlockedPostView()
     }
 }

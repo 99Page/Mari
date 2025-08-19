@@ -264,7 +264,7 @@ class PostDetailViewController: UIViewController {
     
     private var menuButton = UIBarButtonItem()
     
-    private let blockedPostView = BlockedPostView()
+    private let blockedPostView = LegacyBlockedPostView()
     
     init(store: StoreOf<PostDetailFeature>) {
         @UIBindable var binding = store
