@@ -11,7 +11,7 @@ import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 import XCTest
 
-final class RealizePropertyMacroTests: XCTestCase {
+final class ViewPropertyMacroTests: XCTestCase {
     func testStructNotSupported() {
         assertMacroExpansion(
             """
