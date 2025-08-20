@@ -21,6 +21,32 @@ public class RimImageView: RimView {
     private var lastLoadedImageURL: String?
     private var imageLoader: ImageLoader
     
+    public init() {
+        self.imageState = .init(image: .symbol(name: "", fgColor: .gray))
+        let memoryLoader = MemoryCacheImageLoader()
+        let diskLoader = DiskCacheImageLoader()
+        let networkLoader = NetworkImageLoader()
+        
+        memoryLoader.next = diskLoader
+        diskLoader.next = networkLoader
+        
+        self.imageLoader = memoryLoader
+        super.init(state: .constant(.init()))
+    }
+    
+    public init(_ name: String) {
+        self.imageState = .init(image: .symbol(name: "", fgColor: .gray))
+        let memoryLoader = MemoryCacheImageLoader()
+        let diskLoader = DiskCacheImageLoader()
+        let networkLoader = NetworkImageLoader()
+        
+        memoryLoader.next = diskLoader
+        diskLoader.next = networkLoader
+        
+        self.imageLoader = memoryLoader
+        super.init(state: .constant(.init()))
+    }
+    
     public init(state: UIBinding<State>) {
         self._imageState = state
         

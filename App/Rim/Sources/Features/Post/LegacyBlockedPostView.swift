@@ -11,6 +11,7 @@ import ComposableArchitecture
 import SnapKit
 import Core
 import SwiftUI
+import RimMacro
 
 /// 변경 대상
 ///  
@@ -116,12 +117,14 @@ import SwiftUI
 ///}
 /// ```
 
-class BlockedPostView: CoreView {
+@ViewProperty
+class BlockedPostView: UIView {
     
-    var blueprint: UIView {
-        VerticalLayout("layout") {
-            UITextField()
-            UITextField()
+    var bluePrint: UIView {
+        VerticalLayout("stack") {
+            RimImageView("lockImage")
+            
+            RimLabel("message")
         }
         .spacing(16)
         .alignment(.center)

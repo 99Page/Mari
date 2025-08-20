@@ -10,7 +10,7 @@ import UIKit
 import SnapKit
 
 public protocol CoreView {
-    var blueprint: UIView { get } 
+    var bluePrint: UIView { get } 
 }
 
 @resultBuilder

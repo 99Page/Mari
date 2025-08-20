@@ -22,6 +22,16 @@ public class RimLabel: RimView {
     private var height: CGFloat = 0
     private var keyboardAvoidClosure: ((_ make: ConstraintMaker) -> Void)?
     
+    public init() {
+        self.labelState = .init(text: "", textColor: .gray)
+        super.init(state: .constant(.init()))
+    }
+    
+    public init(_ name: String) {
+        self.labelState = .init(text: "", textColor: .gray)
+        super.init(state: .constant(.init()))
+    }
+    
     public init(state: UIBinding<State>) {
         self._labelState = state
         super.init(state: state.appearance)

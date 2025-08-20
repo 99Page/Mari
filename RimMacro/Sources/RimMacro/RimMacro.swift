@@ -10,5 +10,6 @@
 @freestanding(expression)
 public macro stringify<T>(_ value: T) -> (T, String) = #externalMacro(module: "RimMacroMacros", type: "StringifyMacro")
 
-@attached(member)
+// arbitrary: 추가할 member의 이름에 대한 제약을 없애줍니다.
+@attached(member, names: arbitrary)
 public macro ViewProperty() = #externalMacro(module: "RimMacroMacros", type: "ViewPropertyMacro")

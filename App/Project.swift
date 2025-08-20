@@ -53,6 +53,7 @@ let target = Target.target(
     resources: ["../Core/Resources/**"],
     entitlements: "SupportingFiles/Rim.entitlements",
     dependencies: [
+        .package(product: "RimMacro"),
         .package(product: "GoogleSignIn"),
         .package(product: "FirebaseAnalytics"),
         .package(product: "FirebaseAuth"),
@@ -106,8 +107,8 @@ let project = Project(
         .remote(url: "https://github.com/navermaps/SPM-NMapsMap", requirement: .exact("3.21.0")),
         .remote(url: "https://github.com/firebase/firebase-ios-sdk", requirement: .exact("11.13.0")),
         .remote(url: "https://github.com/google/GoogleSignIn-iOS", requirement: .exact("8.0.0")),
-        .remote(url: "https://github.com/nh7a/Geohash.git", requirement: .exact("1.0.0"))
-        
+        .remote(url: "https://github.com/nh7a/Geohash.git", requirement: .exact("1.0.0")),
+        .local(path: "../RimMacro")
     ],
     targets: [
         target,
