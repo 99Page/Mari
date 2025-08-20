@@ -16,6 +16,7 @@ import RimMacroMacros
 
 let testMacros: [String: Macro.Type] = [
     "stringify": StringifyMacro.self,
-    "ViewProperty": ViewPropertyMacro.self
+    "ViewProperty": ViewPropertyMacro.self,
+    "Constraint": ConstraintMacro.self
 ]
 

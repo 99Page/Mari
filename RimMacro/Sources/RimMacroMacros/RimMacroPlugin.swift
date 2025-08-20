@@ -14,6 +14,7 @@ import SwiftSyntaxMacros
 struct RimMacroPlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
         StringifyMacro.self,
-        ViewPropertyMacro.self
+        ViewPropertyMacro.self,
+        ConstraintMacro.self
     ]
 }

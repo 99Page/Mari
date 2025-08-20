@@ -47,7 +47,21 @@ import RimMacro
 ///
 /// ```swift
 /// class BlockedPostView: UIView {
+///
+///     var bluePrint: UIView {
+///         VerticalLayout("stack") {
+///             RimImageView("lockImage")
+///
+///             RimLabel("message")
+///         }
+///         .spacing(16)
+///         .alignment(.center)
+///         .constraint(fromX: \.centerX, toX: \.centerX, fromY: \.centerY, toY: \.centerY)
+///     }
+///
 ///     let stack = VStack()
+///     let lockImage = RimImageView()
+///     let message = RimLabel()
 ///
 ///     init() {
 ///         super.init(frame: .zero)
@@ -56,10 +70,10 @@ import RimMacro
 ///     }
 ///
 ///     func makeConstraint() {
-///         var parent = self
-///         parent.addSubview(stack)
+///         self.addSubview(stack)
 ///
-///         stack.snp.make
+///         stack.addArrangedSubview(lockImage)
+///         stack.addArrangedSubview(message)
 ///     }
 /// }
 /// ```
