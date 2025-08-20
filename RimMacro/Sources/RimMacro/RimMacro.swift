@@ -9,3 +9,6 @@
 /// produces a tuple `(x + y, "x + y")`.
 @freestanding(expression)
 public macro stringify<T>(_ value: T) -> (T, String) = #externalMacro(module: "RimMacroMacros", type: "StringifyMacro")
+
+@attached(member)
+public macro ViewProperty() = #externalMacro(module: "RimMacroMacros", type: "ViewPropertyMacro")

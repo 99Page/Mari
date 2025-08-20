@@ -9,14 +9,46 @@ import SwiftCompilerPlugin
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
+import SwiftDiagnostics
 
-public struct RealizePropertyMacro: MemberMacro {
+enum ViewPropertyError: CustomStringConvertible, Error, DiagnosticMessage {
+    var diagnosticID: SwiftDiagnostics.MessageID {
+        switch self {
+        case .onlyAppliableToClass:
+            MessageID(domain: "type", id: "onlyAppliableToClass")
+        }
+    }
+    
+    var severity: SwiftDiagnostics.DiagnosticSeverity {
+        switch self {
+        case .onlyAppliableToClass:
+                .error
+        }
+    }
+    
+    case onlyAppliableToClass
+    
+    var message: String { description }
+    
+    var description: String {
+        switch self {
+        case .onlyAppliableToClass:
+            "class 타입에만 @ViewProperty를 사용할 수 있어요"
+        }
+    }
+}
+
+public struct ViewPropertyMacro: MemberMacro {
     public static func expansion(
         of node: AttributeSyntax,
         providingMembersOf declaration: some DeclGroupSyntax,
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        guard let classDecl = declaration.as(ClassDeclSyntax.self) else { return [] }
+        guard let classDecl = declaration.as(ClassDeclSyntax.self) else {
+            let diagnostic = Diagnostic(node: declaration, message: ViewPropertyError.onlyAppliableToClass)
+            context.diagnose(diagnostic)
+            return []
+        }
         
         let inhetiyedTypes = classDecl.inheritanceClause?.inheritedTypes.compactMap {
             $0.type.as(IdentifierTypeSyntax.self)?.name.text
@@ -24,13 +56,25 @@ public struct RealizePropertyMacro: MemberMacro {
         
         guard inhetiyedTypes?.contains("UIViewController") ?? false else { return [] }
         
+        guard let bluePrint = findBluePrint(declaration: declaration) else {
+            return []
+        }
         
-        return expansionViewProperties(declaration: declaration)
+        return expansionBluePrint(bluePrint: bluePrint, context: context)
     }
     
-    static func expansionViewProperties(declaration: some DeclGroupSyntax) -> [DeclSyntax] {
+    static func findBluePrint(declaration: some DeclGroupSyntax) -> MemberBlockItemSyntax? {
         let members = declaration.memberBlock.members
-        guard let body = members.first?.decl.as(VariableDeclSyntax.self) else { return [] }
+        
+        return members.first {
+            let variableDecl = $0.decl.as(VariableDeclSyntax.self)
+            let pattern = variableDecl?.bindings.first?.pattern.as(IdentifierPatternSyntax.self)
+            return pattern?.identifier.text == "bluePrint"
+        }
+    }
+    
+    static func expansionBluePrint(bluePrint: MemberBlockItemSyntax, context: some MacroExpansionContext) -> [DeclSyntax] {
+        guard let body = bluePrint.decl.as(VariableDeclSyntax.self) else { return [] }
         guard let accessors = body.bindings.first?.accessorBlock?.accessors.as(CodeBlockItemListSyntax.self) else { return [] }
         guard let item = accessors.first?.item.as(FunctionCallExprSyntax.self) else { return [] }
         
