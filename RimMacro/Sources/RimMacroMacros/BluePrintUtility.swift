@@ -14,6 +14,7 @@ import SwiftDiagnostics
 enum BluePrintError: String, Error, DiagnosticMessage {
     case missingBluePrint
     case missingCodeBlockList
+    case missingTypeName
     case failToFindBluePrint
     case failToExtractPropertyName
     case failToFindRootFunctionCall
@@ -65,7 +66,7 @@ struct BluePrintUtility {
     ///   - current: 현재 코드 블록의 아이템 리스트
     /// - Returns: 삽입 순서가 보장된 HierarchyNode 배열 (부모 노드가 먼저, 하위 노드가 뒤따름)
     /// - Note: 하위 클로저가 존재하는 경우 재귀적으로 내려가며, 결과는 중복 없이 병합됩니다.
-    static func extractViewHierarchy(parent: String, current: CodeBlockItemListSyntax) throws -> [ViewHierarchyNode] {
+    static func extractViewHierarchy(parent: ViewDecl, current: CodeBlockItemListSyntax) throws -> [ViewHierarchyNode] {
         var hierarchy: [ViewHierarchyNode] = []
         
         var currentHierarchy = ViewHierarchyNode(parent: parent)
@@ -74,13 +75,15 @@ struct BluePrintUtility {
         for codeBlockItem in current {
             let rootFunctionCall = try findRootFunctionCall(codeBlockItem)
             let propertyName = try extractPropertyName(rootFunctionCall)
+            let typeName = try extractTypeName(rootFunctionCall)
+            let child = ViewDecl(propertyName: propertyName, typeName: typeName)
             
-            if !currentHierarchy.children.contains(propertyName) {
-                currentHierarchy.children.append(propertyName)
+            if !currentHierarchy.children.contains(child) {
+                currentHierarchy.children.append(child)
             }
             
             if let nextStatements = rootFunctionCall.trailingClosure?.statements {
-                let childTree = try extractViewHierarchy(parent: propertyName, current: nextStatements)
+                let childTree = try extractViewHierarchy(parent: child, current: nextStatements)
                 childHierarchy.append(contentsOf: childTree)
             }
         }
@@ -139,9 +142,22 @@ struct BluePrintUtility {
         guard let segment else { throw BluePrintError.failToFindBluePrint }
         return segment.content.text
     }
+    
+    static func extractTypeName(_ item: FunctionCallExprSyntax) throws -> String {
+        guard let typeName = item.calledExpression.as(DeclReferenceExprSyntax.self)?.baseName.text else {
+            throw BluePrintError.missingTypeName
+        }
+        
+        return typeName
+    }
 }
 
 struct ViewHierarchyNode {
-    let parent: String
-    var children: [String] = []
+    let parent: ViewDecl
+    var children: [ViewDecl] = []
+}
+
+struct ViewDecl: Equatable, Hashable {
+    let propertyName: String
+    let typeName: String
 }

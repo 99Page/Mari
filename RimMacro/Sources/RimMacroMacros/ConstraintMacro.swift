@@ -32,8 +32,10 @@ public struct ConstraintMacro: MemberMacro {
         
         do {
             let codeBlock = try BluePrintUtility.findFirstCodeBlock(declaration: declaration)
-            let hierarchy = try BluePrintUtility.extractViewHierarchy(parent: "self", current: codeBlock)
-            let constraintFunction = makeConsraintFunction(hierarchy: hierarchy)
+            
+            let parent = ViewDecl(propertyName: "self", typeName: "UIView")
+            let hierarchy = try BluePrintUtility.extractViewHierarchy(parent: parent, current: codeBlock)
+            let constraintFunction = makeConstraintFunction(hierarchy: hierarchy)
             result.append(DeclSyntax("\(raw: constraintFunction)"))
         } catch let err as BluePrintError {
             let diagnostic = Diagnostic(node: declaration, message: err)
@@ -48,17 +50,18 @@ public struct ConstraintMacro: MemberMacro {
         return result
     }
     
-    static func makeConsraintFunction(hierarchy: [ViewHierarchyNode]) -> String {
+    static func makeConstraintFunction(hierarchy: [ViewHierarchyNode]) -> String {
         
         var result: [String] = []
         
         for graph in hierarchy {
             let parent = graph.parent
             
-            let functionIdentifier = graph.parent.hasSuffix("layout") ? "addArrangedSubview" : "addSubview"
+            let parentType = graph.parent.typeName.lowercased()
+            let functionIdentifier = parentType.hasSuffix("layout") ? "addArrangedSubview" : "addSubview"
             
             for child in graph.children {
-                result.append("\(parent).\(functionIdentifier)(\(child))")
+                result.append("\(parent.propertyName).\(functionIdentifier)(\(child.propertyName))")
             }
         }
         
