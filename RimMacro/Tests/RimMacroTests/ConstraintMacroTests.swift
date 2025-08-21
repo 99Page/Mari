@@ -13,19 +13,16 @@ import XCTest
 
 
 final class ConstraintMacroTests: XCTestCase {
-    
-    struct VerticalLayout {
-        
-    }
-    
     func test() {
         assertMacroExpansion(
             """
             @Constraint
-            struct RootView: UIView {
+            class RootView: UIView {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
-                        
+                        RimImage("image")
+            
+                        RimLabel("description")
                     }
                 }
             }
@@ -35,8 +32,16 @@ final class ConstraintMacroTests: XCTestCase {
             class RootView: UIView {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
-                        
+                        RimImage("image")
+            
+                        RimLabel("description")
                     }
+                }
+            
+                private func makeConstraint() {
+                    self.addSubview(layout)
+                    layout.addArrangedSubview(image)
+                    layout.addArrangedSubview(description)
                 }
             }
             """,

@@ -135,7 +135,7 @@ import RimMacro
 class BlockedPostView: UIView {
     
     var bluePrint: UIView {
-        VerticalLayout("stack") {
+        VerticalLayout("layout") {
             RimImageView("lockImage")
             
             RimLabel("message")
@@ -143,6 +143,10 @@ class BlockedPostView: UIView {
         .spacing(16)
         .alignment(.center)
         .constraint(fromX: \.centerX, toX: \.centerX, fromY: \.centerY, toY: \.centerY)
+    }
+    
+    func make() {
+        layout.addArrangedSubview(lockImage)
     }
 }
 
