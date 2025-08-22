@@ -5,18 +5,20 @@ import SwiftSyntaxMacros
 import SwiftDiagnostics
 
 
-enum ViewPropertyError: String, CustomStringConvertible, Error, DiagnosticMessage {
+enum MacroError: String, CustomStringConvertible, Error, DiagnosticMessage {
     case onlyAppliableToClass
+    
     case missingBluePrintProperty
     case missingViewTypeName
     case missingViewPropertyName
     
-    case failedToCastToVariableDeclSyntax
-    case failedToCastToCodeBlockItemListSyntax
-    case failedToCastToFunctionCallExprSyntax
-    case failedToCastToDeclReferenceExprSyntax
-    case failedToCastToStringLiteralExprSyntax
-    case failedToCastToStringSegmentSyntax
+    case castToFunctionCallExpr
+    case castToVariableDeclSyntax
+    case castToCodeBlockItemListSyntax
+    case castToFunctionCallExprSyntax
+    case castToDeclReferenceExprSyntax
+    case castToStringLiteralExprSyntax
+    case castToStringSegmentSyntax
     
     
     var diagnosticID: SwiftDiagnostics.MessageID {
@@ -25,21 +27,23 @@ enum ViewPropertyError: String, CustomStringConvertible, Error, DiagnosticMessag
             MessageID(domain: "type", id: self.rawValue)
         case .missingBluePrintProperty:
             MessageID(domain: "property", id: self.rawValue)
-        case .failedToCastToVariableDeclSyntax:
+        case .castToVariableDeclSyntax:
             MessageID(domain: "cast", id: self.rawValue)
-        case .failedToCastToCodeBlockItemListSyntax:
+        case .castToCodeBlockItemListSyntax:
             MessageID(domain: "cast", id: self.rawValue)
-        case .failedToCastToFunctionCallExprSyntax:
+        case .castToFunctionCallExprSyntax:
             MessageID(domain: "cast", id: self.rawValue)
-        case .failedToCastToDeclReferenceExprSyntax:
+        case .castToDeclReferenceExprSyntax:
             MessageID(domain: "cast", id: self.rawValue)
-        case .failedToCastToStringLiteralExprSyntax:
+        case .castToStringLiteralExprSyntax:
             MessageID(domain: "cast", id: self.rawValue)
-        case .failedToCastToStringSegmentSyntax:
+        case .castToStringSegmentSyntax:
             MessageID(domain: "cast", id: self.rawValue)
         case .missingViewTypeName:
             MessageID(domain: "macro", id: self.rawValue)
         case .missingViewPropertyName:
+            MessageID(domain: "macro", id: self.rawValue)
+        case .castToFunctionCallExpr:
             MessageID(domain: "macro", id: self.rawValue)
         }
     }
@@ -52,19 +56,21 @@ enum ViewPropertyError: String, CustomStringConvertible, Error, DiagnosticMessag
         switch self {
         case .onlyAppliableToClass:
             "class 타입에만 @ViewProperty를 사용할 수 있어요"
+        case .castToFunctionCallExpr:
+            "FunctionCallExpr 캐스팅이 실패했어요"
         case .missingBluePrintProperty:
             "@ViewProperty는 bluePrint 프로퍼티가 필요해요"
-        case .failedToCastToVariableDeclSyntax:
+        case .castToVariableDeclSyntax:
             "VariableDecl 캐스팅이 실패했어요"
-        case .failedToCastToCodeBlockItemListSyntax:
+        case .castToCodeBlockItemListSyntax:
             "CodeBlockItemList 캐스팅이 실패했어요"
-        case .failedToCastToFunctionCallExprSyntax:
+        case .castToFunctionCallExprSyntax:
             "FunctionCallExpr 캐스팅이 실패했어요"
-        case .failedToCastToDeclReferenceExprSyntax:
+        case .castToDeclReferenceExprSyntax:
             "DeclReferenceExpr 캐스팅이 실패했어요"
-        case .failedToCastToStringLiteralExprSyntax:
+        case .castToStringLiteralExprSyntax:
             "StringLiteralExpr 캐스팅이 실패했어요"
-        case .failedToCastToStringSegmentSyntax:
+        case .castToStringSegmentSyntax:
             "StringSegment 캐스팅이 실패했어요"
         case .missingViewTypeName:
             "View의 타입을 찾을 수 없어요"

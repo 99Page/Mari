@@ -19,26 +19,22 @@ public struct BuildViewMacro: MemberMacro {
     ) throws -> [DeclSyntax] {
         do {
             guard let classDecl = declaration.as(ClassDeclSyntax.self) else {
-                let diagnostic = Diagnostic(node: declaration, message: ViewPropertyError.onlyAppliableToClass)
+                let diagnostic = Diagnostic(node: declaration, message: MacroError.onlyAppliableToClass)
                 context.diagnose(diagnostic)
                 return []
             }
             
-            let firstItem = try classDecl.findFirstFunctionCall()
+            let lastChainedFunctionCall = try classDecl.findLastChainedFunctionCall()
             
             let parent = ViewDecl(propertyName: "self", typeName: "UIView")
-            let viewHierarchy = try extractViewHierarchy(parent: parent, subviews: [firstItem.findRootFunctionCall()])
-            let constraints = try extractConstraintPair(item: firstItem)
+            let viewHierarchy = try extractViewHierarchy(superview: parent, subviews: [lastChainedFunctionCall.findRootFunctionCall()])
+            let constraints = try extractConstraintPair(item: lastChainedFunctionCall)
             
-            let viewPropertyDecl = try expandViewProperties(from: firstItem)
-            let addViewDecl = expandAddViewsFunction(hierarchy: viewHierarchy)
-            let addSubviewsDecl = expandConstraint(hierarchy: viewHierarchy, constraints: constraints)
+            let viewPropertyDecl = try buildViewPropertyDecl(from: lastChainedFunctionCall)
+            let addViewDecl = buildAddSubviewsDecl(hierarchy: viewHierarchy)
+            let constraintDecl = buildConstraintDecl(hierarchy: viewHierarchy, constraints: constraints)
             
-            var declSyntaxes = [DeclSyntax]()
-            declSyntaxes.append(contentsOf: viewPropertyDecl)
-            declSyntaxes.append(addViewDecl)
-            declSyntaxes.append(addSubviewsDecl)
-            return declSyntaxes
+            return viewPropertyDecl + [addViewDecl, constraintDecl]
         } catch {
             
         }
@@ -49,7 +45,7 @@ public struct BuildViewMacro: MemberMacro {
 
 // MARK: ViewProperty
 extension BuildViewMacro {
-    private static func expandViewProperties(from firstCall: FunctionCallExprSyntax) throws -> [DeclSyntax] {
+    private static func buildViewPropertyDecl(from firstCall: FunctionCallExprSyntax) throws -> [DeclSyntax] {
         let rootCall = firstCall.findRootFunctionCall()
         let typeName = try rootCall.findViewTypeName()
         let propertyName = try rootCall.findViewPropertyName()
@@ -58,16 +54,16 @@ extension BuildViewMacro {
 
         var members: [DeclSyntax] = [decl]
         for subview in rootCall.findSubviews() {
-            let subMembers = try expandViewProperties(from: subview)
+            let subMembers = try buildViewPropertyDecl(from: subview)
             members.append(contentsOf: subMembers)
         }
         return members
     }
 }
 
-// MARK: addSubview
+// MARK: addSubviews
 extension BuildViewMacro {
-    static func expandAddViewsFunction(hierarchy: [ViewHierarchyNode]) -> DeclSyntax {
+    static func buildAddSubviewsDecl(hierarchy: [ViewHierarchyNode]) -> DeclSyntax {
         
         var result: [String] = []
         
@@ -95,9 +91,9 @@ extension BuildViewMacro {
     }
 }
 
-// MARK: Constraint
+// MARK: activateConstraints
 extension BuildViewMacro {
-    static func expandConstraint(hierarchy: [ViewHierarchyNode], constraints: [String: [ConstraintRelation]]) -> DeclSyntax {
+    static func buildConstraintDecl(hierarchy: [ViewHierarchyNode], constraints: [String: [ConstraintRelation]]) -> DeclSyntax {
         
         var parentByChild: [String: String] = [:]
         var bodyText: [String] = []
@@ -140,10 +136,10 @@ extension BuildViewMacro {
 }
 
 extension BuildViewMacro {
-    static func extractViewHierarchy(parent: ViewDecl, subviews: [FunctionCallExprSyntax]) throws -> [ViewHierarchyNode] {
+    static func extractViewHierarchy(superview: ViewDecl, subviews: [FunctionCallExprSyntax]) throws -> [ViewHierarchyNode] {
         var hierarchy: [ViewHierarchyNode] = []
         
-        var currentHierarchy = ViewHierarchyNode(parent: parent)
+        var currentHierarchy = ViewHierarchyNode(parent: superview)
         
         var childHierarchy: [ViewHierarchyNode] = []
         
@@ -157,7 +153,7 @@ extension BuildViewMacro {
                 currentHierarchy.children.append(child)
             }
             
-            let childTree = try extractViewHierarchy(parent: child, subviews: rootFunction.findSubviews())
+            let childTree = try extractViewHierarchy(superview: child, subviews: rootFunction.findSubviews())
             childHierarchy.append(contentsOf: childTree)
         }
         
@@ -187,7 +183,7 @@ extension BuildViewMacro {
         
         if let call = item.findCallee(named: "constraint") {
             let root = call.findRootFunctionCall()
-            let viewPropertyName = try BluePrintUtility.extractPropertyName(root)
+            let viewPropertyName = try root.findViewPropertyName()
             let keyPathNames = call.extractKeyPathNames()
             let relations = extractConstraintRelations(from: keyPathNames)
             constraints[viewPropertyName, default: []].append(contentsOf: relations)

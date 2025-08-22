@@ -21,7 +21,7 @@ extension FunctionCallExprSyntax {
         if let propertyName {
             return propertyName
         } else {
-            throw ViewPropertyError.missingViewPropertyName
+            throw MacroError.missingViewPropertyName
         }
     }
     
@@ -41,7 +41,7 @@ extension FunctionCallExprSyntax {
         if let typeName {
             return typeName
         } else {
-            throw ViewPropertyError.missingViewTypeName
+            throw MacroError.missingViewTypeName
         }
     }
     
