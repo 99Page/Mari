@@ -38,7 +38,7 @@ import RimMacro
 ///     }
 ///     .spacing(16)
 ///     .alignment(.center)
-///     .constraint { $0.center.equalToSuperview() }
+///     .constraint(\.centerX, equalTo: \.centerX, \.centerY, equalTo: \.centerY)
 ///   }
 /// }
 /// ```
@@ -56,7 +56,7 @@ import RimMacro
 ///         }
 ///         .spacing(16)
 ///         .alignment(.center)
-///         .constraint(fromX: \.centerX, toX: \.centerX, fromY: \.centerY, toY: \.centerY)
+///         .constraint(\.centerX, equalTo: \.centerX, \.centerY, equalTo: \.centerY)
 ///     }
 ///
 ///     let stack = VStack()
@@ -74,6 +74,11 @@ import RimMacro
 ///
 ///         stack.addArrangedSubview(lockImage)
 ///         stack.addArrangedSubview(message)
+///
+///         stackView.snp.makeConstraints { make in
+///             make[keyPath: \.centerX].equalTo(self.snp[keyPath: \.centerX])
+///             make[keyPath: \.centerY].equalTo(self.snp[keyPath: \.centerY])
+///         }
 ///     }
 /// }
 /// ```
@@ -131,9 +136,8 @@ import RimMacro
 ///}
 /// ```
 
-@ViewProperty
+@BuildView
 class BlockedPostView: UIView {
-    
     var bluePrint: UIView {
         VerticalLayout("layout") {
             RimImageView("lockImage")
@@ -142,11 +146,7 @@ class BlockedPostView: UIView {
         }
         .spacing(16)
         .alignment(.center)
-        .constraint(fromX: \.centerX, toX: \.centerX, fromY: \.centerY, toY: \.centerY)
-    }
-    
-    func make() {
-        layout.addArrangedSubview(lockImage)
+        .constraint(\.centerX, equalTo: \.centerX, \.centerY, equalTo: \.centerY)
     }
 }
 
@@ -190,10 +190,7 @@ class LegacyBlockedPostView: UIView {
     
     private func makeConstraint() {
         stackView.snp.makeConstraints { make in
-            make.centerX.equalTo(self.snp.centerX)
-        }
-        stackView.snp.makeConstraints { make in
-            make.center.equalToSuperview()
+            make.leading.equalTo(self.snp.trailing)
         }
 
         blockedIconView.snp.makeConstraints { make in

@@ -50,7 +50,13 @@ public class VerticalLayout: UIStackView {
     public func distribution(_ value: UIStackView.Distribution) -> Self { self.distribution = value; return self }
     
     @discardableResult
-    public func constraint(fromX: KeyPath<ConstraintMaker, ConstraintMakerExtendable>, toX: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>, fromY: KeyPath<ConstraintMaker, ConstraintMakerExtendable>, toY: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>) -> Self {
+    public func constraint(
+        _ fromX: KeyPath<ConstraintMaker, ConstraintMakerExtendable>,
+        equalTo toX: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>,
+        _ fromY: KeyPath<ConstraintMaker, ConstraintMakerExtendable>,
+        equalTo toY: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>
+    ) -> Self {
+        // SnapKit 호출 시 옵셔널 여부 검사
         return self
     }
 }

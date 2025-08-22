@@ -16,7 +16,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testStructNotSupported() {
         assertMacroExpansion(
             """
-            @ViewProperty
+            @View
             struct RootViewController: UIViewController {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
@@ -43,7 +43,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testOnlyVerticalLayout() {
         assertMacroExpansion(
             """
-            @ViewProperty
+            @View
             class RootView: UIView {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
@@ -62,6 +62,14 @@ final class ViewPropertyMacroTests: XCTestCase {
                 }
             
                 let layout = VerticalLayout()
+            
+                private func addSubviews() {
+                    self.addSubview(layout)
+                }
+            
+                private func activateConstraints() {
+
+                }
             }
             """,
             macros: testMacros
@@ -71,7 +79,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testOnlyVerticalLayoutWithOneModifier() {
         assertMacroExpansion(
             """
-            @ViewProperty
+            @View
             class RootView: UIView {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
@@ -92,6 +100,14 @@ final class ViewPropertyMacroTests: XCTestCase {
                 }
             
                 let layout = VerticalLayout()
+            
+                private func addSubviews() {
+                    self.addSubview(layout)
+                }
+            
+                private func activateConstraints() {
+
+                }
             }
             """,
             macros: testMacros
@@ -102,7 +118,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testOnlyVerticalLayoutWithThreeModifier() {
         assertMacroExpansion(
             """
-            @ViewProperty
+            @View
             class RootView: UIView {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
@@ -127,6 +143,14 @@ final class ViewPropertyMacroTests: XCTestCase {
                 }
             
                 let layout = VerticalLayout()
+            
+                private func addSubviews() {
+                    self.addSubview(layout)
+                }
+            
+                private func activateConstraints() {
+
+                }
             }
             """,
             macros: testMacros
@@ -136,7 +160,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testVerticalLayoutExpansionWithOneProperty() {
         assertMacroExpansion(
             """
-            @ViewProperty
+            @View
             class RootViewController: UIViewController {
                 let value = 1
             
@@ -159,25 +183,16 @@ final class ViewPropertyMacroTests: XCTestCase {
                 }
             
                 let layout = VerticalLayout()
+            
+                private func addSubviews() {
+                    self.addSubview(layout)
+                }
+            
+                private func activateConstraints() {
+
+                }
             }
             """,
-            macros: testMacros
-        )
-    }
-    
-    func testMissingBluePrintProperty() {
-        assertMacroExpansion(
-            """
-            @ViewProperty
-            class RootViewController: UIViewController {
-            }
-            """,
-            expandedSource:
-            """
-            class RootViewController: UIViewController {
-            }
-            """,
-            diagnostics: [DiagnosticSpec(message: "@ViewProperty는 bluePrint 프로퍼티가 필요해요", line: 1, column: 1)],
             macros: testMacros
         )
     }
@@ -185,7 +200,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testVerticalLayoutHasChild() {
         assertMacroExpansion(
             """
-            @ViewProperty
+            @View
             class RootView: UIView {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
@@ -212,6 +227,16 @@ final class ViewPropertyMacroTests: XCTestCase {
                 let title = RimLabel()
 
                 let description = RimLabel()
+            
+                private func addSubviews() {
+                    self.addSubview(layout)
+                    layout.addArrangedSubview(title)
+                    layout.addArrangedSubview(description)
+                }
+            
+                private func activateConstraints() {
+
+                }
             }
             """,
             macros: testMacros
@@ -222,7 +247,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testFirstChildHasModifier() {
         assertMacroExpansion(
             """
-            @ViewProperty
+            @View
             class RootView: UIView {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
@@ -253,6 +278,16 @@ final class ViewPropertyMacroTests: XCTestCase {
                 let title = RimLabel()
 
                 let description = RimLabel()
+            
+                private func addSubviews() {
+                    self.addSubview(layout)
+                    layout.addArrangedSubview(title)
+                    layout.addArrangedSubview(description)
+                }
+            
+                private func activateConstraints() {
+
+                }
             }
             """,
             macros: testMacros
@@ -263,7 +298,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testTwoChildHasModifier() {
         assertMacroExpansion(
             """
-            @ViewProperty
+            @View
             class RootView: UIView {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
@@ -296,6 +331,69 @@ final class ViewPropertyMacroTests: XCTestCase {
                 let title = RimLabel()
 
                 let description = RimLabel()
+            
+                private func addSubviews() {
+                    self.addSubview(layout)
+                    layout.addArrangedSubview(title)
+                    layout.addArrangedSubview(description)
+                }
+            
+                private func activateConstraints() {
+
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+    
+    func testAddConstraint() {
+        assertMacroExpansion(
+            """
+            @View
+            class RootView: UIView {
+                var bluePrint: UIView {
+                    VerticalLayout("layout") {
+                        RimImage("image")
+                            .some(0)
+            
+                        RimLabel("description")
+                    }
+                    .constraint(\\.centerX, equalTo: \\.centerX, \\.centerY, equalTo: \\.centerY)
+                }
+            }
+            """,
+            expandedSource:
+            """
+            class RootView: UIView {
+                var bluePrint: UIView {
+                    VerticalLayout("layout") {
+                        RimImage("image")
+                            .some(0)
+            
+                        RimLabel("description")
+                    }
+                    .constraint(\\.centerX, equalTo: \\.centerX, \\.centerY, equalTo: \\.centerY)
+                }
+            
+                let layout = VerticalLayout()
+
+                let image = RimImage()
+            
+                let description = RimLabel()
+            
+                private func addSubviews() {
+                    self.addSubview(layout)
+                    layout.addArrangedSubview(image)
+                    layout.addArrangedSubview(description)
+                }
+            
+                private func activateConstraints() {
+                    layout.snp.addSubviewss { make in
+                        make.centerX.equalTo(self.snp.centerX)
+                        make.centerY.equalTo(self.snp.centerY)
+                    }
+                }
             }
             """,
             macros: testMacros

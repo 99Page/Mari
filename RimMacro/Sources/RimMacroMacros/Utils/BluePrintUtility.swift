@@ -11,23 +11,8 @@ import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 import SwiftDiagnostics
 
-enum BluePrintError: String, Error, DiagnosticMessage {
-    case missingBluePrint
-    case missingCodeBlockList
-    case missingTypeName
-    case failToFindBluePrint
-    case failToExtractPropertyName
-    case failToFindRootFunctionCall
-    
-    var message: String { self.rawValue }
-    
-    var diagnosticID: SwiftDiagnostics.MessageID { .init(domain: "BluePrintUtility", id: self.rawValue) }
-    
-    var severity: SwiftDiagnostics.DiagnosticSeverity { .error }
-}
-
 struct BluePrintUtility {
-    static func findBluePrint(declaration: some DeclGroupSyntax) throws -> MemberBlockItemSyntax{
+    static func findBluePrint(declaration: some DeclGroupSyntax) throws -> MemberBlockItemSyntax {
         let members = declaration.memberBlock.members
         
         let memberBlockItem = members.first {
@@ -37,7 +22,7 @@ struct BluePrintUtility {
         }
         
         guard let memberBlockItem else {
-            throw BluePrintError.missingBluePrint
+            throw MacroError.missingBluePrint
         }
         
         return memberBlockItem
@@ -55,7 +40,7 @@ struct BluePrintUtility {
         let decl = memberBlockItem?.decl.as(VariableDeclSyntax.self)
         let codeBlockItemList = decl?.bindings.first?.accessorBlock?.accessors.as(CodeBlockItemListSyntax.self)
         
-        guard let codeBlockItemList else { throw BluePrintError.missingCodeBlockList }
+        guard let codeBlockItemList else { throw MacroError.missingCodeBlockList }
         
         return codeBlockItemList
     }
@@ -116,7 +101,7 @@ struct BluePrintUtility {
             item = newItem
         }
         
-        guard let item else { throw BluePrintError.failToExtractPropertyName }
+        guard let item else { throw MacroError.failToExtractPropertyName }
         return item
     }
     
@@ -139,13 +124,13 @@ struct BluePrintUtility {
         let expression = item.arguments.first?.expression.as(StringLiteralExprSyntax.self)
         let segment = expression?.segments.first?.as(StringSegmentSyntax.self)
         
-        guard let segment else { throw BluePrintError.failToFindBluePrint }
+        guard let segment else { throw MacroError.failToFindBluePrint }
         return segment.content.text
     }
     
     static func extractTypeName(_ item: FunctionCallExprSyntax) throws -> String {
         guard let typeName = item.calledExpression.as(DeclReferenceExprSyntax.self)?.baseName.text else {
-            throw BluePrintError.missingTypeName
+            throw MacroError.missingTypeName
         }
         
         return typeName
