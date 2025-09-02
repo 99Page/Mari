@@ -34,7 +34,9 @@ public struct BuildViewMacro: MemberMacro {
             let addViewDecl = buildAddSubviewsDecl(hierarchy: viewHierarchy)
             let constraintDecl = buildConstraintDecl(hierarchy: viewHierarchy, constraints: constraints)
             
-            return viewPropertyDecl + [addViewDecl, constraintDecl]
+            let setupDecl = try buildSetupFunction(from: lastChainedFunctionCall)
+            
+            return viewPropertyDecl + [addViewDecl, constraintDecl, setupDecl]
         } catch {
             
         }
@@ -117,7 +119,7 @@ extension BuildViewMacro {
             }
             
             let bodyLine =  """
-                            \(childName).snp.addSubviewss { make in 
+                            \(childName).snp.makeConstraints { make in 
                                 \(makeText.joined(separator: "\n"))
                             }
                             """
@@ -133,6 +135,50 @@ extension BuildViewMacro {
             """
         )
     }
+}
+
+extension BuildViewMacro {
+    /// 외부에는 함수 하나(DeclSyntax)만 반환
+       static func buildSetupFunction(from firstCall: FunctionCallExprSyntax) throws -> DeclSyntax {
+           // 재귀적으로 '대입문 라인'만 모음
+           var bodyLines = try collectSetupLines(from: firstCall)
+
+           // 들여쓰기 적용 후 함수 선언로 감싸 반환
+           let body = bodyLines.map { "    " + $0 }.joined(separator: "\n")
+
+           return DeclSyntax(
+               """
+               private func bind() {
+               \(raw: body)
+               }
+               """
+           )
+       }
+
+       /// 재귀 수집: 선언(Decl) 아님, '문장 라인(String)'만 모은다
+       private static func collectSetupLines(from call: FunctionCallExprSyntax) throws -> [String] {
+           let root = call.findRootFunctionCall()
+           var lines: [String] = []
+
+           // 컨테이너가 아니면 현재 노드의 설정 라인 수집
+           if try !isContainer(root) {
+               let propertyName = try root.findViewPropertyName()
+               for setup in root.findPropertySetup() {
+                   let text = setup.description
+                       .trimmingCharacters(in: .whitespacesAndNewlines)
+                       .replacingOccurrences(of: "$0", with: propertyName)
+                   lines.append(text)
+               }
+           }
+
+           // 자식 노드들도 재귀적으로 수집
+           for sub in root.findSubviews() {
+               let nested = try collectSetupLines(from: sub)
+               lines.append(contentsOf: nested)
+           }
+
+           return lines
+       }
 }
 
 extension BuildViewMacro {
@@ -201,6 +247,11 @@ extension BuildViewMacro {
         }
         
         return constraints
+    }
+    
+    static func isContainer(_ item: FunctionCallExprSyntax) throws -> Bool {
+        let typeName = try item.findViewTypeName().lowercased()
+        return typeName.hasSuffix("layout") || typeName.hasSuffix("container")
     }
 }
 

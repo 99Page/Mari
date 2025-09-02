@@ -19,4 +19,8 @@ struct ViewHierarchyNode {
 struct ViewDecl: Equatable, Hashable {
     let propertyName: String
     let typeName: String
+    
+    var isContainer: Bool {
+        typeName.lowercased().hasSuffix("layout") || typeName.lowercased().hasSuffix("container")
+    }
 }

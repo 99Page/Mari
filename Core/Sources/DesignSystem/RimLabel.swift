@@ -13,23 +13,35 @@ import SwiftUI
 import SwiftNavigation
 
 public class RimLabel: RimView {
+    
     @UIBinding var labelState: State
     
+    
+    public var text: UIBinding<String> = .constant("")
+    public var textColor: UIBinding<UIColor> = .constant(.black)
+    public var alignment: UIBinding<NSTextAlignment> = .constant(.center)
+    public var typography: UIBinding<Typography> = .constant(.logoDescription)
+    public var isEnabled: UIBinding<Bool> = .constant(true)
+    public var numberOfLines: UIBinding<Int> = .constant(0)
+    
     let label = UILabel(frame: .zero)
-    
     public var respondsToKeyboard: Bool = false
-    
     private var height: CGFloat = 0
     private var keyboardAvoidClosure: ((_ make: ConstraintMaker) -> Void)?
     
+    private var observeToken: ObserveToken?
+    
     public init() {
-        self.labelState = .init(text: "", textColor: .gray)
+        self.labelState = .init()
         super.init(state: .constant(.init()))
     }
     
-    public init(_ name: String) {
-        self.labelState = .init(text: "", textColor: .gray)
+    public init(_ name: String, configure: ((RimLabel) -> Void)? = nil) {
+        self.labelState = .init()
         super.init(state: .constant(.init()))
+        makeConstraint()
+        updateView()
+        setupKeyboardObserver()
     }
     
     public init(state: UIBinding<State>) {
@@ -65,12 +77,16 @@ public class RimLabel: RimView {
         }
     }
     
+    
+    
     private func updateView() {
-        observe { [weak self] in
+        observeToken?.cancel()
+        
+        observeToken = observe { [weak self] in
             guard let self else { return }
             updateAttributedString()
             isUserInteractionEnabled = labelState.isEnabled
-            label.numberOfLines = labelState.numberOfLines
+            label.numberOfLines = numberOfLines.wrappedValue
         }
     }
     
@@ -114,20 +130,19 @@ public class RimLabel: RimView {
     
     private func updateAttributedString() {
         let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = labelState.alignment
+        paragraphStyle.alignment = alignment.wrappedValue
         paragraphStyle.lineSpacing = 0
-        paragraphStyle.minimumLineHeight = labelState.typography.lineHeight
-        paragraphStyle.maximumLineHeight = labelState.typography.lineHeight
+        paragraphStyle.minimumLineHeight = typography.wrappedValue.lineHeight
+        paragraphStyle.maximumLineHeight = typography.wrappedValue.lineHeight
         
         let attributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: labelState.textColor,
+            .foregroundColor: textColor.wrappedValue,
             .paragraphStyle: paragraphStyle,
-            .font: UIFont(typography: labelState.typography),
+            .font: UIFont(typography: typography.wrappedValue),
             .baselineOffset: 0
-            
         ]
         
-        label.attributedText = NSAttributedString(string: labelState.text, attributes: attributes)
+//        self.label.attributedText = NSAttributedString(string: text, attributes: attributes)
     }
 }
 
@@ -144,8 +159,8 @@ public extension RimLabel {
         var numberOfLines: Int
         
         public init(
-            text: String,
-            textColor: UIColor,
+            text: String = "",
+            textColor: UIColor = .black,
             typography: Typography = .contentDescription,
             alignment: NSTextAlignment = .center,
             numberOfLines: Int = 1,

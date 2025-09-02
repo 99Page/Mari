@@ -138,16 +138,23 @@ import RimMacro
 
 @BuildView
 class BlockedPostView: UIView {
+    
     var bluePrint: UIView {
         VerticalLayout("layout") {
-            RimImageView("lockImage")
+            RimImageView("lockImage") 
             
-            RimLabel("message")
+            RimLabel("message") {
+                $0.text = .constant("차단한 사용자의 게시물은\n볼 수 없어요.")
+                $0.textColor = .constant(.black)
+                $0.typography = .constant(.contentTitle)
+                $0.numberOfLines = .constant(2)
+            }
         }
         .spacing(16)
         .alignment(.center)
         .constraint(\.centerX, equalTo: \.centerX, \.centerY, equalTo: \.centerY)
     }
+    
 }
 
 class LegacyBlockedPostView: UIView {

@@ -389,10 +389,77 @@ final class ViewPropertyMacroTests: XCTestCase {
                 }
             
                 private func activateConstraints() {
-                    layout.snp.addSubviewss { make in
+                    layout.snp.makeConstraints { make in
                         make.centerX.equalTo(self.snp.centerX)
                         make.centerY.equalTo(self.snp.centerY)
                     }
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+    
+    func testSetupProperties() {
+        assertMacroExpansion(
+            """
+            @View
+            class RootView: UIView {
+                var bluePrint: UIView {
+                    VerticalLayout("layout") {
+                        RimLabel("title") {
+                            $0.text = .constant("제목")
+                        }   
+            
+                        RimLabel("description") {
+                            $0.text = .constant("설명")
+                            $0.textColor = .constant(.black)
+                        }
+                    }
+                    .constraint(\\.centerX, equalTo: \\.centerX, \\.centerY, equalTo: \\.centerY)
+                }
+            }
+            """,
+            expandedSource:
+            """
+            class RootView: UIView {
+                var bluePrint: UIView {
+                    VerticalLayout("layout") {
+                        RimLabel("title") {
+                            $0.text = .constant("제목")
+                        }   
+            
+                        RimLabel("description") {
+                            $0.text = .constant("설명")
+                            $0.textColor = .constant(.black)
+                        }
+                    }
+                    .constraint(\\.centerX, equalTo: \\.centerX, \\.centerY, equalTo: \\.centerY)
+                }
+            
+                let layout = VerticalLayout()
+
+                let title = RimLabel()
+            
+                let description = RimLabel()
+            
+                private func addSubviews() {
+                    self.addSubview(layout)
+                    layout.addArrangedSubview(title)
+                    layout.addArrangedSubview(description)
+                }
+            
+                private func activateConstraints() {
+                    layout.snp.makeConstraints { make in
+                        make.centerX.equalTo(self.snp.centerX)
+                        make.centerY.equalTo(self.snp.centerY)
+                    }
+                }
+            
+                private func bind() {
+                    title.text = .constant("제목")
+                    description.text = .constant("설명")
+                    description.textColor = .constant(.black)
                 }
             }
             """,

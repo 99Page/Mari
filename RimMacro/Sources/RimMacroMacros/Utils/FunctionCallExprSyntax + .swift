@@ -10,8 +10,6 @@ import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
-
-
 extension FunctionCallExprSyntax {
     func findViewPropertyName() throws -> String {
         let expr = arguments.first?.expression.as(StringLiteralExprSyntax.self)
@@ -43,6 +41,29 @@ extension FunctionCallExprSyntax {
         } else {
             throw MacroError.missingViewTypeName
         }
+    }
+    
+    /// ```swift
+    /// RimLabel("description") {
+    ///     ▼ CodeBlockItemListSyntax ▼
+    ///     ▼ CodeBlockSyntax ▼
+    ///     $0.text = .constant("설명")
+    ///     ▲ CodeBlockSyntax ▲
+    ///     ▼ CodeBlockSyntax ▼
+    ///     $0.textColor = .constant(.black)
+    ///     ▲ CodeBlockSyntax ▲
+    ///     ▲ CodeBlockItemListSyntax ▲
+    /// }
+    /// ```
+    func findPropertySetup() -> [CodeBlockItemSyntax] {
+        guard let statements = self.trailingClosure?.statements else { return [] }
+        var result: [CodeBlockItemSyntax] = []
+        
+        for state in statements {
+            result.append(state)
+        }
+        
+        return result
     }
     
     func findRootFunctionCall() -> FunctionCallExprSyntax {

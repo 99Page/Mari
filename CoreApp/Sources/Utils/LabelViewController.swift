@@ -14,13 +14,12 @@ import Core
 class LabelViewController: UIViewController {
     
     @UIBinding var labelState: RimLabel.State
-    
+    @UIBinding var text = "Hello"
     let label: RimLabel
     let textField = UITextField()
     
     init() {
-        let background = UIView.Background(color: .systemBlue, cornerRadius: 16)
-        let state = RimLabel.State(text: "Rim Label", textColor: .black, alignment: .center, background: background)
+        let state = RimLabel.State()
         @UIBinding var binding = state
         self.labelState = binding
         self.label = RimLabel(state: $binding)
@@ -36,14 +35,16 @@ class LabelViewController: UIViewController {
         
         view.addSubview(label)
         view.addSubview(textField)
-        
+
         label.withKeyboardAvoid(height: 100) { make in
             make.centerX.centerY.equalToSuperview()
             make.width.height.equalTo(100)
         }
         
-        label.configure()
-        label.addAction(.touchUpInside({ debugPrint("label tapped") }))
+        label.addAction(.touchUpInside({
+            self.text = "touch"
+            debugPrint("tap")
+        }))
         
         textField.snp.makeConstraints { make in
             make.leading.trailing.equalToSuperview()
