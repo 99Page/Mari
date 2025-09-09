@@ -19,8 +19,6 @@ struct PhotoPreviewFeature {
         @Presents var alert: AlertState<Action.Alert>?
         
         var photoView: RimImageView.State
-        var retakeButton = RimLabel.State(text: "다시 찍기", textColor: .white, typography: .primaryAction)
-        var usePhotoButton = RimLabel.State(text: "사용하기", textColor: .white, typography: .primaryAction)
         
         init(capturedPhoto: UIImage) {
             self.photoView = .init(image: .uiImage(uiImage: capturedPhoto))
@@ -111,8 +109,8 @@ class PhotoPreviewController: UIViewController {
         @UIBindable var binding = store
         self.store = store
         self.imagePreviewView = RimImageView(state: $binding.photoView)
-        self.retakeButton = RimLabel(state: $binding.retakeButton)
-        self.usePhotoButton = RimLabel(state: $binding.usePhotoButton)
+        self.retakeButton = RimLabel()
+        self.usePhotoButton = RimLabel()
         super.init(nibName: nil, bundle: nil)
         
         self.modalPresentationStyle = .fullScreen
@@ -129,10 +127,23 @@ class PhotoPreviewController: UIViewController {
         super.viewDidLoad()
         setupView()
         makeConstraint()
+        updateLabel()
         
         present(item: $store.scope(state: \.alert, action: \.alert)) { store in
             UIAlertController(store: store)
         }
+    }
+    
+    private func updateLabel() {
+        retakeButton.text = .constant("다시 찍기")
+        retakeButton.textColor = .constant(.white)
+        retakeButton.typography = .constant(.primaryAction)
+        retakeButton.updateView()
+        
+        usePhotoButton.text = .constant("사용하기")
+        usePhotoButton.textColor = .constant(.white)
+        usePhotoButton.typography = .constant(.primaryAction)
+        usePhotoButton.updateView()
     }
     
     private func makeConstraint() {

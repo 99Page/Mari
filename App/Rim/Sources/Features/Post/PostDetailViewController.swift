@@ -21,9 +21,9 @@ struct PostDetailFeature {
         
         let postID: String
         
+        var titleText: String = ""
+        var descriptionText: String = "" 
         var image: RimImageView.State
-        var title: RimLabel.State
-        var description: RimLabel.State
         var creatorID: String?
         
         var isProgressViewPresented = false
@@ -33,8 +33,6 @@ struct PostDetailFeature {
         init(postID: String) {
             self.postID = postID
             self.image = .init(image: .custom(url: nil))
-            self.title = .init(text: "", textColor: .black, typography: .contentTitle, alignment: .natural)
-            self.description = .init(text: "", textColor: .black, alignment: .natural)
         }
         
         var menu: [PostMenuFeature.State.Menu] {
@@ -131,8 +129,8 @@ struct PostDetailFeature {
             
             case let .setPostDetail(post):
                 state.image = .init(image: .custom(url: post.imageUrl))
-                state.title.text = post.title
-                state.description.text = post.content
+                state.titleText = post.title
+                state.descriptionText = post.content
                 state.isMyPost = post.isMine
                 state.creatorID = post.creatorID
                 state.isMenuButtonPresented = true
@@ -264,13 +262,13 @@ class PostDetailViewController: UIViewController {
     
     private var menuButton = UIBarButtonItem()
     
-    private let blockedPostView = LegacyBlockedPostView()
+    private let blockedPostView = BlockedPostView()
     
     init(store: StoreOf<PostDetailFeature>) {
         @UIBindable var binding = store
         self.store = store
-        self.titleLabel = RimLabel(state: $binding.title)
-        self.descriptionLabel = RimLabel(state: $binding.description)
+        self.titleLabel = RimLabel()
+        self.descriptionLabel = RimLabel()
         self.imageView = RimImageView(state: $binding.image)
         super.init(nibName: nil, bundle: nil)
         
@@ -337,6 +335,18 @@ class PostDetailViewController: UIViewController {
             menuButton.tintColor = store.navigationColor
             navigationController?.navigationBar.tintColor = store.navigationColor
         }
+        
+        titleLabel.text = $store.titleText
+        titleLabel.textColor = .constant(.black)
+        titleLabel.alignment = .constant(.natural)
+        titleLabel.typography = .constant(.contentTitle)
+        
+        descriptionLabel.text = $store.descriptionText
+        descriptionLabel.textColor = .constant(.black)
+        descriptionLabel.alignment = .constant(.natural)
+        
+        titleLabel.updateView()
+        descriptionLabel.updateView() 
     }
     
     private func setupView() {

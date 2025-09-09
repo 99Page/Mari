@@ -458,8 +458,79 @@ final class ViewPropertyMacroTests: XCTestCase {
             
                 private func bind() {
                     title.text = .constant("제목")
+                    title.updateView()
                     description.text = .constant("설명")
                     description.textColor = .constant(.black)
+                    description.updateView()
+                }
+            }
+            """,
+            macros: testMacros
+        )
+    }
+    
+    func testLayoutConfigure() {
+        assertMacroExpansion(
+            """
+            @View
+            class RootView: UIView {
+                var bluePrint: UIView {
+                    VerticalLayout("layout") {
+                        RimImageView("lockImage")
+                        
+                        RimLabel("message") {
+                            $0.text = .constant("test")
+                        }
+                    } configure: {
+                        $0.spacing = .constant(16)
+                        $0.alignment = .constant(.center)
+                    }
+                    .constraint(\\.centerX, equalTo: \\.centerX, \\.centerY, equalTo: \\.centerY)
+                }
+            }
+            """,
+            expandedSource:
+            """
+            class RootView: UIView {
+                var bluePrint: UIView {
+                    VerticalLayout("layout") {
+                        RimImageView("lockImage")
+                        
+                        RimLabel("message") {
+                            $0.text = .constant("test")
+                        }
+                    } configure: {
+                        $0.spacing = .constant(16)
+                        $0.alignment = .constant(.center)
+                    }
+                    .constraint(\\.centerX, equalTo: \\.centerX, \\.centerY, equalTo: \\.centerY)
+                }
+            
+                let layout = VerticalLayout()
+
+                let lockImage = RimImageView()
+
+                let message = RimLabel()
+            
+                private func addSubviews() {
+                    self.addSubview(layout)
+                    layout.addArrangedSubview(lockImage)
+                    layout.addArrangedSubview(message)
+                }
+            
+                private func activateConstraints() {
+                    layout.snp.makeConstraints { make in
+                        make.centerX.equalTo(self.snp.centerX)
+                        make.centerY.equalTo(self.snp.centerY)
+                    }
+                }
+            
+                private func bind() {
+                    layout.spacing = .constant(16)
+                    layout.alignment = .constant(.center)
+                    layout.updateView()
+                    message.text = .constant("test")
+                    message.updateView()
                 }
             }
             """,

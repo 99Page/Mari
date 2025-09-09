@@ -141,10 +141,14 @@ extension BuildViewMacro {
     /// 외부에는 함수 하나(DeclSyntax)만 반환
        static func buildSetupFunction(from firstCall: FunctionCallExprSyntax) throws -> DeclSyntax {
            // 재귀적으로 '대입문 라인'만 모음
-           var bodyLines = try collectSetupLines(from: firstCall)
+           let bodyLines = try collectSetupLines(from: firstCall)
 
            // 들여쓰기 적용 후 함수 선언로 감싸 반환
            let body = bodyLines.map { "    " + $0 }.joined(separator: "\n")
+           
+           if body.isEmpty {
+               return DeclSyntax("")
+           }
 
            return DeclSyntax(
                """
@@ -159,16 +163,28 @@ extension BuildViewMacro {
        private static func collectSetupLines(from call: FunctionCallExprSyntax) throws -> [String] {
            let root = call.findRootFunctionCall()
            var lines: [String] = []
+           
+           let propertyName = try root.findViewPropertyName()
 
            // 컨테이너가 아니면 현재 노드의 설정 라인 수집
-           if try !isContainer(root) {
-               let propertyName = try root.findViewPropertyName()
-               for setup in root.findPropertySetup() {
+           if try isContainer(root) {
+               for setup in root.findContainerSetup() {
                    let text = setup.description
                        .trimmingCharacters(in: .whitespacesAndNewlines)
                        .replacingOccurrences(of: "$0", with: propertyName)
                    lines.append(text)
                }
+           } else {
+               for setup in root.findViewSetup() {
+                   let text = setup.description
+                       .trimmingCharacters(in: .whitespacesAndNewlines)
+                       .replacingOccurrences(of: "$0", with: propertyName)
+                   lines.append(text)
+               }
+           }
+           
+           if !lines.isEmpty {
+               lines.append("\(propertyName).updateView()")
            }
 
            // 자식 노드들도 재귀적으로 수집

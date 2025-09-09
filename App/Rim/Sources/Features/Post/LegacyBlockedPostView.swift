@@ -139,9 +139,21 @@ import RimMacro
 @BuildView
 class BlockedPostView: UIView {
     
+    init() {
+        super.init(frame: .zero)
+        
+        addSubviews()
+        activateConstraints()
+        bind()
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     var bluePrint: UIView {
         VerticalLayout("layout") {
-            RimImageView("lockImage") 
+//            RimImageView("lockImage") 
             
             RimLabel("message") {
                 $0.text = .constant("차단한 사용자의 게시물은\n볼 수 없어요.")
@@ -149,66 +161,66 @@ class BlockedPostView: UIView {
                 $0.typography = .constant(.contentTitle)
                 $0.numberOfLines = .constant(2)
             }
+        } configure: {
+            $0.spacing = .constant(16)
+            $0.alignment = .constant(.center)
         }
-        .spacing(16)
-        .alignment(.center)
         .constraint(\.centerX, equalTo: \.centerX, \.centerY, equalTo: \.centerY)
     }
-    
 }
 
-class LegacyBlockedPostView: UIView {
-    private let blockedIconView: RimImageView
-    private let blockedMessageLabel: RimLabel
-    private let stackView = UIStackView()
-    
-    init() {
-        let lockImage = RimImageView.State(image: .symbol(name: "lock.circle", fgColor: .gray))
-        self.blockedIconView = RimImageView(state: .constant(lockImage))
-        
-        let blockText = RimLabel.State(
-            text: "차단한 사용자의 게시물은\n볼 수 없어요.",
-            textColor: .label,
-            typography: .contentTitle,
-            numberOfLines: 2
-        )
-        
-        self.blockedMessageLabel = RimLabel(state: .constant(blockText))
-        super.init(frame: .zero)
-        setupView()
-        makeConstraint()
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    private func setupView() {
-        stackView.axis = .vertical
-        stackView.alignment = .center
-        stackView.spacing = 16
-
-        addSubview(stackView)
-
-        stackView.addArrangedSubview(blockedIconView)
-        stackView.addArrangedSubview(blockedMessageLabel)
-    }
-    
-    
-    private func makeConstraint() {
-        stackView.snp.makeConstraints { make in
-            make.leading.equalTo(self.snp.trailing)
-        }
-
-        blockedIconView.snp.makeConstraints { make in
-            make.width.height.equalTo(100)
-        }
-    }
-}
+//class LegacyBlockedPostView: UIView {
+//    private let blockedIconView: RimImageView
+//    private let blockedMessageLabel: RimLabel
+//    private let stackView = UIStackView()
+//    
+//    init() {
+//        let lockImage = RimImageView.State(image: .symbol(name: "lock.circle", fgColor: .gray))
+//        self.blockedIconView = RimImageView(state: .constant(lockImage))
+//        
+//        let blockText = RimLabel.State(
+//            text: "차단한 사용자의 게시물은\n볼 수 없어요.",
+//            textColor: .label,
+//            typography: .contentTitle,
+//            numberOfLines: 2
+//        )
+//        
+//        self.blockedMessageLabel = RimLabel(state: .constant(blockText))
+//        super.init(frame: .zero)
+//        setupView()
+//        makeConstraint()
+//    }
+//    
+//    required init?(coder: NSCoder) {
+//        fatalError("init(coder:) has not been implemented")
+//    }
+//    
+//    private func setupView() {
+//        stackView.axis = .vertical
+//        stackView.alignment = .center
+//        stackView.spacing = 16
+//
+//        addSubview(stackView)
+//
+//        stackView.addArrangedSubview(blockedIconView)
+//        stackView.addArrangedSubview(blockedMessageLabel)
+//    }
+//    
+//    
+//    private func makeConstraint() {
+//        stackView.snp.makeConstraints { make in
+//            make.leading.equalTo(self.snp.trailing)
+//        }
+//
+//        blockedIconView.snp.makeConstraints { make in
+//            make.width.height.equalTo(100)
+//        }
+//    }
+//}
 
 @available(iOS 16.0, *)
 #Preview {
     ViewPreview(fromY: \.centerY, toY: \.centerY) {
-        LegacyBlockedPostView()
+        BlockedPostView()
     }
 }

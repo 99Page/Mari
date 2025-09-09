@@ -34,7 +34,6 @@ struct SignInFeature {
         var hashedNonce = ""
         
         var rimLogo = RimImageView.State(image: .resource(imageResource: .rimWithBackground))
-        var signInLabel = RimLabel.State(text: "로그인하기", textColor: UIColor(.gray), typography: .hint)
         var appleSignIn = RimImageView.State(image: .resource(imageResource: .appleCircleLogo))
         var googleSignIn = RimImageView.State(image: .resource(imageResource: .googleCircleLogo))
         
@@ -155,7 +154,7 @@ class SignInViewController: UIViewController {
         self.store = store
         self.appleSignInButton = RimImageView(state: $binding.appleSignIn)
         self.googleSignInButton = RimImageView(state: $binding.googleSignIn)
-        self.signInLabel = RimLabel(state: $binding.signInLabel)
+        self.signInLabel = RimLabel()
         self.rimLogoImageView = RimImageView(state: $binding.rimLogo)
         super.init(nibName: nil, bundle: nil)
     }
@@ -168,6 +167,7 @@ class SignInViewController: UIViewController {
         super.viewDidLoad()
         setupView()
         makeConstraint()
+        updateView()
         
         present(isPresented: $store.isProgressPresented) {
             ProgressViewController()
@@ -176,6 +176,13 @@ class SignInViewController: UIViewController {
         present(item: $store.scope(state: \.alert, action: \.alert)) { store in
             UIAlertController(store: store)
         }
+    }
+    
+    private func updateView() {
+        signInLabel.text = .constant("로그인하기")
+        signInLabel.textColor = .constant(.gray)
+        signInLabel.typography = .constant(.hint)
+        signInLabel.updateView()
     }
     
     private func makeConstraint() {

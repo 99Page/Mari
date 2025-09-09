@@ -12,7 +12,7 @@ import SnapKit
 import SwiftUI
 import SwiftNavigation
 
-public class RimLabel: RimView {
+public class RimLabel: RimView, ConstraintDescribable {
     
     @UIBinding var labelState: State
     
@@ -20,7 +20,7 @@ public class RimLabel: RimView {
     public var text: UIBinding<String> = .constant("")
     public var textColor: UIBinding<UIColor> = .constant(.black)
     public var alignment: UIBinding<NSTextAlignment> = .constant(.center)
-    public var typography: UIBinding<Typography> = .constant(.logoDescription)
+    public var typography: UIBinding<Typography> = .constant(.contentDescription)
     public var isEnabled: UIBinding<Bool> = .constant(true)
     public var numberOfLines: UIBinding<Int> = .constant(0)
     
@@ -34,14 +34,14 @@ public class RimLabel: RimView {
     public init() {
         self.labelState = .init()
         super.init(state: .constant(.init()))
+        makeConstraint()
+        updateView()
+        setupKeyboardObserver()
     }
     
     public init(_ name: String, configure: ((RimLabel) -> Void)? = nil) {
         self.labelState = .init()
         super.init(state: .constant(.init()))
-        makeConstraint()
-        updateView()
-        setupKeyboardObserver()
     }
     
     public init(state: UIBinding<State>) {
@@ -70,22 +70,17 @@ public class RimLabel: RimView {
         addSubview(label)
         
         label.snp.makeConstraints { make in
-            make.top.equalToSuperview()
-            make.bottom.equalToSuperview()
-            make.leading.equalToSuperview()
-            make.trailing.equalToSuperview()
+            make.edges.equalToSuperview()
         }
     }
     
-    
-    
-    private func updateView() {
+    public func updateView() {
         observeToken?.cancel()
         
         observeToken = observe { [weak self] in
             guard let self else { return }
             updateAttributedString()
-            isUserInteractionEnabled = labelState.isEnabled
+            isUserInteractionEnabled = isEnabled.wrappedValue
             label.numberOfLines = numberOfLines.wrappedValue
         }
     }
@@ -142,35 +137,17 @@ public class RimLabel: RimView {
             .baselineOffset: 0
         ]
         
-//        self.label.attributedText = NSAttributedString(string: text, attributes: attributes)
+        self.label.attributedText = NSAttributedString(string: text.wrappedValue, attributes: attributes)
     }
 }
 
 public extension RimLabel {
     struct State: Equatable {
-        public var text: String
-        var textColor: UIColor
-        var alignment: NSTextAlignment
-        
-        var typography: Typography
-        public var isEnabled = true
-        
         var appearance: RimView.State
-        var numberOfLines: Int
         
         public init(
-            text: String = "",
-            textColor: UIColor = .black,
-            typography: Typography = .contentDescription,
-            alignment: NSTextAlignment = .center,
-            numberOfLines: Int = 1,
             appearance: RimView.State = .init()
         ) {
-            self.text = text
-            self.textColor = textColor
-            self.typography = typography
-            self.alignment = alignment
-            self.numberOfLines = numberOfLines
             self.appearance = appearance
         }
         

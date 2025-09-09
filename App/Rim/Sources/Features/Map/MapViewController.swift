@@ -42,8 +42,8 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         @UIBindable var binding = store
         self.store = store
         
-        self.latestLabel = RimLabel(state: $binding.latestFilter)
-        self.popularLabel = RimLabel(state: $binding.popularFilter)
+        self.latestLabel = RimLabel()
+        self.popularLabel = RimLabel()
         self.latestBackgroundView = RimView(state: $binding.latestBackground)
         self.popularBackgroundView = RimView(state: $binding.popularBackground)
         
@@ -85,6 +85,14 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
             updateMarkers()
             updateProgressView()
         }
+        
+        latestLabel.text = .constant("최신순")
+        latestLabel.textColor = .constant(.black)
+        latestLabel.updateView()
+        
+        popularLabel.text = .constant("인기순")
+        popularLabel.textColor = .constant(.black)
+        popularLabel.updateView()
     }
     
     private func updateProgressView() {

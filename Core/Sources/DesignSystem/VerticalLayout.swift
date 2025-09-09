@@ -8,6 +8,7 @@
 
 import UIKit
 import SnapKit
+import ComposableArchitecture
 
 public protocol CoreView {
     var bluePrint: UIView { get } 
@@ -22,13 +23,25 @@ public enum ViewArrayBuilder {
     public static func buildArray(_ components: [[UIView]]) -> [UIView] { components.flatMap { $0 } }
 }
 
-public class VerticalLayout: UIStackView {
+public class VerticalLayout: UIView, ConstraintDescribable {
+    
+    let stack = UIStackView()
+    
+    public var spacing: UIBinding<CGFloat> = .constant(.zero)
+    public var distribution: UIBinding<UIStackView.Distribution> = .constant(.fill)
+    public var alignment: UIBinding<UIStackView.Alignment> = .constant(.fill)
     
     public init() {
         super.init(frame: .zero)
+        makeConstraint()
+        updateView()
     }
     
-    public init(_ name: String, @ViewArrayBuilder _ subviews: () -> [UIView]) {
+    public init(
+        _ name: String, @ViewArrayBuilder
+        _ subviews: () -> [UIView],
+        configure: ((VerticalLayout) -> Void)? = nil
+    ) {
         super.init(frame: .zero)
     }
     
@@ -36,27 +49,24 @@ public class VerticalLayout: UIStackView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    // ===== modifier 유틸(선택) =====
-    /// 스택 간격 설정
-    @discardableResult
-    public func spacing(_ value: CGFloat) -> Self { self.spacing = value; return self }
-
-    /// 정렬 설정
-    @discardableResult
-    public func alignment(_ value: UIStackView.Alignment) -> Self { self.alignment = value; return self }
-
-    /// 분배 방식 설정
-    @discardableResult
-    public func distribution(_ value: UIStackView.Distribution) -> Self { self.distribution = value; return self }
+    public func makeConstraint() {
+        addSubview(stack)
+        
+        stack.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+    }
     
-    @discardableResult
-    public func constraint(
-        _ fromX: KeyPath<ConstraintMaker, ConstraintMakerExtendable>,
-        equalTo toX: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>,
-        _ fromY: KeyPath<ConstraintMaker, ConstraintMakerExtendable>,
-        equalTo toY: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>
-    ) -> Self {
-        // SnapKit 호출 시 옵셔널 여부 검사
-        return self
+    public func updateView() {
+        observe { [weak self] in
+            guard let self else { return }
+            stack.spacing = spacing.wrappedValue
+            stack.distribution = distribution.wrappedValue
+            stack.alignment = alignment.wrappedValue
+        }
+    }
+    
+    public func addArrangedSubview(_ view: UIView) {
+        stack.addArrangedSubview(view)
     }
 }

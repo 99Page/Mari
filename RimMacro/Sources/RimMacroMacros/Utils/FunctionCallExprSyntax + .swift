@@ -55,8 +55,32 @@ extension FunctionCallExprSyntax {
     ///     ▲ CodeBlockItemListSyntax ▲
     /// }
     /// ```
-    func findPropertySetup() -> [CodeBlockItemSyntax] {
+    func findViewSetup() -> [CodeBlockItemSyntax] {
         guard let statements = self.trailingClosure?.statements else { return [] }
+        var result: [CodeBlockItemSyntax] = []
+        
+        for state in statements {
+            result.append(state)
+        }
+        
+        return result
+    }
+    
+    /// VerticalLayout("layout") {
+///        RimImageView("lockImage")
+    ///
+    ///    RimLabel("message") {
+    ///        $0.text = .constant("test")
+    ///    }
+    /// } configure: {
+    ///    ▼ 찾으려는 부분 ▼
+    ///    $0.spacing = .constant(16)
+    ///    $0.alignment = .constant(.center)
+    ///    ▲ 찾으려는 부분 ▲
+    ///}
+    func findContainerSetup() -> [CodeBlockItemSyntax] {
+        guard let statements = self.additionalTrailingClosures.first?.closure.statements else { return [] }
+        
         var result: [CodeBlockItemSyntax] = []
         
         for state in statements {

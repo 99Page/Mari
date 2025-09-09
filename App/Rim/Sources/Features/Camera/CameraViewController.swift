@@ -17,7 +17,6 @@ import Core
 struct CameraFeature {
     @ObservableState
     struct State: Equatable {
-        var cancelButton = RimLabel.State(text: "취소", textColor: UIColor(.white), typography: .primaryAction)
         var flipCameraButton = RimImageView.State(image: .symbol(name: "arrow.trianglehead.2.clockwise.rotate.90", fgColor: .white))
         var flashButton = RimImageView.State(image: .symbol(name: "bolt.slash.fill", fgColor: .white))
         
@@ -136,7 +135,7 @@ final class CameraViewController: UIViewController {
     init(store: StoreOf<CameraFeature>) {
         @UIBindable var binding = store
         self.store = store
-        self.cancelButton = RimLabel(state: $binding.cancelButton)
+        self.cancelButton = RimLabel()
         self.flipCameraButton = RimImageView(state: $binding.flipCameraButton)
         self.flashButton = RimImageView(state: $binding.flashButton)
         super.init(nibName: nil, bundle: nil)
@@ -156,10 +155,18 @@ final class CameraViewController: UIViewController {
         setupView()
         setupEvents()
         makeConstraint()
+        updateView()
 
         present(item: $store.scope(state: \.photoPreview, action: \.photoPreview)) { store in
             PhotoPreviewController(store: store)
         }
+    }
+    
+    private func updateView() {
+        cancelButton.text = .constant("취소")
+        cancelButton.textColor = .constant(.white)
+        cancelButton.typography = .constant(.primaryAction)
+        cancelButton.updateView()
     }
     
     private func setupView() {

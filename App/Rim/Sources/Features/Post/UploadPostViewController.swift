@@ -31,9 +31,8 @@ struct UploadPostFeature {
         var description = RimTextView.State(text: "", placeholder: "더 자세한 내용을 알려주세요.")
         let maxImageUploadRetry = 3
         
+        var isPostButtonEnabled = false
         var postButton = RimLabel.State(
-            text: "공유하기",
-            textColor: .white,
             appearance: .init(cornerRadius: 25, backgroundColor: UIColor(resource: .main))
         )
         
@@ -254,7 +253,7 @@ struct UploadPostFeature {
         .ifLet(\.$alert, action: \.alert)
         .onChange(of: \.isProgressViewPresented) { _, newValue in
             Reduce { state, action in
-                state.postButton.isEnabled = !newValue
+                state.isPostButtonEnabled = !newValue
                 return .none
             }
         }
@@ -282,7 +281,7 @@ class UploadPostViewController: UIViewController {
         self.photoImage = RimImageView(state: $binding.image)
         self.contentTextView = RimTextView(state: $binding.description)
         self.titleTextField = RimTextField(state: $binding.title)
-        self.restrictionLabel = RimLabel(state: .constant(.init(text: "부적절하거나 불쾌감을 줄 수 있는 게시글은 제재를 받을 수 있습니다.", textColor: .gray, typography: .hint)))
+        self.restrictionLabel = RimLabel()
         
         super.init(nibName: nil, bundle: nil)
     }
@@ -296,6 +295,7 @@ class UploadPostViewController: UIViewController {
         
         makeConstraint()
         setupView()
+        updateView()
         
         present(item: $store.scope(state: \.alert, action: \.alert)) { store in
             UIAlertController(store: store)
@@ -310,6 +310,18 @@ class UploadPostViewController: UIViewController {
         }
         
         send(.viewDidLoad)
+    }
+    
+    private func updateView() {
+        postButton.text = .constant("공유하기")
+        postButton.textColor = .constant(.white)
+        postButton.isEnabled = $store.isPostButtonEnabled
+        postButton.updateView()
+        
+        restrictionLabel.text = .constant("부적절하거나 불쾌감을 줄 수 있는 게시글은 제재를 받을 수 있습니다.")
+        restrictionLabel.textColor = .constant(.gray)
+        restrictionLabel.typography = .constant(.hint)
+        restrictionLabel.updateView()
     }
     
     private func setupView() {
