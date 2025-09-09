@@ -18,10 +18,10 @@ struct PhotoPreviewFeature {
     struct State: Equatable {
         @Presents var alert: AlertState<Action.Alert>?
         
-        var photoView: RimImageView.State
+        var photoView: RimImageView.ImageType
         
         init(capturedPhoto: UIImage) {
-            self.photoView = .init(image: .uiImage(uiImage: capturedPhoto))
+            self.photoView = .uiImage(uiImage: capturedPhoto)
         }
     }
     
@@ -61,7 +61,7 @@ struct PhotoPreviewFeature {
                 return .run { _ in await dismiss() }
                 
             case .view(.useButtonTapped):
-                guard case let .uiImage(uiImage) = state.photoView.image else { return .send(.showUsePhotoFailAlert) }
+                guard case let .uiImage(uiImage) = state.photoView else { return .send(.showUsePhotoFailAlert) }
                 return .concatenate([
                     .send(.delegate(.usePhoto(uiImage))),
                     .send(.delegate(.dismissPhotoView))
@@ -108,7 +108,7 @@ class PhotoPreviewController: UIViewController {
     init(store: StoreOf<PhotoPreviewFeature>) {
         @UIBindable var binding = store
         self.store = store
-        self.imagePreviewView = RimImageView(state: $binding.photoView)
+        self.imagePreviewView = RimImageView()
         self.retakeButton = RimLabel()
         self.usePhotoButton = RimLabel()
         super.init(nibName: nil, bundle: nil)
@@ -127,14 +127,14 @@ class PhotoPreviewController: UIViewController {
         super.viewDidLoad()
         setupView()
         makeConstraint()
-        updateLabel()
+        updateView()
         
         present(item: $store.scope(state: \.alert, action: \.alert)) { store in
             UIAlertController(store: store)
         }
     }
     
-    private func updateLabel() {
+    private func updateView() {
         retakeButton.text = .constant("다시 찍기")
         retakeButton.textColor = .constant(.white)
         retakeButton.typography = .constant(.primaryAction)
@@ -144,6 +144,9 @@ class PhotoPreviewController: UIViewController {
         usePhotoButton.textColor = .constant(.white)
         usePhotoButton.typography = .constant(.primaryAction)
         usePhotoButton.updateView()
+        
+        imagePreviewView.image = $store.photoView
+        imagePreviewView.updateView()
     }
     
     private func makeConstraint() {

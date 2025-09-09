@@ -12,17 +12,20 @@ import SnapKit
 import SwiftNavigation
 import SwiftUI
 
-public class RimImageView: RimView {
-    @UIBinding var imageState: State
+public class RimImageView: RimView, ConstraintDescribable {
+    @UIBinding var imageState: State = .init()
+    
     
     public let imageView = UIImageView(frame: .zero)
+    public var image: UIBinding<ImageType> = .constant(.custom(url: nil))
     private let placeholder = ImagePlaceholderView()
     
     private var lastLoadedImageURL: String?
     private var imageLoader: ImageLoader
     
+    private var observeToken: ObserveToken?
+    
     public init() {
-        self.imageState = .init(image: .symbol(name: "", fgColor: .gray))
         let memoryLoader = MemoryCacheImageLoader()
         let diskLoader = DiskCacheImageLoader()
         let networkLoader = NetworkImageLoader()
@@ -32,10 +35,11 @@ public class RimImageView: RimView {
         
         self.imageLoader = memoryLoader
         super.init(state: .constant(.init()))
+        makeConstraint()
+        updateView()
     }
     
-    public init(_ name: String) {
-        self.imageState = .init(image: .symbol(name: "", fgColor: .gray))
+    public init(_ name: String, configure: ((RimImageView) -> Void)? = nil) {
         let memoryLoader = MemoryCacheImageLoader()
         let diskLoader = DiskCacheImageLoader()
         let networkLoader = NetworkImageLoader()
@@ -82,8 +86,10 @@ public class RimImageView: RimView {
         }
     }
     
-    private func updateView() {
-        observe { [weak self] in
+    public func updateView() {
+        observeToken?.cancel()
+        
+        observeToken = observe { [weak self] in
             guard let self else { return }
             resetAppearances()
             imageView.contentMode = .scaleAspectFill
@@ -97,7 +103,7 @@ public class RimImageView: RimView {
     }
     
     private func updateImage() {
-        switch imageState.image {
+        switch image.wrappedValue {
         case let .resource(resource):
             self.imageView.image = UIImage(resource: resource)
             self.placeholder.isHidden = true
@@ -132,34 +138,19 @@ public class RimImageView: RimView {
         }
     }
     
+    
+    public enum ImageType: Equatable {
+        case resource(imageResource: ImageResource)
+        case custom(url: String?)
+        case symbol(name: String, fgColor: UIColor)
+        case uiImage(uiImage: UIImage)
+    }
+    
     public struct State: Equatable {
-        public var image: ImageType
-        
         public var apperance: RimView.State
         
-        public init(image: ImageType, appearance: RimView.State = .init()) {
-            self.image = image
+        public init(appearance: RimView.State = .init()) {
             self.apperance = appearance
         }
-        
-        public enum ImageType: Equatable {
-            case resource(imageResource: ImageResource)
-            case custom(url: String?)
-            case symbol(name: String, fgColor: UIColor)
-            case uiImage(uiImage: UIImage)
-        }
-        
-        public static func == (lhs: RimImageView.State, rhs: RimImageView.State) -> Bool {
-            return lhs.image == rhs.image
-        }
-    }
-}
-
-@available(iOS 17.0, *)
-#Preview("url") {
-    @Previewable @UIBinding var state: RimImageView.State = .init(image: .custom(url: "https://picsum.photos/200/300"))
-    
-    ViewPreview(fromY: \.centerY, toY: \.centerY) {
-        RimImageView(state: $state)
     }
 }

@@ -55,8 +55,6 @@ struct MapFeature {
         )
         
         var selectedFilter = Filter.latest
-        
-        var cameraButton = RimImageView.State(image: .symbol(name: "camera", fgColor: .gray))
         var lastFetchPrecision: Int = 7
         
         var precision: Geohash.Precision {

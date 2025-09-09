@@ -136,12 +136,12 @@ import RimMacro
 ///}
 /// ```
 
+
 @BuildView
 class BlockedPostView: UIView {
     
     init() {
         super.init(frame: .zero)
-        
         addSubviews()
         activateConstraints()
         bind()
@@ -153,7 +153,10 @@ class BlockedPostView: UIView {
     
     var bluePrint: UIView {
         VerticalLayout("layout") {
-//            RimImageView("lockImage") 
+            RimImageView("lockImage") {
+                $0.image = .constant(.symbol(name: "lock.circle", fgColor: .gray))
+            }
+            .constraint(width: 100, height: 100)
             
             RimLabel("message") {
                 $0.text = .constant("차단한 사용자의 게시물은\n볼 수 없어요.")
@@ -165,7 +168,7 @@ class BlockedPostView: UIView {
             $0.spacing = .constant(16)
             $0.alignment = .constant(.center)
         }
-        .constraint(\.centerX, equalTo: \.centerX, \.centerY, equalTo: \.centerY)
+        .constraint(centerX: \.centerX, centerY: \.centerY)
     }
 }
 
@@ -220,7 +223,5 @@ class BlockedPostView: UIView {
 
 @available(iOS 16.0, *)
 #Preview {
-    ViewPreview(fromY: \.centerY, toY: \.centerY) {
-        BlockedPostView()
-    }
+    BlockedPostView()
 }

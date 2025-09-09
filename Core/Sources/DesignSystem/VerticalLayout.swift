@@ -33,6 +33,7 @@ public class VerticalLayout: UIView, ConstraintDescribable {
     
     public init() {
         super.init(frame: .zero)
+        setupView()
         makeConstraint()
         updateView()
     }
@@ -49,12 +50,16 @@ public class VerticalLayout: UIView, ConstraintDescribable {
         fatalError("init(coder:) has not been implemented")
     }
     
-    public func makeConstraint() {
+    private func makeConstraint() {
         addSubview(stack)
         
         stack.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
+    }
+    
+    private func setupView() {
+        stack.axis = .vertical
     }
     
     public func updateView() {

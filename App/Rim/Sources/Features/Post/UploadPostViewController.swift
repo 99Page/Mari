@@ -25,7 +25,7 @@ struct UploadPostFeature {
         
         let photoLocation: NMGLatLng
         var isProgressViewPresented = false
-        var image: RimImageView.State
+        var image: RimImageView.ImageType
         var uploadTryCount = 0
         var imageURL: String?
         var description = RimTextView.State(text: "", placeholder: "더 자세한 내용을 알려주세요.")
@@ -44,7 +44,7 @@ struct UploadPostFeature {
         )
         
         init(pickedImage: UIImage, photoLocation: NMGLatLng) {
-            self.image = RimImageView.State(image: .uiImage(uiImage: pickedImage))
+            self.image = .uiImage(uiImage: pickedImage)
             self.photoLocation = photoLocation
         }
         
@@ -182,7 +182,7 @@ struct UploadPostFeature {
                 
             case .uploadImage:
                 guard state.hasRetryLeft else { return .send(.showUploadFailAlert) }
-                guard case let .uiImage(uiImage) = state.image.image else { return .send(.showUploadFailAlert) }
+                guard case let .uiImage(uiImage) = state.image else { return .send(.showUploadFailAlert) }
                 state.uploadTryCount += 1
                 
                 return .run { send in
@@ -278,7 +278,7 @@ class UploadPostViewController: UIViewController {
         
         self.store = store
         self.postButton = RimLabel(state: $binding.postButton)
-        self.photoImage = RimImageView(state: $binding.image)
+        self.photoImage = RimImageView()
         self.contentTextView = RimTextView(state: $binding.description)
         self.titleTextField = RimTextField(state: $binding.title)
         self.restrictionLabel = RimLabel()
@@ -322,6 +322,9 @@ class UploadPostViewController: UIViewController {
         restrictionLabel.textColor = .constant(.gray)
         restrictionLabel.typography = .constant(.hint)
         restrictionLabel.updateView()
+        
+        photoImage.image = $store.image
+        photoImage.updateView()
     }
     
     private func setupView() {

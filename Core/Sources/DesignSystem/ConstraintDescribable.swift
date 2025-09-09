@@ -11,19 +11,19 @@ import SnapKit
 
 public protocol ConstraintDescribable {
     func constraint(
-        _ fromX: KeyPath<ConstraintMaker, ConstraintMakerExtendable>,
-        equalTo toX: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>,
-        _ fromY: KeyPath<ConstraintMaker, ConstraintMakerExtendable>,
-        equalTo toY: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>
+        width: (any ConstraintRelatableTarget)?,
+        height: (any ConstraintRelatableTarget)?,
+        centerX: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>?,
+        centerY: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>?
     ) -> Self
 }
 
 public extension ConstraintDescribable {
     func constraint(
-        _ fromX: KeyPath<ConstraintMaker, ConstraintMakerExtendable>,
-        equalTo toX: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>,
-        _ fromY: KeyPath<ConstraintMaker, ConstraintMakerExtendable>,
-        equalTo toY: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>
+        width: (any ConstraintRelatableTarget)? = nil,
+        height: (any ConstraintRelatableTarget)? = nil,
+        centerX: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>? = nil,
+        centerY: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>? = nil
     ) -> Self {
         return self
     }

@@ -63,11 +63,11 @@ final class ViewPropertyMacroTests: XCTestCase {
             
                 let layout = VerticalLayout()
             
-                private func addSubviews() {
+                func addSubviews() {
                     self.addSubview(layout)
                 }
             
-                private func activateConstraints() {
+                func activateConstraints() {
 
                 }
             }
@@ -101,11 +101,11 @@ final class ViewPropertyMacroTests: XCTestCase {
             
                 let layout = VerticalLayout()
             
-                private func addSubviews() {
+                func addSubviews() {
                     self.addSubview(layout)
                 }
             
-                private func activateConstraints() {
+                func activateConstraints() {
 
                 }
             }
@@ -144,11 +144,11 @@ final class ViewPropertyMacroTests: XCTestCase {
             
                 let layout = VerticalLayout()
             
-                private func addSubviews() {
+                func addSubviews() {
                     self.addSubview(layout)
                 }
             
-                private func activateConstraints() {
+                func activateConstraints() {
 
                 }
             }
@@ -184,11 +184,11 @@ final class ViewPropertyMacroTests: XCTestCase {
             
                 let layout = VerticalLayout()
             
-                private func addSubviews() {
+                func addSubviews() {
                     self.addSubview(layout)
                 }
             
-                private func activateConstraints() {
+                func activateConstraints() {
 
                 }
             }
@@ -228,13 +228,13 @@ final class ViewPropertyMacroTests: XCTestCase {
 
                 let description = RimLabel()
             
-                private func addSubviews() {
+                func addSubviews() {
                     self.addSubview(layout)
                     layout.addArrangedSubview(title)
                     layout.addArrangedSubview(description)
                 }
             
-                private func activateConstraints() {
+                func activateConstraints() {
 
                 }
             }
@@ -279,14 +279,17 @@ final class ViewPropertyMacroTests: XCTestCase {
 
                 let description = RimLabel()
             
-                private func addSubviews() {
+                func addSubviews() {
                     self.addSubview(layout)
                     layout.addArrangedSubview(title)
                     layout.addArrangedSubview(description)
                 }
             
-                private func activateConstraints() {
-
+                func activateConstraints() {
+                    title.snp.makeConstraints { make in
+                        make.width.equalTo(100.0)
+                        make.height.equalTo(100.0)
+                    }
                 }
             }
             """,
@@ -332,14 +335,22 @@ final class ViewPropertyMacroTests: XCTestCase {
 
                 let description = RimLabel()
             
-                private func addSubviews() {
+                func addSubviews() {
                     self.addSubview(layout)
                     layout.addArrangedSubview(title)
                     layout.addArrangedSubview(description)
                 }
             
-                private func activateConstraints() {
+                func activateConstraints() {
+                    title.snp.makeConstraints { make in
+                        make.width.equalTo(100.0)
+                        make.height.equalTo(100.0)
+                    }
 
+                    description.snp.makeConstraints { make in
+                        make.width.equalTo(200.0)
+                        make.height.equalTo(400.0)
+                    }
                 }
             }
             """,
@@ -355,11 +366,11 @@ final class ViewPropertyMacroTests: XCTestCase {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
                         RimImage("image")
-                            .some(0)
+                            .constraint(width: 100, height: 100)
             
                         RimLabel("description")
                     }
-                    .constraint(\\.centerX, equalTo: \\.centerX, \\.centerY, equalTo: \\.centerY)
+                    .constraint(centerX: \\.centerX, centerY: \\.centerY)
                 }
             }
             """,
@@ -369,11 +380,11 @@ final class ViewPropertyMacroTests: XCTestCase {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
                         RimImage("image")
-                            .some(0)
+                            .constraint(width: 100, height: 100)
             
                         RimLabel("description")
                     }
-                    .constraint(\\.centerX, equalTo: \\.centerX, \\.centerY, equalTo: \\.centerY)
+                    .constraint(centerX: \\.centerX, centerY: \\.centerY)
                 }
             
                 let layout = VerticalLayout()
@@ -382,16 +393,21 @@ final class ViewPropertyMacroTests: XCTestCase {
             
                 let description = RimLabel()
             
-                private func addSubviews() {
+                func addSubviews() {
                     self.addSubview(layout)
                     layout.addArrangedSubview(image)
                     layout.addArrangedSubview(description)
                 }
             
-                private func activateConstraints() {
+                func activateConstraints() {
                     layout.snp.makeConstraints { make in
                         make.centerX.equalTo(self.snp.centerX)
                         make.centerY.equalTo(self.snp.centerY)
+                    }
+            
+                    image.snp.makeConstraints { make in
+                        make.width.equalTo(100.0)
+                        make.height.equalTo(100.0)
                     }
                 }
             }
@@ -416,7 +432,7 @@ final class ViewPropertyMacroTests: XCTestCase {
                             $0.textColor = .constant(.black)
                         }
                     }
-                    .constraint(\\.centerX, equalTo: \\.centerX, \\.centerY, equalTo: \\.centerY)
+                    .constraint(centerX: \\.centerX, centerY: \\.centerY)
                 }
             }
             """,
@@ -434,7 +450,7 @@ final class ViewPropertyMacroTests: XCTestCase {
                             $0.textColor = .constant(.black)
                         }
                     }
-                    .constraint(\\.centerX, equalTo: \\.centerX, \\.centerY, equalTo: \\.centerY)
+                    .constraint(centerX: \\.centerX, centerY: \\.centerY)
                 }
             
                 let layout = VerticalLayout()
@@ -443,20 +459,20 @@ final class ViewPropertyMacroTests: XCTestCase {
             
                 let description = RimLabel()
             
-                private func addSubviews() {
+                func addSubviews() {
                     self.addSubview(layout)
                     layout.addArrangedSubview(title)
                     layout.addArrangedSubview(description)
                 }
             
-                private func activateConstraints() {
+                func activateConstraints() {
                     layout.snp.makeConstraints { make in
                         make.centerX.equalTo(self.snp.centerX)
                         make.centerY.equalTo(self.snp.centerY)
                     }
                 }
             
-                private func bind() {
+                func bind() {
                     title.text = .constant("제목")
                     title.updateView()
                     description.text = .constant("설명")
@@ -485,7 +501,7 @@ final class ViewPropertyMacroTests: XCTestCase {
                         $0.spacing = .constant(16)
                         $0.alignment = .constant(.center)
                     }
-                    .constraint(\\.centerX, equalTo: \\.centerX, \\.centerY, equalTo: \\.centerY)
+                    .constraint(centerX: \\.centerX, centerY: \\.centerY)
                 }
             }
             """,
@@ -503,7 +519,7 @@ final class ViewPropertyMacroTests: XCTestCase {
                         $0.spacing = .constant(16)
                         $0.alignment = .constant(.center)
                     }
-                    .constraint(\\.centerX, equalTo: \\.centerX, \\.centerY, equalTo: \\.centerY)
+                    .constraint(centerX: \\.centerX, centerY: \\.centerY)
                 }
             
                 let layout = VerticalLayout()
@@ -512,20 +528,20 @@ final class ViewPropertyMacroTests: XCTestCase {
 
                 let message = RimLabel()
             
-                private func addSubviews() {
+                func addSubviews() {
                     self.addSubview(layout)
                     layout.addArrangedSubview(lockImage)
                     layout.addArrangedSubview(message)
                 }
             
-                private func activateConstraints() {
+                func activateConstraints() {
                     layout.snp.makeConstraints { make in
                         make.centerX.equalTo(self.snp.centerX)
                         make.centerY.equalTo(self.snp.centerY)
                     }
                 }
             
-                private func bind() {
+                func bind() {
                     layout.spacing = .constant(16)
                     layout.alignment = .constant(.center)
                     layout.updateView()

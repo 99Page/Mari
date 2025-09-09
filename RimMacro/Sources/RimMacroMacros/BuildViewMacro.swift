@@ -23,12 +23,13 @@ public struct BuildViewMacro: MemberMacro {
                 context.diagnose(diagnostic)
                 return []
             }
-            
+
             let lastChainedFunctionCall = try classDecl.findLastChainedFunctionCall()
             
             let parent = ViewDecl(propertyName: "self", typeName: "UIView")
             let viewHierarchy = try extractViewHierarchy(superview: parent, subviews: [lastChainedFunctionCall.findRootFunctionCall()])
             let constraints = try extractConstraintPair(item: lastChainedFunctionCall)
+            
             
             let viewPropertyDecl = try buildViewPropertyDecl(from: lastChainedFunctionCall)
             let addViewDecl = buildAddSubviewsDecl(hierarchy: viewHierarchy)
@@ -85,7 +86,7 @@ extension BuildViewMacro {
         
         return DeclSyntax(
             """
-            private func addSubviews() {
+            func addSubviews() {
             \(raw: body)
             }
             """
@@ -109,27 +110,43 @@ extension BuildViewMacro {
             }
         }
         
-        for (childName, links) in constraints {
-            guard let parentName = parentByChild[childName] else { continue }
-            var makeText: [String] = []
-            
-            for link in links {
-                let makeLine = "make.\(link.fromAnchor).equalTo(\(parentName).snp.\(link.toAnchor))"
-                makeText.append(makeLine)
+        for hierarchyNode in hierarchy {
+            for child in hierarchyNode.children {
+                let childName = child.propertyName
+                guard let parentName = parentByChild[childName] else { continue }
+                guard let links = constraints[childName] else { continue }
+                var makeText: [String] = []
+                
+                for link in links {
+                    if let toConstraintItem = link.toConstraintItem {
+                        let makeLine = "make.\(link.fromConstraint).equalTo(\(parentName).snp.\(toConstraintItem))"
+                        makeText.append(makeLine)
+                    }
+                    
+                    if let value = link.toValue {
+                        let makeLine = "make.\(link.fromConstraint).equalTo(\(value))"
+                        makeText.append(makeLine)
+                    }
+                }
+                
+                let bodyLine =  """
+                                \(childName).snp.makeConstraints { make in 
+                                    \(makeText.joined(separator: "\n"))
+                                }
+                                """
+                
+                bodyText.append("\(bodyLine)\n")
             }
-            
-            let bodyLine =  """
-                            \(childName).snp.makeConstraints { make in 
-                                \(makeText.joined(separator: "\n"))
-                            }
-                            """
-            
-            bodyText.append(bodyLine)
+        }
+        
+        if bodyText.last?.hasSuffix("\n") ?? false { // 마지막 \n 제거 
+            let index = bodyText.count - 1
+            bodyText[index].removeLast()
         }
         
         return DeclSyntax(
             """
-            private func activateConstraints() {
+            func activateConstraints() {
             \(raw: bodyText.joined(separator: "\n"))
             }
             """
@@ -152,7 +169,7 @@ extension BuildViewMacro {
 
            return DeclSyntax(
                """
-               private func bind() {
+               func bind() {
                \(raw: body)
                }
                """
@@ -224,17 +241,24 @@ extension BuildViewMacro {
         return hierarchy
     }
     
-    static func extractConstraintRelations(from keyPathNames: [String]) -> [ConstraintRelation] {
+    static func extractConstaints(from arguments: [LabeledExprSyntax]) -> [ConstraintRelation] {
         var relations: [ConstraintRelation] = []
         
-        var index = 0
-        
-        while index + 1 < keyPathNames.count {
-            let from = keyPathNames[index]
-            let to = keyPathNames[index + 1]
-            let relation = ConstraintRelation(fromAnchor: from, toAnchor: to)
-            relations.append(relation)
-            index += 2
+        for argument in arguments {
+            guard let from = argument.label?.text else { continue }
+            
+            if let expression = argument.expression.as(IntegerLiteralExprSyntax.self) {
+                let value = expression.literal.text
+                let relation = ConstraintRelation(fromConstraint: from, toConstraintItem: nil, toValue: Double(value))
+                relations.append(relation)
+            }
+            
+            if let expression = argument.expression.as(KeyPathExprSyntax.self),
+               let component = expression.components.first?.component.as(KeyPathPropertyComponentSyntax.self) {
+                let constraintItem = component.declName.baseName.text
+                let relation = ConstraintRelation(fromConstraint: from, toConstraintItem: constraintItem, toValue: nil)
+                relations.append(relation)
+            }
         }
         
         return relations
@@ -246,12 +270,11 @@ extension BuildViewMacro {
         if let call = item.findCallee(named: "constraint") {
             let root = call.findRootFunctionCall()
             let viewPropertyName = try root.findViewPropertyName()
-            let keyPathNames = call.extractKeyPathNames()
-            let relations = extractConstraintRelations(from: keyPathNames)
+            let relations = extractConstaints(from: [LabeledExprSyntax](call.arguments))
             constraints[viewPropertyName, default: []].append(contentsOf: relations)
         }
         
-        if let codeBlockItemList = item.trailingClosure?.statements {
+        if let codeBlockItemList = item.findRootFunctionCall().trailingClosure?.statements {
             for codeBlockItem in codeBlockItemList {
                 guard let item = codeBlockItem.item.as(FunctionCallExprSyntax.self) else { continue }
                 let pairs = try extractConstraintPair(item: item)
@@ -273,6 +296,8 @@ extension BuildViewMacro {
 
 // MARK: Types
 struct ConstraintRelation {
-    let fromAnchor: String
-    let toAnchor: String
+    let fromConstraint: String
+    
+    let toConstraintItem: String?
+    let toValue: Double?
 }

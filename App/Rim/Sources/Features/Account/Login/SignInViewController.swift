@@ -33,10 +33,6 @@ struct SignInFeature {
         // 애플 인증에는 해시된 값 사용
         var hashedNonce = ""
         
-        var rimLogo = RimImageView.State(image: .resource(imageResource: .rimWithBackground))
-        var appleSignIn = RimImageView.State(image: .resource(imageResource: .appleCircleLogo))
-        var googleSignIn = RimImageView.State(image: .resource(imageResource: .googleCircleLogo))
-        
         var isProgressPresented = false
         
         @Presents var alert: AlertState<AlertAction>?
@@ -152,10 +148,10 @@ class SignInViewController: UIViewController {
     init(store: StoreOf<SignInFeature>) {
         @UIBindable var binding = store
         self.store = store
-        self.appleSignInButton = RimImageView(state: $binding.appleSignIn)
-        self.googleSignInButton = RimImageView(state: $binding.googleSignIn)
+        self.appleSignInButton = RimImageView()
+        self.googleSignInButton = RimImageView()
         self.signInLabel = RimLabel()
-        self.rimLogoImageView = RimImageView(state: $binding.rimLogo)
+        self.rimLogoImageView = RimImageView()
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -183,6 +179,15 @@ class SignInViewController: UIViewController {
         signInLabel.textColor = .constant(.gray)
         signInLabel.typography = .constant(.hint)
         signInLabel.updateView()
+        
+        rimLogoImageView.image = .constant(.resource(imageResource: .rimWithBackground))
+        rimLogoImageView.updateView()
+        
+        appleSignInButton.image = .constant(.resource(imageResource: .appleCircleLogo))
+        appleSignInButton.updateView()
+        
+        googleSignInButton.image = .constant(.resource(imageResource: .googleCircleLogo))
+        googleSignInButton.updateView()
     }
     
     private func makeConstraint() {

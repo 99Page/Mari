@@ -23,7 +23,7 @@ struct PostDetailFeature {
         
         var titleText: String = ""
         var descriptionText: String = "" 
-        var image: RimImageView.State
+        var image: RimImageView.ImageType
         var creatorID: String?
         
         var isProgressViewPresented = false
@@ -32,7 +32,7 @@ struct PostDetailFeature {
         
         init(postID: String) {
             self.postID = postID
-            self.image = .init(image: .custom(url: nil))
+            self.image = .custom(url: nil)
         }
         
         var menu: [PostMenuFeature.State.Menu] {
@@ -128,7 +128,7 @@ struct PostDetailFeature {
                 }
             
             case let .setPostDetail(post):
-                state.image = .init(image: .custom(url: post.imageUrl))
+                state.image = .custom(url: post.imageUrl)
                 state.titleText = post.title
                 state.descriptionText = post.content
                 state.isMyPost = post.isMine
@@ -269,7 +269,7 @@ class PostDetailViewController: UIViewController {
         self.store = store
         self.titleLabel = RimLabel()
         self.descriptionLabel = RimLabel()
-        self.imageView = RimImageView(state: $binding.image)
+        self.imageView = RimImageView()
         super.init(nibName: nil, bundle: nil)
         
         hidesBottomBarWhenPushed = true
@@ -340,13 +340,15 @@ class PostDetailViewController: UIViewController {
         titleLabel.textColor = .constant(.black)
         titleLabel.alignment = .constant(.natural)
         titleLabel.typography = .constant(.contentTitle)
+        titleLabel.updateView()
         
         descriptionLabel.text = $store.descriptionText
         descriptionLabel.textColor = .constant(.black)
         descriptionLabel.alignment = .constant(.natural)
+        descriptionLabel.updateView()
         
-        titleLabel.updateView()
-        descriptionLabel.updateView() 
+        imageView.image = $store.image
+        imageView.updateView()
     }
     
     private func setupView() {
@@ -426,12 +428,7 @@ class PostDetailViewController: UIViewController {
     }
     
     
-    NavigationStack {
-        ViewControllerPreview {
-            PostDetailViewController(store: store)
-        }
-        .ignoresSafeArea()
-    }
+    PostDetailViewController(store: store)
 }
 
 #Preview("fetch success") {
@@ -442,10 +439,7 @@ class PostDetailViewController: UIViewController {
         $0.postClient.fetchPostByID = { _ in .stub() }
     }
 
-    ViewControllerPreview {
-        MapNavigationStackController(store: store)
-    }
-    .ignoresSafeArea()
+    MapNavigationStackController(store: store)
 }
 
 #Preview("for block") {
@@ -458,8 +452,5 @@ class PostDetailViewController: UIViewController {
         $0.userRelationClient.blocksUser = { _ in .stub() }
     }
 
-    ViewControllerPreview {
-        MapNavigationStackController(store: store)
-    }
-    .ignoresSafeArea()
+    MapNavigationStackController(store: store)
 }

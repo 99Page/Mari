@@ -17,8 +17,8 @@ import Core
 struct CameraFeature {
     @ObservableState
     struct State: Equatable {
-        var flipCameraButton = RimImageView.State(image: .symbol(name: "arrow.trianglehead.2.clockwise.rotate.90", fgColor: .white))
-        var flashButton = RimImageView.State(image: .symbol(name: "bolt.slash.fill", fgColor: .white))
+        var flipCameraButton = RimImageView.ImageType.symbol(name: "arrow.trianglehead.2.clockwise.rotate.90", fgColor: .white)
+        var flashButton = RimImageView.ImageType.symbol(name: "bolt.slash.fill", fgColor: .white)
         
         // 플래시가 없는 디바이스도 있으니 기본 값은 off
         var flashMode = Flash.off
@@ -90,7 +90,7 @@ struct CameraFeature {
                 let hasDeviceFlash = device?.hasFlash ?? false
                 
                 state.flashMode = hasDeviceFlash ? state.flashMode.next : .off
-                state.flashButton = .init(image: .symbol(name: state.flashMode.symbol, fgColor: .white))
+                state.flashButton = .symbol(name: state.flashMode.symbol, fgColor: .white)
                 return .none
                 
             case .view(.photoCaptured):
@@ -136,8 +136,8 @@ final class CameraViewController: UIViewController {
         @UIBindable var binding = store
         self.store = store
         self.cancelButton = RimLabel()
-        self.flipCameraButton = RimImageView(state: $binding.flipCameraButton)
-        self.flashButton = RimImageView(state: $binding.flashButton)
+        self.flipCameraButton = RimImageView()
+        self.flashButton = RimImageView()
         super.init(nibName: nil, bundle: nil)
         self.modalPresentationStyle = .fullScreen
     }
@@ -167,6 +167,12 @@ final class CameraViewController: UIViewController {
         cancelButton.textColor = .constant(.white)
         cancelButton.typography = .constant(.primaryAction)
         cancelButton.updateView()
+        
+        flipCameraButton.image = $store.flipCameraButton
+        flipCameraButton.updateView()
+        
+        flashButton.image = $store.flashButton
+        flashButton.updateView()
     }
     
     private func setupView() {

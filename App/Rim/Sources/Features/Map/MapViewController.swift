@@ -47,7 +47,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         self.latestBackgroundView = RimView(state: $binding.latestBackground)
         self.popularBackgroundView = RimView(state: $binding.popularBackground)
         
-        self.cameraButton = RimImageView(state: $binding.cameraButton)
+        self.cameraButton = RimImageView()
         self.cameraBackgroundView = RimView(state: .constant(.init(borderColor: .gray, borderWidth: 1, cornerRadius: 20, backgroundColor: .systemBackground, shadowColor: .gray, shadowOpacity: 0.8, shadowOffset: CGSize(width: 0, height: 0.5), shadowRadius: 1)))
         
         super.init(nibName: nil, bundle: nil)
@@ -93,6 +93,9 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         popularLabel.text = .constant("인기순")
         popularLabel.textColor = .constant(.black)
         popularLabel.updateView()
+        
+        cameraButton.image = .constant(.symbol(name: "camera", fgColor: .gray))
+        cameraButton.updateView()
     }
     
     private func updateProgressView() {
