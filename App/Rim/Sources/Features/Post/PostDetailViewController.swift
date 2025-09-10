@@ -21,9 +21,9 @@ struct PostDetailFeature {
         
         let postID: String
         
-        var image: RimImageView.State
-        var title: RimLabel.State
-        var description: RimLabel.State
+        var titleText: String = ""
+        var descriptionText: String = "" 
+        var image: RimImageView.ImageType
         var creatorID: String?
         
         var isProgressViewPresented = false
@@ -32,9 +32,7 @@ struct PostDetailFeature {
         
         init(postID: String) {
             self.postID = postID
-            self.image = .init(image: .custom(url: nil))
-            self.title = .init(text: "", textColor: .black, typography: .contentTitle, alignment: .natural)
-            self.description = .init(text: "", textColor: .black, alignment: .natural)
+            self.image = .custom(url: nil)
         }
         
         var menu: [PostMenuFeature.State.Menu] {
@@ -130,9 +128,9 @@ struct PostDetailFeature {
                 }
             
             case let .setPostDetail(post):
-                state.image = .init(image: .custom(url: post.imageUrl))
-                state.title.text = post.title
-                state.description.text = post.content
+                state.image = .custom(url: post.imageUrl)
+                state.titleText = post.title
+                state.descriptionText = post.content
                 state.isMyPost = post.isMine
                 state.creatorID = post.creatorID
                 state.isMenuButtonPresented = true
@@ -269,9 +267,9 @@ class PostDetailViewController: UIViewController {
     init(store: StoreOf<PostDetailFeature>) {
         @UIBindable var binding = store
         self.store = store
-        self.titleLabel = RimLabel(state: $binding.title)
-        self.descriptionLabel = RimLabel(state: $binding.description)
-        self.imageView = RimImageView(state: $binding.image)
+        self.titleLabel = RimLabel()
+        self.descriptionLabel = RimLabel()
+        self.imageView = RimImageView()
         super.init(nibName: nil, bundle: nil)
         
         hidesBottomBarWhenPushed = true
@@ -337,6 +335,20 @@ class PostDetailViewController: UIViewController {
             menuButton.tintColor = store.navigationColor
             navigationController?.navigationBar.tintColor = store.navigationColor
         }
+        
+        titleLabel.text = $store.titleText
+        titleLabel.textColor = .constant(.black)
+        titleLabel.alignment = .constant(.natural)
+        titleLabel.typography = .constant(.contentTitle)
+        titleLabel.updateView()
+        
+        descriptionLabel.text = $store.descriptionText
+        descriptionLabel.textColor = .constant(.black)
+        descriptionLabel.alignment = .constant(.natural)
+        descriptionLabel.updateView()
+        
+        imageView.image = $store.image
+        imageView.updateView()
     }
     
     private func setupView() {
@@ -416,12 +428,7 @@ class PostDetailViewController: UIViewController {
     }
     
     
-    NavigationStack {
-        ViewControllerPreview {
-            PostDetailViewController(store: store)
-        }
-        .ignoresSafeArea()
-    }
+    PostDetailViewController(store: store)
 }
 
 #Preview("fetch success") {
@@ -432,10 +439,7 @@ class PostDetailViewController: UIViewController {
         $0.postClient.fetchPostByID = { _ in .stub() }
     }
 
-    ViewControllerPreview {
-        MapNavigationStackController(store: store)
-    }
-    .ignoresSafeArea()
+    MapNavigationStackController(store: store)
 }
 
 #Preview("for block") {
@@ -448,8 +452,5 @@ class PostDetailViewController: UIViewController {
         $0.userRelationClient.blocksUser = { _ in .stub() }
     }
 
-    ViewControllerPreview {
-        MapNavigationStackController(store: store)
-    }
-    .ignoresSafeArea()
+    MapNavigationStackController(store: store)
 }

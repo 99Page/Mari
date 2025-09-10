@@ -47,7 +47,6 @@ class TextViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         makeConstraints()
-        textView.configure()
     }
     
     private func makeConstraints() {

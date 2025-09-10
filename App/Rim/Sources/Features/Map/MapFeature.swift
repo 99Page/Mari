@@ -31,7 +31,6 @@ struct MapFeature {
         var mapCameraCenterPosition = NMGLatLng(lat: 0, lng: 0)
         var photoLocation: NMGLatLng?
         
-        var latestFilter = RimLabel.State(text: "최신순", textColor: .black)
         var isProgressPresented = false
         
         var latestBackground = RimView.State(
@@ -45,7 +44,6 @@ struct MapFeature {
             shadowRadius: 2
         )
         
-        var popularFilter = RimLabel.State(text: "인기순",textColor: .black)
         var popularBackground = RimView.State(
             borderWidth: 1.2,
             cornerRadius: 13,
@@ -57,8 +55,6 @@ struct MapFeature {
         )
         
         var selectedFilter = Filter.latest
-        
-        var cameraButton = RimImageView.State(image: .symbol(name: "camera", fgColor: .gray))
         var lastFetchPrecision: Int = 7
         
         var precision: Geohash.Precision {

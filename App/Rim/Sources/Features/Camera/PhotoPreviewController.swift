@@ -18,12 +18,10 @@ struct PhotoPreviewFeature {
     struct State: Equatable {
         @Presents var alert: AlertState<Action.Alert>?
         
-        var photoView: RimImageView.State
-        var retakeButton = RimLabel.State(text: "다시 찍기", textColor: .white, typography: .primaryAction)
-        var usePhotoButton = RimLabel.State(text: "사용하기", textColor: .white, typography: .primaryAction)
+        var photoView: RimImageView.ImageType
         
         init(capturedPhoto: UIImage) {
-            self.photoView = .init(image: .uiImage(uiImage: capturedPhoto))
+            self.photoView = .uiImage(uiImage: capturedPhoto)
         }
     }
     
@@ -63,7 +61,7 @@ struct PhotoPreviewFeature {
                 return .run { _ in await dismiss() }
                 
             case .view(.useButtonTapped):
-                guard case let .uiImage(uiImage) = state.photoView.image else { return .send(.showUsePhotoFailAlert) }
+                guard case let .uiImage(uiImage) = state.photoView else { return .send(.showUsePhotoFailAlert) }
                 return .concatenate([
                     .send(.delegate(.usePhoto(uiImage))),
                     .send(.delegate(.dismissPhotoView))
@@ -110,9 +108,9 @@ class PhotoPreviewController: UIViewController {
     init(store: StoreOf<PhotoPreviewFeature>) {
         @UIBindable var binding = store
         self.store = store
-        self.imagePreviewView = RimImageView(state: $binding.photoView)
-        self.retakeButton = RimLabel(state: $binding.retakeButton)
-        self.usePhotoButton = RimLabel(state: $binding.usePhotoButton)
+        self.imagePreviewView = RimImageView()
+        self.retakeButton = RimLabel()
+        self.usePhotoButton = RimLabel()
         super.init(nibName: nil, bundle: nil)
         
         self.modalPresentationStyle = .fullScreen
@@ -129,10 +127,26 @@ class PhotoPreviewController: UIViewController {
         super.viewDidLoad()
         setupView()
         makeConstraint()
+        updateView()
         
         present(item: $store.scope(state: \.alert, action: \.alert)) { store in
             UIAlertController(store: store)
         }
+    }
+    
+    private func updateView() {
+        retakeButton.text = .constant("다시 찍기")
+        retakeButton.textColor = .constant(.white)
+        retakeButton.typography = .constant(.primaryAction)
+        retakeButton.updateView()
+        
+        usePhotoButton.text = .constant("사용하기")
+        usePhotoButton.textColor = .constant(.white)
+        usePhotoButton.typography = .constant(.primaryAction)
+        usePhotoButton.updateView()
+        
+        imagePreviewView.image = $store.photoView
+        imagePreviewView.updateView()
     }
     
     private func makeConstraint() {
