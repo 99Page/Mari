@@ -95,7 +95,6 @@ struct MapFeature {
     
     enum EffectID {
         case fetchPosts
-        case setPosts
     }
     
     enum Action: ViewAction {
@@ -109,7 +108,6 @@ struct MapFeature {
         case showFetchFailAlert
         case dismissProgress
         case setImage(postID: String, image: UIImage)
-        case cancelSetPosts
         case showFailedToGetPhotoLocationAlert
         
         enum UIAction: BindableAction {
@@ -242,11 +240,11 @@ struct MapFeature {
                             let image = try await imageClient.loadImage(url: addedPost.imageURL, size: imageSize)
                             await send(.setImage(postID: addedPost.id, image: image))
                         } catch {
+                            Logger.error("이미지 로드 실패")
                             // 실패 무시 or 처리
                         }
                     }
                 }
-                .cancellable(id: EffectID.setPosts)
                 
             case let .setImage(postID, image):
                 state.posts[id: postID]?.image = image
@@ -278,7 +276,6 @@ struct MapFeature {
                 )
                 
                 return .run { send in
-                    await send(.cancelSetPosts)
                     let response = try await postClient.fetchNearPosts(request).result
                     await send(.setPosts(response))
                     await send(.dismissProgress)
@@ -287,9 +284,6 @@ struct MapFeature {
                     await send(.dismissProgress)
                 }
                     .debounce(id: EffectID.fetchPosts, for: .seconds(1), scheduler: RunLoop.main)
-                
-            case .cancelSetPosts:
-                return .cancel(id: EffectID.setPosts)
                 
             case let .removePost(id):
                 state.posts.remove(id: id)
