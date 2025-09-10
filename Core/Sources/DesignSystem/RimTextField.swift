@@ -52,8 +52,8 @@ public class RimTextField: RimView {
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = textFieldState.alignment
         paragraphStyle.lineSpacing = 0
-        paragraphStyle.minimumLineHeight = textFieldState.typography.size
-        paragraphStyle.maximumLineHeight = textFieldState.typography.size
+        paragraphStyle.minimumLineHeight = textFieldState.typography.lineHeight
+        paragraphStyle.maximumLineHeight = textFieldState.typography.lineHeight
         
         let attributes: [NSAttributedString.Key: Any] = [
             .foregroundColor: fgColor,
