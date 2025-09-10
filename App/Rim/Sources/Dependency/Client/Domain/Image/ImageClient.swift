@@ -38,7 +38,14 @@ extension ImageClient: DependencyKey {
             
             return ImageResponse(imageURL: url.absoluteString)
         } loadImage: { url, size in
-            let image = try await NetworkImageLoader().loadImage(fromKey: url)
+            let memoryLoader = MemoryCacheImageLoader()
+            let diskLoader = DiskCacheImageLoader()
+            let networkLoader = NetworkImageLoader()
+            
+            memoryLoader.next = diskLoader
+            diskLoader.next = networkLoader
+            
+            let image = try await memoryLoader.loadImage(fromKey: url)
             let renderer = UIGraphicsImageRenderer(size: size)
             
             return renderer.image { _ in

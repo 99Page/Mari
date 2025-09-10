@@ -283,7 +283,6 @@ struct MapFeature {
                     await send(.setPosts(response))
                     await send(.dismissProgress)
                 } catch: { error, send in
-                    Logger.debug(error.localizedDescription)
                     await send(.showFetchFailAlert)
                     await send(.dismissProgress)
                 }

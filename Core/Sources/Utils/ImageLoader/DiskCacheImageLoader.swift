@@ -9,8 +9,8 @@
 import Foundation
 import UIKit
 
-final class DiskCacheImageLoader: ImageLoader {
-    var next: ImageLoader?
+public final class DiskCacheImageLoader: ImageLoader {
+    public var next: ImageLoader?
 
     private let fileManager = FileManager.default
     private let cacheDirectory: URL = {
@@ -18,11 +18,11 @@ final class DiskCacheImageLoader: ImageLoader {
         return url.appendingPathComponent("ImageDiskCache", isDirectory: true)
     }()
 
-    init() {
+    public init() {
         try? fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
     }
 
-    func loadImage(fromKey key: String) async throws -> UIImage {
+    public func loadImage(fromKey key: String) async throws -> UIImage {
         let filename = key.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) ?? UUID().uuidString
         let fileURL = cacheDirectory.appendingPathComponent(filename)
 

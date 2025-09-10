@@ -9,12 +9,14 @@
 import Foundation
 import UIKit
 
-final class MemoryCacheImageLoader: ImageLoader {
+public final class MemoryCacheImageLoader: ImageLoader {
     
-    var next: ImageLoader?
+    public var next: ImageLoader?
     private var cache = NSCache<NSString, UIImage>()
+    
+    public init() { }
 
-    func loadImage(fromKey key: String) async throws -> UIImage {
+    public func loadImage(fromKey key: String) async throws -> UIImage {
         let nsKey = key as NSString
         if let result = cache.object(forKey: nsKey) {
             return result
