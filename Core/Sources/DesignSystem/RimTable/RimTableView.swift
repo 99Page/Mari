@@ -46,6 +46,19 @@ public class RimTableView<Cell: CellConfigurable>: UITableView,  UITableViewDele
     
     private var didRowSelected: ((IndexPath) -> Void)?
     
+    convenience init() {
+        self.init()
+    }
+    
+    public convenience init(_ name: String, configure: ((RimTableView) -> Void)? = nil) {
+        self.init()
+        register(Cell.self, forCellReuseIdentifier: "Cell")
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     func updateView() {
         observeToken?.cancel()
         
@@ -134,3 +147,5 @@ public class RimTableView<Cell: CellConfigurable>: UITableView,  UITableViewDele
         didRowSelected?(indexPath)
     }
 }
+
+extension RimTableView: ConstraintDescribable { }

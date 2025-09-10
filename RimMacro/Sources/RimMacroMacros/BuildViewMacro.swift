@@ -52,10 +52,12 @@ extension BuildViewMacro {
         let rootCall = firstCall.findRootFunctionCall()
         let typeName = try rootCall.findViewTypeName()
         let propertyName = try rootCall.findViewPropertyName()
+        let functionCallExpr = rootCall.extractEmptyInitializer()
 
-        let decl: DeclSyntax = "let \(raw: propertyName) = \(raw: typeName)()"
+        let decl: DeclSyntax = "let \(raw: propertyName) = \(functionCallExpr)"
 
         var members: [DeclSyntax] = [decl]
+        
         for subview in rootCall.findSubviews() {
             let subMembers = try buildViewPropertyDecl(from: subview)
             members.append(contentsOf: subMembers)

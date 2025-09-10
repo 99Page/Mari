@@ -16,6 +16,13 @@ public protocol ConstraintDescribable {
         centerX: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>?,
         centerY: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>?
     ) -> Self
+    
+    func constraint(
+        leading: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>?,
+        trailing: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>??,
+        top: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>?,
+        bottom: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>?
+    ) -> Self
 }
 
 public extension ConstraintDescribable {
@@ -24,6 +31,15 @@ public extension ConstraintDescribable {
         height: (any ConstraintRelatableTarget)? = nil,
         centerX: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>? = nil,
         centerY: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>? = nil
+    ) -> Self {
+        return self
+    }
+    
+    func constraint(
+        leading: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>?,
+        trailing: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>??,
+        top: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>?,
+        bottom: KeyPath<ConstraintLayoutGuideDSL, ConstraintItem>?
     ) -> Self {
         return self
     }

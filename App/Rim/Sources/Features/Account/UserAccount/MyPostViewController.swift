@@ -10,6 +10,7 @@ import ComposableArchitecture
 import UIKit
 import SwiftUI
 import Core
+import RimMacro
 
 struct MyPost: SectionProvidable {
     let id = UUID()
@@ -30,6 +31,7 @@ struct MyPostFeature {
     struct State: Equatable {
         @Presents var alert: AlertState<AlertAction>?
         var posts: IdentifiedArrayOf<PostSummaryState> = []
+        var myPosts: IdentifiedArrayOf<MyPost> =  []
         
         // 포스트를 가져오기 위한 커서
         var creationCursor: Date? = Date.now
@@ -169,6 +171,7 @@ struct MyPostFeature {
     }
 }
 
+@BuildView
 @ViewAction(for: MyPostFeature.self)
 class MyPostViewController: UIViewController {
     
@@ -218,12 +221,16 @@ class MyPostViewController: UIViewController {
     }
     
     var bluePrint: UIView {
-        RimTableView<MyPostTableViewCell>()
-            .didRowSelected { indexPath in
-                let post = self.store.posts[indexPath.row]
-                let postDetail = PostDetailFeature.State(postID: post.id)
-                self.traitCollection.push(state: AccountNavigationStack.Path.State.postDetail(postDetail))
-            }
+        RimTableView<MyPostTableViewCell>("myPost") {
+            $0.items = self.$store.myPosts
+            
+        }
+        .constraint(leading: \.leading, trailing: \.trailing, top: \.top, bottom: \.bottom)
+        .didRowSelected { indexPath in
+            let post = self.store.posts[indexPath.row]
+            let postDetail = PostDetailFeature.State(postID: post.id)
+            self.traitCollection.push(state: AccountNavigationStack.Path.State.postDetail(postDetail))
+        }
     }
     
     private func setupView() {
@@ -234,14 +241,16 @@ class MyPostViewController: UIViewController {
             self?.send(.didScrollToBottom)
         }
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
-        tableView.frame = view.bounds
-        tableView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         
         setupDataSource()
     }
     
     private func makeConstraint() {
         view.addSubview(tableView)
+        
+        tableView.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
     }
     
     private func updateView() {

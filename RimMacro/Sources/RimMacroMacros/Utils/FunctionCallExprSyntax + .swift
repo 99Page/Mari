@@ -133,4 +133,11 @@ extension FunctionCallExprSyntax {
         
         return labels
     }
+    
+    func extractEmptyInitializer() -> FunctionCallExprSyntax {
+        let calledExpression = self.calledExpression
+        let trim = calledExpression.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedExprSyntax = ExprSyntax(stringLiteral: trim)
+        return FunctionCallExprSyntax(callee: trimmedExprSyntax)
+    }
 }
