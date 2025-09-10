@@ -11,6 +11,19 @@ import UIKit
 import SwiftUI
 import Core
 
+struct MyPost: SectionProvidable {
+    let id = UUID()
+    var section = "main"
+}
+
+class MyPostTableViewCell: UITableViewCell, CellConfigurable {
+    typealias Value = MyPost
+    
+    func configure(with value: UIBinding<Value?>) {
+        
+    }
+}
+
 @Reducer
 struct MyPostFeature {
     @ObservableState
@@ -82,7 +95,8 @@ struct MyPostFeature {
                 return .run { send in
                     let response = try await postClient.fetchUserPosts(lastCreatedAt: cursor).result
                     await send(.appendPosts(response))
-                } catch: { _, send in
+                } catch: { error, send in
+                    debugPrint(error)
                     await send(.showFetchFailAlert)
                 }
                 .throttle(id: EffetcID.fetchPosts, for: .seconds(1), scheduler: self.mainQueue, latest: false)
@@ -201,6 +215,15 @@ class MyPostViewController: UIViewController {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         navigationController?.navigationBar.tintColor = previousTintColor
+    }
+    
+    var bluePrint: UIView {
+        RimTableView<MyPostTableViewCell>()
+            .didRowSelected { indexPath in
+                let post = self.store.posts[indexPath.row]
+                let postDetail = PostDetailFeature.State(postID: post.id)
+                self.traitCollection.push(state: AccountNavigationStack.Path.State.postDetail(postDetail))
+            }
     }
     
     private func setupView() {
