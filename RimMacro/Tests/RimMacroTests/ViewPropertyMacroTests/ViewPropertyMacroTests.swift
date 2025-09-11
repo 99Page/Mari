@@ -85,7 +85,6 @@ final class ViewPropertyMacroTests: XCTestCase {
                     VerticalLayout("layout") {
                         
                     }
-                    .spacing(16)
                 }
             }
             """,
@@ -96,50 +95,6 @@ final class ViewPropertyMacroTests: XCTestCase {
                     VerticalLayout("layout") {
                         
                     }
-                    .spacing(16)
-                }
-            
-                let layout = VerticalLayout()
-            
-                func addSubviews() {
-                    self.addSubview(layout)
-                }
-            
-                func activateConstraints() {
-
-                }
-            }
-            """,
-            macros: testMacros
-        )
-    }
-    
-    
-    func testOnlyVerticalLayoutWithThreeModifier() {
-        assertMacroExpansion(
-            """
-            @View
-            class RootView: UIView {
-                var bluePrint: UIView {
-                    VerticalLayout("layout") {
-                        
-                    }
-                    .spacing(16)
-                    .alignment(.center)
-                    .distribution(.equals)
-                }
-            }
-            """,
-            expandedSource:
-            """
-            class RootView: UIView {
-                var bluePrint: UIView {
-                    VerticalLayout("layout") {
-                        
-                    }
-                    .spacing(16)
-                    .alignment(.center)
-                    .distribution(.equals)
                 }
             
                 let layout = VerticalLayout()
@@ -207,7 +162,6 @@ final class ViewPropertyMacroTests: XCTestCase {
                         RimLabel("title")
                         RimLabel("description")
                     }
-                    .spacing(10)
                 }
             }
             """,
@@ -219,7 +173,6 @@ final class ViewPropertyMacroTests: XCTestCase {
                         RimLabel("title")
                         RimLabel("description")
                     }
-                    .spacing(10)
                 }
 
                 let layout = VerticalLayout()
@@ -256,7 +209,6 @@ final class ViewPropertyMacroTests: XCTestCase {
             
                         RimLabel("description")
                     }
-                    .spacing(10)
                 }
             }
             """,
@@ -270,7 +222,6 @@ final class ViewPropertyMacroTests: XCTestCase {
             
                         RimLabel("description")
                     }
-                    .spacing(10)
                 }
 
                 let layout = VerticalLayout()
@@ -311,7 +262,6 @@ final class ViewPropertyMacroTests: XCTestCase {
                         RimLabel("description")
                             .constraint(width: 200, height: 400)
                     }
-                    .spacing(10)
                 }
             }
             """,
@@ -326,7 +276,6 @@ final class ViewPropertyMacroTests: XCTestCase {
                         RimLabel("description")
                             .constraint(width: 200, height: 400)
                     }
-                    .spacing(10)
                 }
 
                 let layout = VerticalLayout()

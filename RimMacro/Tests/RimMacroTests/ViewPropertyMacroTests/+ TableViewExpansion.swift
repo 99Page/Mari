@@ -54,20 +54,20 @@ extension ViewPropertyMacroTests {
             
                 func activateConstraints() {
                     table.snp.makeConstraints { make in
-                        make.leading.equalTo(view.snp.leading)
-                        make.trailing.equalTo(view.snp.trailing)
-                        make.top.equalTo(view.snp.top)
-                        make.bottom.equalTo(view.snp.bottom)
+                        make.leading.equalTo(self.snp.leading)
+                        make.trailing.equalTo(self.snp.trailing)
+                        make.top.equalTo(self.snp.top)
+                        make.bottom.equalTo(self.snp.bottom)
                     }
                 }
             
                 func bind() {
                     table.items = self.$store.items
-                    tableView.updateView()
+                    table.updateView()
                 }
             
-                func handleEvent() {
-                    tableView.didRowSelected { indexPath in
+                func addEvents() {
+                    table.didRowSelected { indexPath in
                         let post = self.store.posts[indexPath.row]
                         let postDetail = PostDetailFeature.State(postID: post.id)
                         self.traitCollection.push(state: AccountNavigationStack.Path.State.postDetail(postDetail))

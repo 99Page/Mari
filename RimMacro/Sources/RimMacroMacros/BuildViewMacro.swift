@@ -34,10 +34,16 @@ public struct BuildViewMacro: MemberMacro {
             let viewPropertyDecl = try buildViewPropertyDecl(from: lastChainedFunctionCall)
             let addViewDecl = buildAddSubviewsDecl(hierarchy: viewHierarchy)
             let constraintDecl = buildConstraintDecl(hierarchy: viewHierarchy, constraints: constraints)
+            let addEventDecl = try build(item: lastChainedFunctionCall)
             
             let setupDecl = try buildSetupFunction(from: lastChainedFunctionCall)
             
-            return viewPropertyDecl + [addViewDecl, constraintDecl, setupDecl]
+            return viewPropertyDecl + [addViewDecl, constraintDecl, setupDecl, addEventDecl]
+            
+        } catch let error as MacroError {
+            let diagnostic = Diagnostic(node: declaration, message: error)
+            context.diagnose(diagnostic)
+            return [] 
         } catch {
             
         }
@@ -50,7 +56,6 @@ public struct BuildViewMacro: MemberMacro {
 extension BuildViewMacro {
     private static func buildViewPropertyDecl(from firstCall: FunctionCallExprSyntax) throws -> [DeclSyntax] {
         let rootCall = firstCall.findRootFunctionCall()
-        let typeName = try rootCall.findViewTypeName()
         let propertyName = try rootCall.findViewPropertyName()
         let functionCallExpr = rootCall.extractEmptyInitializer()
 
@@ -293,6 +298,69 @@ extension BuildViewMacro {
     static func isContainer(_ item: FunctionCallExprSyntax) throws -> Bool {
         let typeName = try item.findViewTypeName().lowercased()
         return typeName.hasSuffix("layout") || typeName.hasSuffix("container")
+    }
+}
+
+// MARK: Add Event
+extension BuildViewMacro {
+    static func build(item: FunctionCallExprSyntax) throws -> DeclSyntax {
+        // 체이닝으로부터 이벤트 관련 호출 라인 수집
+        let bodyLines = try buildAddEventDecl(item: item)
+
+        // 본문 생성
+        let body = bodyLines.map { $0 }.joined(separator: "\n")
+        
+
+        // 이벤트가 없으면 함수 자체를 생성하지 않음
+        if body.isEmpty {
+            return DeclSyntax("")
+        }
+
+        // 가독성을 위해 복수형 명명(`addEvents`) 사용
+        return DeclSyntax(
+            """
+            func addEvents() {
+            \(raw: body)
+            }
+            """
+        )
+    }
+
+    private static func buildAddEventDecl(item: FunctionCallExprSyntax) throws -> [String] {
+        var decl: [String] = try makeAddEventDeclRaw(item: item)
+        
+        for subview in item.findRootFunctionCall().findSubviews() {
+            let subviewDecl = try buildAddEventDecl(item: subview)
+            decl.append(contentsOf: subviewDecl)
+        }
+        return decl
+    }
+
+    private static func makeAddEventDeclRaw(item: FunctionCallExprSyntax) throws -> [String] {
+        var declRaws: [String] = []
+
+        let root = item.findRootFunctionCall()
+        let propertyName = try root.findViewPropertyName()
+
+        var current: FunctionCallExprSyntax? = item
+        
+        while let call = current?.lastCall {
+            // 체이닝의 마지막 호출을 한 줄로 변환
+            
+            if let current, current.calledExpression.is(MemberAccessExprSyntax.self),
+               !call.isCallee(named: "constraint") {
+                var line = call.description
+
+                // `propertyName` 접두어를 붙여 실제 인스턴스 메서드 호출로 출력
+                line = "\(propertyName).\(line)"
+                declRaws.append(line)
+            }
+
+            // 다음 루프를 위해 체이닝 한 단계 제거
+            current = current?.withoutLastCall
+        }
+
+        return declRaws
     }
 }
 
