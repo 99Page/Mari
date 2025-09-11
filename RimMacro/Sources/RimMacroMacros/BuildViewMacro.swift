@@ -18,6 +18,11 @@ public struct BuildViewMacro: MemberMacro {
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
         do {
+            guard let parentView = findParentViewName(node: node) else {
+                let diagnostic = Diagnostic(node: declaration, message: MacroError.missingParentView)
+                return []
+            }
+            
             guard let classDecl = declaration.as(ClassDeclSyntax.self) else {
                 let diagnostic = Diagnostic(node: declaration, message: MacroError.onlyAppliableToClass)
                 context.diagnose(diagnostic)
@@ -26,7 +31,7 @@ public struct BuildViewMacro: MemberMacro {
 
             let lastChainedFunctionCall = try classDecl.findLastChainedFunctionCall()
             
-            let parent = ViewDecl(propertyName: "self", typeName: "UIView")
+            let parent = ViewDecl(propertyName: parentView, typeName: "UIView")
             let viewHierarchy = try extractViewHierarchy(superview: parent, subviews: [lastChainedFunctionCall.findRootFunctionCall()])
             let constraints = try extractConstraintPair(item: lastChainedFunctionCall)
             
@@ -34,7 +39,7 @@ public struct BuildViewMacro: MemberMacro {
             let viewPropertyDecl = try buildViewPropertyDecl(from: lastChainedFunctionCall)
             let addViewDecl = buildAddSubviewsDecl(hierarchy: viewHierarchy)
             let constraintDecl = buildConstraintDecl(hierarchy: viewHierarchy, constraints: constraints)
-            let addEventDecl = try build(item: lastChainedFunctionCall)
+            let addEventDecl = try buildAddEventDecl(item: lastChainedFunctionCall)
             
             let setupDecl = try buildSetupFunction(from: lastChainedFunctionCall)
             
@@ -50,6 +55,14 @@ public struct BuildViewMacro: MemberMacro {
         
         return []
     }
+    
+    static func findParentViewName(node: AttributeSyntax) -> String? {
+        guard let arguments = node.arguments?.as(LabeledExprListSyntax.self) else { return nil }
+        guard let expression = arguments.first?.expression.as(StringLiteralExprSyntax.self) else { return nil }
+        guard let segment = expression.segments.first?.as(StringSegmentSyntax.self) else { return nil }
+        return segment.content.text
+    }
+    
 }
 
 // MARK: ViewProperty
@@ -303,9 +316,9 @@ extension BuildViewMacro {
 
 // MARK: Add Event
 extension BuildViewMacro {
-    static func build(item: FunctionCallExprSyntax) throws -> DeclSyntax {
+    static func buildAddEventDecl(item: FunctionCallExprSyntax) throws -> DeclSyntax {
         // 체이닝으로부터 이벤트 관련 호출 라인 수집
-        let bodyLines = try buildAddEventDecl(item: item)
+        let bodyLines = try extractAddEventBodyLines(item: item)
 
         // 본문 생성
         let body = bodyLines.map { $0 }.joined(separator: "\n")
@@ -326,11 +339,11 @@ extension BuildViewMacro {
         )
     }
 
-    private static func buildAddEventDecl(item: FunctionCallExprSyntax) throws -> [String] {
+    private static func extractAddEventBodyLines(item: FunctionCallExprSyntax) throws -> [String] {
         var decl: [String] = try makeAddEventDeclRaw(item: item)
         
         for subview in item.findRootFunctionCall().findSubviews() {
-            let subviewDecl = try buildAddEventDecl(item: subview)
+            let subviewDecl = try extractAddEventBodyLines(item: subview)
             decl.append(contentsOf: subviewDecl)
         }
         return decl

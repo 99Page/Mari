@@ -102,7 +102,6 @@ extension AccountClient: DependencyKey {
             let idToken = try await Auth.auth().currentUser?.getIDToken(forcingRefresh: true)
             @Dependency(\.keychain) var keychain
             guard let idToken else { throw ClientError.emptyToken }
-            debugPrint("idToken: \(idToken)")
             Logger.info("idToken: \(idToken)", category: .auth)
             try keychain.save(value: idToken, service: .firebase, account: .idToken)
         } withdraw: {

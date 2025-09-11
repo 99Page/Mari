@@ -16,7 +16,7 @@ extension ViewPropertyMacroTests {
     func testTableViewExpansion() {
         assertMacroExpansion(
             """
-            @View
+            @View("view")
             class RootView: UIViewController {
                 var bluePrint: UIView {
                     RimTableView<MyPostTableViewCell>("table") {
@@ -49,15 +49,15 @@ extension ViewPropertyMacroTests {
                 let table = RimTableView<MyPostTableViewCell>()
             
                 func addSubviews() {
-                    self.addSubview(table)
+                    view.addSubview(table)
                 }
             
                 func activateConstraints() {
                     table.snp.makeConstraints { make in
-                        make.leading.equalTo(self.snp.leading)
-                        make.trailing.equalTo(self.snp.trailing)
-                        make.top.equalTo(self.snp.top)
-                        make.bottom.equalTo(self.snp.bottom)
+                        make.leading.equalTo(view.snp.leading)
+                        make.trailing.equalTo(view.snp.trailing)
+                        make.top.equalTo(view.snp.top)
+                        make.bottom.equalTo(view.snp.bottom)
                     }
                 }
             

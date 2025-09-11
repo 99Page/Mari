@@ -10,20 +10,6 @@ import Foundation
 import UIKit
 import ComposableArchitecture
 
-/// TableView("tableView", cell: ) {
-///
-/// } configure: {
-///     $0.spacing = ...
-///     $0.style = ...
-/// }
-/// .scrollEnded {
-///     $0.
-/// }
-/// .scroll {
-///
-/// }
-///
-
 public protocol SectionProvidable: Identifiable & Equatable {
     associatedtype Section: Hashable, Sendable
     var section: Section { get }
@@ -34,7 +20,7 @@ public protocol CellConfigurable: UITableViewCell {
     func configure(with value: UIBinding<Value?>)
 }
 
-public class RimTableView<Cell: CellConfigurable>: UITableView,  UITableViewDelegate {
+public class RimTableView<Cell: CellConfigurable>: UITableView, UITableViewDelegate {
     
     typealias Section = Cell.Value.Section
     typealias ID = Cell.Value.ID
@@ -44,22 +30,28 @@ public class RimTableView<Cell: CellConfigurable>: UITableView,  UITableViewDele
     public var items: UIBinding<IdentifiedArrayOf<Cell.Value>> = .constant([])
     private var observeToken: ObserveToken?
     
-    private var didRowSelected: ((IndexPath) -> Void)?
+    private var lastFetchTime: Date?
     
-    convenience init() {
-        self.init()
+    private var onRowSelected: ((IndexPath) -> Void)?
+    private var onTrailingSwipe: ((IndexPath) -> UISwipeActionsConfiguration?)?
+    private var onPaginated: (() -> Void)?
+    
+    public init() {
+        super.init(frame: .zero, style: .plain)
+        delegate = self
+        setupDataSource()
+        register(Cell.self, forCellReuseIdentifier: "Cell")
     }
     
     public convenience init(_ name: String, configure: ((RimTableView) -> Void)? = nil) {
         self.init()
-        register(Cell.self, forCellReuseIdentifier: "Cell")
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    func updateView() {
+    public func updateView() {
         observeToken?.cancel()
         
         observe { [weak self] in
@@ -139,12 +131,51 @@ public class RimTableView<Cell: CellConfigurable>: UITableView,  UITableViewDele
         ds.apply(snapshot, animatingDifferences: animating)
     }
     
-    public func didRowSelected(closure: @escaping (IndexPath) -> Void) -> Self {
+    @discardableResult
+    public func onRowSelected(handler: @escaping (IndexPath) -> Void) -> Self {
+        self.onRowSelected = handler
         return self
     }
     
+    @discardableResult
+    public func onPaginated(handler: @escaping () -> Void) -> Self {
+        self.onPaginated = handler
+        return self
+    }
+    
+    @discardableResult
+    public func onTrailingSwipe(provider: @escaping (IndexPath) -> UISwipeActionsConfiguration?) -> Self {
+        self.onTrailingSwipe = provider
+        return self
+    }
+    
+    public func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        onTrailingSwipe?(indexPath)
+    }
+    
     public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        didRowSelected?(indexPath)
+        onRowSelected?(indexPath)
+    }
+    
+    public func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        paginig(scrollView: scrollView)
+    }
+    
+    private func paginig(scrollView: UIScrollView) {
+        let offsetY = scrollView.contentOffset.y
+        let contentHeight = scrollView.contentSize.height
+        let frameHeight = scrollView.frame.size.height
+
+        guard offsetY > contentHeight - frameHeight * 1.5 else { return }
+
+        let now = Date()
+        
+        if let last = lastFetchTime, now.timeIntervalSince(last) < 1.0 {
+            return
+        }
+
+        lastFetchTime = now
+        onPaginated?()
     }
 }
 

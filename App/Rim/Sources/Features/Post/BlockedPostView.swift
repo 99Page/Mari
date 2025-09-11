@@ -13,7 +13,7 @@ import Core
 import SwiftUI
 import RimMacro
 
-@BuildView
+@BuildView("self")
 class BlockedPostView: UIView {
     
     init() {

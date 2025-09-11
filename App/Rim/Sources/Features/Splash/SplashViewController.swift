@@ -86,7 +86,6 @@ class SplashViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        debugPrint("didLoad")
         setupView()
         makeConstraint()
         updateView()

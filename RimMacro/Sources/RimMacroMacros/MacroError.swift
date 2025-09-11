@@ -8,6 +8,7 @@ import SwiftDiagnostics
 enum MacroError: String, CustomStringConvertible, Error, DiagnosticMessage {
     case onlyAppliableToClass
     
+    case missingParentView
     case missingBluePrintProperty
     case missingViewTypeName
     case missingViewPropertyName
@@ -23,6 +24,8 @@ enum MacroError: String, CustomStringConvertible, Error, DiagnosticMessage {
     
     var diagnosticID: SwiftDiagnostics.MessageID {
         switch self {
+        case .missingParentView:
+            MessageID(domain: "attribute", id: self.rawValue)
         case .onlyAppliableToClass:
             MessageID(domain: "type", id: self.rawValue)
         case .missingBluePrintProperty:
@@ -76,6 +79,8 @@ enum MacroError: String, CustomStringConvertible, Error, DiagnosticMessage {
             "View의 타입을 찾을 수 없어요"
         case .missingViewPropertyName:
             "View의 지정된 프로퍼티 이름을 찾을 수 없어요"
+        case .missingParentView:
+            "ParentView의 이름이 정확하지 않아요."
         }
     }
 }

@@ -12,25 +12,12 @@ import SwiftUI
 import Core
 import RimMacro
 
-struct MyPost: SectionProvidable {
-    let id = UUID()
-    var section = "main"
-}
-
-class MyPostTableViewCell: UITableViewCell, CellConfigurable {
-    typealias Value = MyPost
-    
-    func configure(with value: UIBinding<Value?>) {
-        
-    }
-}
 
 @Reducer
 struct MyPostFeature {
     @ObservableState
     struct State: Equatable {
         @Presents var alert: AlertState<AlertAction>?
-        var posts: IdentifiedArrayOf<PostSummaryState> = []
         var myPosts: IdentifiedArrayOf<MyPost> =  []
         
         // 포스트를 가져오기 위한 커서
@@ -39,7 +26,7 @@ struct MyPostFeature {
     
     @CasePathable
     enum AlertAction: Equatable {
-        case deletePost(PostSummaryState)
+        case deletePost(MyPost)
     }
     
     enum Action: ViewAction {
@@ -49,14 +36,14 @@ struct MyPostFeature {
         case appendPosts(FetchUserPostsResponse)
         case view(UIAction)
         case alert(PresentationAction<AlertAction>)
-        case showDeleteConfirmAlert(PostSummaryState)
+        case showDeleteConfirmAlert(MyPost)
         case showFetchFailAlert
         case showDeleteFailAlert
         
         @CasePathable
         enum UIAction: BindableAction {
             case binding(BindingAction<State>)
-            case deleteButtonTapped(PostSummaryState)
+            case deleteButtonTapped(MyPost)
             case didScrollToBottom
             case viewDidLoad
         }
@@ -98,7 +85,6 @@ struct MyPostFeature {
                     let response = try await postClient.fetchUserPosts(lastCreatedAt: cursor).result
                     await send(.appendPosts(response))
                 } catch: { error, send in
-                    debugPrint(error)
                     await send(.showFetchFailAlert)
                 }
                 .throttle(id: EffetcID.fetchPosts, for: .seconds(1), scheduler: self.mainQueue, latest: false)
@@ -141,8 +127,8 @@ struct MyPostFeature {
                 return .none
                 
             case let .appendPosts(response):
-                let posts = response.posts.map { PostSummaryState(dto: $0) }
-                state.posts.append(contentsOf: posts)
+                let posts = response.posts.map { MyPost(id: $0.id, title: $0.title, section: "main") }
+                state.myPosts.append(contentsOf: posts)
                 state.creationCursor = response.nextCursor
                 return .none
                 
@@ -160,7 +146,7 @@ struct MyPostFeature {
                 return .none
                 
             case let .removePostFromList(id):
-                state.posts.remove(id: id)
+                state.myPosts.remove(id: id)
                 return .none
                 
             case .delegate:
@@ -171,18 +157,11 @@ struct MyPostFeature {
     }
 }
 
-@BuildView
+@BuildView("view")
 @ViewAction(for: MyPostFeature.self)
 class MyPostViewController: UIViewController {
     
-    enum Section {
-        case main
-    }
-
-    private var dataSource: UITableViewDiffableDataSource<Section, PostSummaryState>!
-    
     @UIBindable var store: StoreOf<MyPostFeature>
-    private let tableView = PaginatedTableView()
     private var previousTintColor: UIColor?
     
     init(store: StoreOf<MyPostFeature>) {
@@ -198,10 +177,13 @@ class MyPostViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        makeConstraint()
         setupView()
-        updateView()
         
+        addSubviews()
+        activateConstraints()
+        bind()
+        addEvents() 
+
         send(.viewDidLoad)
         
         present(item: $store.scope(state: \.alert, action: \.alert)) { store in
@@ -223,75 +205,58 @@ class MyPostViewController: UIViewController {
     var bluePrint: UIView {
         RimTableView<MyPostTableViewCell>("myPost") {
             $0.items = self.$store.myPosts
-            
         }
         .constraint(leading: \.leading, trailing: \.trailing, top: \.top, bottom: \.bottom)
-        .didRowSelected { indexPath in
-            let post = self.store.posts[indexPath.row]
+        .onRowSelected { indexPath in
+            let post = self.store.myPosts[indexPath.row]
             let postDetail = PostDetailFeature.State(postID: post.id)
             self.traitCollection.push(state: AccountNavigationStack.Path.State.postDetail(postDetail))
+        }
+        .onTrailingSwipe { indexPath in
+            let deleteAction = UIContextualAction(style: .destructive, title: "삭제") { [weak self] _, _, completionHandler in
+                guard let self else { return }
+                let post = store.myPosts[indexPath.row]
+                send(.deleteButtonTapped(post))
+                completionHandler(true)
+            }
+            
+            return UISwipeActionsConfiguration(actions: [deleteAction])
+        }
+        .onPaginated {
+            self.send(.didScrollToBottom)
         }
     }
     
     private func setupView() {
         title = "내 게시물"
-        
-        tableView.delegate = self
-        tableView.onScrollToBottom = { [weak self] in
-            self?.send(.didScrollToBottom)
-        }
-        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Cell")
-        
-        setupDataSource()
-    }
-    
-    private func makeConstraint() {
-        view.addSubview(tableView)
-        
-        tableView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
-        }
-    }
-    
-    private func updateView() {
-        observe { [weak self] in
-            guard let self else { return }
-            var snapshot = NSDiffableDataSourceSnapshot<Section, PostSummaryState>()
-            snapshot.appendSections([.main])
-            snapshot.appendItems(store.posts.elements, toSection: .main)
-            dataSource.apply(snapshot, animatingDifferences: true)
-        }
-    }
-    
-    private func setupDataSource() {
-        dataSource = UITableViewDiffableDataSource<Section, PostSummaryState>(tableView: tableView) { tableView, indexPath, post in
-            let cell = tableView.dequeueReusableCell(withIdentifier: "Cell", for: indexPath)
-            var content = cell.defaultContentConfiguration()
-            content.text = post.title
-            cell.contentConfiguration = content
-            cell.selectionStyle = .none
-            return cell
-        }
     }
 }
 
-extension MyPostViewController: UITableViewDelegate {
-    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
-        let deleteAction = UIContextualAction(style: .destructive, title: "삭제") { [weak self] _, _, completionHandler in
-            guard let self else { return }
-            let post = store.posts[indexPath.row]
-            send(.deleteButtonTapped(post))
-            completionHandler(true)
-        }
-        
-        return UISwipeActionsConfiguration(actions: [deleteAction])
+struct MyPost: SectionProvidable {
+    let id: String
+    let title: String
+    var section = "main"
+}
+
+class MyPostTableViewCell: UITableViewCell, CellConfigurable {
+    typealias Value = MyPost
+
+    override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
+        super.init(style: .default, reuseIdentifier: reuseIdentifier)
+        selectionStyle = .none
+        accessoryType = .disclosureIndicator
     }
-    
-    public func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
-        let post = store.posts[indexPath.row]
-        let postDetail = PostDetailFeature.State(postID: post.id)
-        traitCollection.push(state: AccountNavigationStack.Path.State.postDetail(postDetail))
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func configure(with value: UIBinding<Value?>) {
+        guard let value = value.wrappedValue else { return }
+        var content = defaultContentConfiguration()
+        content.text = value.title
+        contentConfiguration = content
+        
     }
 }
 

@@ -16,7 +16,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testStructNotSupported() {
         assertMacroExpansion(
             """
-            @View
+            @View("self")
             struct RootViewController: UIViewController {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
@@ -43,7 +43,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testOnlyVerticalLayout() {
         assertMacroExpansion(
             """
-            @View
+            @View("self")
             class RootView: UIView {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
@@ -79,7 +79,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testOnlyVerticalLayoutWithOneModifier() {
         assertMacroExpansion(
             """
-            @View
+            @View("self")
             class RootView: UIView {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
@@ -115,7 +115,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testVerticalLayoutExpansionWithOneProperty() {
         assertMacroExpansion(
             """
-            @View
+            @View("self")
             class RootViewController: UIViewController {
                 let value = 1
             
@@ -155,7 +155,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testVerticalLayoutHasChild() {
         assertMacroExpansion(
             """
-            @View
+            @View("self")
             class RootView: UIView {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
@@ -200,7 +200,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testFirstChildHasModifier() {
         assertMacroExpansion(
             """
-            @View
+            @View("self")
             class RootView: UIView {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
@@ -252,7 +252,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testTwoChildHasModifier() {
         assertMacroExpansion(
             """
-            @View
+            @View("self")
             class RootView: UIView {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
@@ -310,7 +310,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testAddConstraint() {
         assertMacroExpansion(
             """
-            @View
+            @View("self")
             class RootView: UIView {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
@@ -368,7 +368,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testSetupProperties() {
         assertMacroExpansion(
             """
-            @View
+            @View("self")
             class RootView: UIView {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {
@@ -437,7 +437,7 @@ final class ViewPropertyMacroTests: XCTestCase {
     func testLayoutConfigure() {
         assertMacroExpansion(
             """
-            @View
+            @View("self")
             class RootView: UIView {
                 var bluePrint: UIView {
                     VerticalLayout("layout") {

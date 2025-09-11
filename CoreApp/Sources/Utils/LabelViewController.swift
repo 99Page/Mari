@@ -43,7 +43,6 @@ class LabelViewController: UIViewController {
         
         label.addAction(.touchUpInside({
             self.text = "touch"
-            debugPrint("tap")
         }))
         
         textField.snp.makeConstraints { make in
