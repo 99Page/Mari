@@ -15,10 +15,11 @@ struct MapNavigationStackTests {
     @Test func removesPostFromMap_whenDeletedInDetailView() async throws {
         let path: StackState<MapNavigationStack.Path.State> = .init([.postDetail(.init(postID: "post1"))])
         let root = MapFeature.State(posts: [
-            .init(id: "post1", imageURL: "image", title: "title", coordinate: .init()),
-            .init(id: "post2", imageURL: "image", title: "title", coordinate: .init()),
-        ]
-        )
+            .init(id: "post1", imageURL: "image", title: "title1", coordinate: .init(), creatorID: "creator"),
+            .init(id: "post2", imageURL: "image", title: "title2", coordinate: .init(), creatorID: "creator")
+            
+        ])
+        
         let mapStack = MapNavigationStack.State(path: path, root: root)
         
         let store = TestStore(initialState: mapStack) {

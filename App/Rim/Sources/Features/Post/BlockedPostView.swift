@@ -13,7 +13,7 @@ import Core
 import SwiftUI
 import RimMacro
 
-@BuildView
+@BuildView("self")
 class BlockedPostView: UIView {
     
     init() {
@@ -33,7 +33,7 @@ class BlockedPostView: UIView {
                 $0.image = .constant(.symbol(name: "lock.circle", fgColor: .gray))
             }
             .constraint(width: 100, height: 100)
-            
+
             RimLabel("message") {
                 $0.text = .constant("차단한 사용자의 게시물은\n볼 수 없어요.")
                 $0.textColor = .constant(.black)

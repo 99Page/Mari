@@ -30,7 +30,6 @@ public struct Logger {
             category: category.rawValue
         )
 
-        #if DEBUG
         let fileName = (file as NSString).lastPathComponent
         os_log("%{public}@ [%{public}@:%d] %{public}@",
                log: log,
@@ -39,7 +38,6 @@ public struct Logger {
                function,
                line,
                message)
-        #endif
     }
 
     public static func debug(_ message: String,

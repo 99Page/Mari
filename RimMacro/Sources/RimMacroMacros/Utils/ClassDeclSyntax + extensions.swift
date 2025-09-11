@@ -23,7 +23,7 @@ extension ClassDeclSyntax {
     /// ```
     ///
     /// 위 코드에서 `.distribution(.equal)`을 반환합니다.
-    func findLastChainedFunctionCall() throws -> FunctionCallExprSyntax{
+    func findLastChainedFunctionCall() throws -> FunctionCallExprSyntax {
         let members = self.memberBlock.members
         
         let memberBlockItem = members.first {

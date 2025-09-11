@@ -30,6 +30,6 @@ class AddActionViewController: UIViewController {
     }
     
     private func print() {
-        debugPrint("tapped")
+        
     }
 }

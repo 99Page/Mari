@@ -15,20 +15,25 @@ struct TabTests {
     @Suite("Post")
     struct Post {
         @Test func removesPostFromMap_whenDeletedFromMyPosts() async throws {
-            let deleteTarget = PostSummaryState(id: "post1", imageURL: "", title: "", coordinate: .init())
-            let posts: IdentifiedArrayOf<PostSummaryState> = [
+            let deleteTarget = MyPost(id: "id1", title: "title1")
+            let posts: IdentifiedArrayOf<MyPost> = [
                 deleteTarget,
-                .init(id: "post2", imageURL: "", title: "", coordinate: .init()),
+                MyPost(id: "id2", title: "title2")
             ]
             
-            let mapStack = MapNavigationStack.State(root: .init(posts: posts))
+            let mapPosts: IdentifiedArrayOf<PostSummaryState> = [
+                .init(id: "id1", imageURL: "url", title: "title1", coordinate: .init(), creatorID: "creator"),
+                .init(id: "id2", imageURL: "url", title: "title2", coordinate: .init(), creatorID: "creator"),
+            ]
             
-            let userPath: StackState<AccountNavigationStack.Path.State> = .init([.myPosts(.init(posts: posts))])
+            let mapStack = MapNavigationStack.State(root: .init(posts: mapPosts))
+            
+            let userPath: StackState<AccountNavigationStack.Path.State> = .init([.myPosts(.init(myPosts: posts))])
             let userAccountStack = AccountNavigationStack.State(path: userPath)
             let store = TestStore(initialState: TabFeature.State(mapStack: mapStack, userAccountStack: userAccountStack)) {
                 TabFeature()
             } withDependencies: {
-                $0.postClient.deletePost = { _ in .init(status: "", message: "", result: .init(id: "post1")) }
+                $0.postClient.deletePost = { _ in .init(status: "", message: "", result: .init(id: "id1")) }
             }
             
             store.exhaustivity = .off
@@ -37,21 +42,25 @@ struct TabTests {
             await store.receive(\.userAccountStack.path[id: 0].myPosts.delegate.removePostFromMap)
             await store.receive(\.mapStack.root.removePost)
             
-            #expect(store.state.mapStack.root.posts[id: "post1"] == nil)
-            #expect(store.state.mapStack.root.posts[id: "post2"] != nil)
+            #expect(store.state.mapStack.root.posts[id: "id1"] == nil)
+            #expect(store.state.mapStack.root.posts[id: "id2"] != nil)
         }
 
         @Test func removesPostFromMap_whenDeletedFromPostDetailsInAccountStack() async throws {
-            let deleteTarget = PostSummaryState(id: "post1", imageURL: "", title: "", coordinate: .init())
+            let deleteTarget = PostSummaryState(id: "post1", imageURL: "", title: "", coordinate: .init(), creatorID: "creator")
             let posts: IdentifiedArrayOf<PostSummaryState> = [
                 deleteTarget,
-                .init(id: "post2", imageURL: "", title: "", coordinate: .init()),
+                .init(id: "post2", imageURL: "", title: "", coordinate: .init(), creatorID: "creator"),
+            ]
+            let myPosts: IdentifiedArrayOf<MyPost> = [
+                .init(id: "post1", title: ""),
+                .init(id: "post2", title: ""),
             ]
             
             let mapStack = MapNavigationStack.State(root: .init(posts: posts))
             let postDetail = PostDetailFeature.State(postID: "post1")
             
-            let userPath: StackState<AccountNavigationStack.Path.State> = .init([.myPosts(.init(posts: posts)), .postDetail(postDetail)])
+            let userPath: StackState<AccountNavigationStack.Path.State> = .init([.myPosts(.init(myPosts: myPosts)), .postDetail(postDetail)])
             let userAccountStack = AccountNavigationStack.State(path: userPath)
             let store = TestStore(initialState: TabFeature.State(mapStack: mapStack, userAccountStack: userAccountStack)) {
                 TabFeature()

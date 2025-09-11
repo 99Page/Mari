@@ -430,8 +430,5 @@ class UploadPostViewController: UIViewController {
         UploadPostNavigationStack()
     }
     
-    ViewControllerPreview {
-        UploadPostStackController(store: store)
-    }
-    .ignoresSafeArea()
+    UploadPostStackController(store: store)
 }

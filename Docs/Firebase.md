@@ -13,7 +13,21 @@ API 호출 시 필요한 인증 토큰 설정은 [공식 문서](https://cloud.g
 3. Cloud Run 함수 내부에서 `admin.auth().verifyIdToken()`을 사용해 토큰을 검증합니다.
 4. 함수가 정상 동작하도록 IAM 설정에서 Cloud Run 서비스에 `allUsers` 권한을 부여합니다.
 
-## 명령어 
+## 서버 배포 
 
+* 프로젝트 선택 
 
-함수 업로드: firebase deploy --only functions:<functionName>
+CLI에서 다음 명령어 입력: `firebase use`
+
+```
+  default ($PROJECT_ID)
+* dev ($PROJECT_ID)
+
+```
+이런 화면이 나올텐데 `firebase use default` 형식으로 사용할 프로젝트 변경
+
+* 함수 업로드: firebase deploy --only functions:<functionName>
+
+## 필요한 패키지 다운로드 
+
+npm install -g npm@11.6.0      

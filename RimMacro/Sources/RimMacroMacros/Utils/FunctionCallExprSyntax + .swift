@@ -9,8 +9,38 @@ import SwiftCompilerPlugin
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
+import SwiftBasicFormat
 
 extension FunctionCallExprSyntax {
+    
+    var callee: String? {
+        if let calledExpression = calledExpression.as(DeclReferenceExprSyntax.self) {
+            return calledExpression.baseName.text
+        } else if let calledExpression = calledExpression.as(MemberAccessExprSyntax.self) {
+            return calledExpression.declName.baseName.text
+        }
+        
+        return nil
+    }
+    
+    /// a.function1().function2() -> function2()
+    var lastCall: FunctionCallExprSyntax? {
+        guard let callee else { return nil }
+        
+        return FunctionCallExprSyntax(
+            callee: ExprSyntax(stringLiteral: callee),
+            trailingClosure: trailingClosure?.dedented,
+            additionalTrailingClosures: additionalTrailingClosures) {
+            arguments
+        }
+    }
+    
+    /// a().b().c() -> a().b()
+    var withoutLastCall: FunctionCallExprSyntax? {
+        let calledExpression = calledExpression.as(MemberAccessExprSyntax.self)
+        return calledExpression?.base?.as(FunctionCallExprSyntax.self)
+    }
+    
     func findViewPropertyName() throws -> String {
         let expr = arguments.first?.expression.as(StringLiteralExprSyntax.self)
         let propertySyntax = expr?.segments.first?.as(StringSegmentSyntax.self)
@@ -31,13 +61,16 @@ extension FunctionCallExprSyntax {
         return subviews
     }
     
+    /// RimTableView<Cell>("") -> RimTableView
     func findViewTypeName() throws -> String {
         let rootFunction = findRootFunctionCall()
-        let typeDecl = rootFunction.calledExpression.as(DeclReferenceExprSyntax.self)
-        let typeName = typeDecl?.baseName.text
         
-        if let typeName {
+        if let typeDecl = rootFunction.calledExpression.as(DeclReferenceExprSyntax.self) {
+            let typeName = typeDecl.baseName.text
             return typeName
+        } else if let typeDecl = rootFunction.calledExpression.as(GenericSpecializationExprSyntax.self),
+                  let typeName = typeDecl.expression.as(DeclReferenceExprSyntax.self) {
+            return typeName.baseName.text
         } else {
             throw MacroError.missingViewTypeName
         }
@@ -117,7 +150,7 @@ extension FunctionCallExprSyntax {
     }
     
     func isCallee(named: String) -> Bool {
-        calledExpression.as(MemberAccessExprSyntax.self)?.declName.baseName.text == named
+        callee == named
     }
     
     func extractKeyPathNames() -> [String] {
@@ -132,5 +165,13 @@ extension FunctionCallExprSyntax {
         }
         
         return labels
+    }
+    
+    ///  VerticalLayout("layout") -> VerticalLayout()
+    func extractEmptyInitializer() -> FunctionCallExprSyntax {
+        let calledExpression = self.calledExpression
+        let trim = calledExpression.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedExprSyntax = ExprSyntax(stringLiteral: trim)
+        return FunctionCallExprSyntax(callee: trimmedExprSyntax)
     }
 }
