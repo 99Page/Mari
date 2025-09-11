@@ -121,7 +121,13 @@ let project = Project(
             infoPlist: .default,
             sources: ["Rim/Tests/**"],
             resources: [],
-            dependencies: [.target(name: "Rim")]
+            dependencies: [.target(name: "Rim")],
+            settings: .settings(
+                base: [
+                    "DEVELOPMENT_TEAM": "MAU8HFALP8", // 개인 개발 계정 ✅ 공개 상관 없는 값
+                    "ENABLE_SWIFT_MACROS": "YES"
+                ]
+            )
         ),
     ]
 )
