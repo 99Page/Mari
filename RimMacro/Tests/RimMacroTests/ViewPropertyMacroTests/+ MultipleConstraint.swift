@@ -65,27 +65,32 @@ extension ViewPropertyMacroTests {
                     RimScrollView("scroll") {
                         VerticalLayout("layout") {
                             RimImageView("postImage") {
-                                $0.image = $store.image
+                                $0.image = self.$store.image
                             }
                             .constraint(leading: \\.leading, trailing: \\.trailing)
-                            .constraint(height: 100)
+                            .constraint(height: 25)
                             
                             RimLabel("postTitle") {
-                                $0.text = $store.titleText
+                                $0.text = self.$store.titleText
+                                $0.textColor = .constant(.black)
+                                $0.alignment = .constant(.natural)
+                                $0.typography = .constant(.contentTitle)
                             }
                             
                             RimLabel("postDescription") {
-                                $0.text = $store.descriptionText
+                                $0.text = self.$store.descriptionText
+                                $0.textColor = .constant(.black)
+                                $0.alignment = .constant(.natural)
                             }
                         }
                         .constraint(leading: \\.leading, trailing: \\.trailing, top: \\.top, bottom: \\.bottom)
                     }
                     .constraint(leading: \\.leading, trailing: \\.trailing, top: \\.top, bottom: \\.bottom)
                     .onScroll { offset, _ in
-                        self.someFunction()
+                        self.updateImageHeight(to: offset.y)
                     }
                     .onScrollEnd {
-                        self.someFunction()
+                        self.updateImageHeight(to: self.baseImageHeight)
                     }
                 }
             }
@@ -97,27 +102,32 @@ extension ViewPropertyMacroTests {
                     RimScrollView("scroll") {
                         VerticalLayout("layout") {
                             RimImageView("postImage") {
-                                $0.image = $store.image
+                                $0.image = self.$store.image
                             }
                             .constraint(leading: \\.leading, trailing: \\.trailing)
-                            .constraint(height: 100)
+                            .constraint(height: 25)
                             
                             RimLabel("postTitle") {
-                                $0.text = $store.titleText
+                                $0.text = self.$store.titleText
+                                $0.textColor = .constant(.black)
+                                $0.alignment = .constant(.natural)
+                                $0.typography = .constant(.contentTitle)
                             }
                             
                             RimLabel("postDescription") {
-                                $0.text = $store.descriptionText
+                                $0.text = self.$store.descriptionText
+                                $0.textColor = .constant(.black)
+                                $0.alignment = .constant(.natural)
                             }
                         }
                         .constraint(leading: \\.leading, trailing: \\.trailing, top: \\.top, bottom: \\.bottom)
                     }
                     .constraint(leading: \\.leading, trailing: \\.trailing, top: \\.top, bottom: \\.bottom)
                     .onScroll { offset, _ in
-                        self.someFunction()
+                        self.updateImageHeight(to: offset.y)
                     }
                     .onScrollEnd {
-                        self.someFunction()
+                        self.updateImageHeight(to: self.baseImageHeight)
                     }
                 }
             
@@ -155,7 +165,7 @@ extension ViewPropertyMacroTests {
                     }
             
                     postImage.snp.makeConstraints { make in
-                        make.height.equalTo(100.0)
+                        make.height.equalTo(25.0)
                         make.leading.equalTo(layout.snp.leading)
                         make.trailing.equalTo(layout.snp.trailing)
                     }
@@ -164,20 +174,25 @@ extension ViewPropertyMacroTests {
                 func bind() {
                     scroll.updateView()
                     layout.updateView()
-                    postImage.image = $store.image
+                    postImage.image = self.$store.image
                     postImage.updateView()
-                    postTitle.text = $store.titleText
+                    postTitle.text = self.$store.titleText
+                    postTitle.textColor = .constant(.black)
+                    postTitle.alignment = .constant(.natural)
+                    postTitle.typography = .constant(.contentTitle)
                     postTitle.updateView()
-                    postDescription.text = $store.descriptionText
+                    postDescription.text = self.$store.descriptionText
+                    postDescription.textColor = .constant(.black)
+                    postDescription.alignment = .constant(.natural)
                     postDescription.updateView()
                 }
             
                 func addEvents() {
                     scroll.onScrollEnd {
-                        self.someFunction()
+                        self.updateImageHeight(to: self.baseImageHeight)
                     }
                     scroll.onScroll { offset, _ in
-                        self.someFunction()
+                        self.updateImageHeight(to: offset.y)
                     }
                 }
             }

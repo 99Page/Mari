@@ -256,25 +256,12 @@ class PostDetailViewController: UIViewController {
     @UIBindable var store: StoreOf<PostDetailFeature>
     let baseImageHeight: CGFloat = 25
     
-    private let scrollView = UIScrollView()
-    
-    private let contentView = UIView()
-    private let titleLabel: RimLabel
-    private let descriptionLabel: RimLabel
-    private let imageView: RimImageView
-    
     private var menuButton = UIBarButtonItem()
-    
     private let blockedPostView = BlockedPostView()
     
     init(store: StoreOf<PostDetailFeature>) {
-        @UIBindable var binding = store
         self.store = store
-        self.titleLabel = RimLabel()
-        self.descriptionLabel = RimLabel()
-        self.imageView = RimImageView()
         super.init(nibName: nil, bundle: nil)
-        
         hidesBottomBarWhenPushed = true
     }
     
@@ -286,20 +273,20 @@ class PostDetailViewController: UIViewController {
         RimScrollView("scroll") {
             VerticalLayout("layout") {
                 RimImageView("postImage") {
-                    $0.image = $store.image
+                    $0.image = self.$store.image
                 }
                 .constraint(leading: \.leading, trailing: \.trailing)
-                .constraint(height: self.baseImageHeight)
+                .constraint(height: 25)
                 
                 RimLabel("postTitle") {
-                    $0.text = $store.titleText
+                    $0.text = self.$store.titleText
                     $0.textColor = .constant(.black)
                     $0.alignment = .constant(.natural)
                     $0.typography = .constant(.contentTitle)
                 }
                 
                 RimLabel("postDescription") {
-                    $0.text = $store.descriptionText
+                    $0.text = self.$store.descriptionText
                     $0.textColor = .constant(.black)
                     $0.alignment = .constant(.natural)
                 }
@@ -316,13 +303,19 @@ class PostDetailViewController: UIViewController {
     }
     
     private func updateImageHeight(to height: CGFloat) {
-        postImage.snp.updateConstraints { make in
-            make.height.equalTo(height)
-        }
+//        postImage.snp.updateConstraints { make in
+//            make.height.equalTo(height)
+//        }
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        addSubviews()
+        activateConstraints()
+        bind()
+        addEvents()
+        
         makeConstraint()
         setupView()
         updateView()
@@ -370,37 +363,17 @@ class PostDetailViewController: UIViewController {
         observe { [weak self] in
             guard let self else { return }
             
-            scrollView.isHidden = store.isPostBlocked
             blockedPostView.isHidden = !store.isPostBlocked
             
             menuButton.isHidden = !store.isMenuButtonPresented
             menuButton.tintColor = store.navigationColor
             navigationController?.navigationBar.tintColor = store.navigationColor
         }
-        
-        titleLabel.text = $store.titleText
-        titleLabel.textColor = .constant(.black)
-        titleLabel.alignment = .constant(.natural)
-        titleLabel.typography = .constant(.contentTitle)
-        titleLabel.updateView()
-        
-        descriptionLabel.text = $store.descriptionText
-        descriptionLabel.textColor = .constant(.black)
-        descriptionLabel.alignment = .constant(.natural)
-        descriptionLabel.updateView()
-        
-        imageView.image = $store.image
-        imageView.updateView()
     }
     
     private func setupView() {
         view.backgroundColor = .systemBackground
         navigationController?.setNavigationBarHidden(false, animated: false)
-        
-        scrollView.alwaysBounceVertical = true
-        scrollView.isScrollEnabled = true
-        scrollView.bounces = true
-        
         setupMenuButton()
     }
     
@@ -423,45 +396,10 @@ class PostDetailViewController: UIViewController {
     }
     
     private func makeConstraint() {
-        view.addSubview(scrollView)
         view.addSubview(blockedPostView)
-        
-        scrollView.addSubview(contentView)
-        
-        contentView.addSubview(imageView)
-        contentView.addSubview(titleLabel)
-        contentView.addSubview(descriptionLabel)
-        
-        scrollView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
-        }
         
         blockedPostView.snp.makeConstraints { make in
             make.centerX.centerY.equalToSuperview()
-        }
-        
-        contentView.snp.makeConstraints { make in
-            make.top.equalTo(view.snp.top)
-            make.width.equalToSuperview()
-            make.leading.trailing.bottom.equalToSuperview()
-        }
-        
-        imageView.snp.makeConstraints { make in
-            make.top.equalToSuperview()
-            make.centerX.equalToSuperview()
-            make.width.equalToSuperview()
-            make.height.equalTo(25)
-        }
-        
-        titleLabel.snp.makeConstraints { make in
-            make.top.equalTo(imageView.snp.bottom).offset(16)
-            make.leading.trailing.equalToSuperview().inset(16)
-        }
-        
-        descriptionLabel.snp.makeConstraints { make in
-            make.top.equalTo(titleLabel.snp.bottom).offset(16)
-            make.leading.trailing.equalToSuperview().inset(16)
-            make.bottom.equalToSuperview().offset(-32) // 스크롤 content 끝 정의
         }
     }
 }
