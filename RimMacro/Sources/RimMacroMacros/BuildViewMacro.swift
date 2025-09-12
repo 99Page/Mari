@@ -143,8 +143,8 @@ extension BuildViewMacro {
                         makeText.append(makeLine)
                     }
                     
-                    if let value = link.toValue {
-                        let makeLine = "make.\(link.fromConstraint).equalTo(\(value))"
+                    if let argument = link.toArgument {
+                        let makeLine = "make.\(link.fromConstraint).equalTo(\(argument))"
                         makeText.append(makeLine)
                     }
                 }
@@ -265,16 +265,14 @@ extension BuildViewMacro {
         for argument in arguments {
             guard let from = argument.label?.text else { continue }
             
-            if let expression = argument.expression.as(IntegerLiteralExprSyntax.self) {
-                let value = expression.literal.text
-                let relation = ConstraintRelation(fromConstraint: from, toConstraintItem: nil, toValue: Double(value))
-                relations.append(relation)
-            }
-            
             if let expression = argument.expression.as(KeyPathExprSyntax.self),
                let component = expression.components.first?.component.as(KeyPathPropertyComponentSyntax.self) {
                 let constraintItem = component.declName.baseName.text
-                let relation = ConstraintRelation(fromConstraint: from, toConstraintItem: constraintItem, toValue: nil)
+                let relation = ConstraintRelation(fromConstraint: from, toConstraintItem: constraintItem, toArgument: nil)
+                relations.append(relation)
+            } else {
+                let argument = argument.expression.description
+                let relation = ConstraintRelation(fromConstraint: from, toConstraintItem: nil, toArgument: argument)
                 relations.append(relation)
             }
         }
@@ -382,5 +380,5 @@ struct ConstraintRelation {
     let fromConstraint: String
     
     let toConstraintItem: String?
-    let toValue: Double?
+    let toArgument: String?
 }

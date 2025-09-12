@@ -41,7 +41,7 @@ extension ViewPropertyMacroTests {
             
                 func activateConstraints() {
                     image.snp.makeConstraints { make in
-                        make.height.equalTo(100.0)
+                        make.height.equalTo(100)
                         make.leading.equalTo(view.snp.leading)
                         make.trailing.equalTo(view.snp.trailing)
                     }
@@ -86,6 +86,7 @@ extension ViewPropertyMacroTests {
                         .constraint(leading: \\.leading, trailing: \\.trailing, top: \\.top, bottom: \\.bottom)
                     }
                     .constraint(leading: \\.leading, trailing: \\.trailing, top: \\.top, bottom: \\.bottom)
+                    .constraint(width: view.frame.width)
                     .onScroll { offset, _ in
                         self.updateImageHeight(to: offset.y)
                     }
@@ -123,6 +124,7 @@ extension ViewPropertyMacroTests {
                         .constraint(leading: \\.leading, trailing: \\.trailing, top: \\.top, bottom: \\.bottom)
                     }
                     .constraint(leading: \\.leading, trailing: \\.trailing, top: \\.top, bottom: \\.bottom)
+                    .constraint(width: view.frame.width)
                     .onScroll { offset, _ in
                         self.updateImageHeight(to: offset.y)
                     }
@@ -151,6 +153,7 @@ extension ViewPropertyMacroTests {
             
                 func activateConstraints() {
                     scroll.snp.makeConstraints { make in
+                        make.width.equalTo(view.frame.width)
                         make.leading.equalTo(view.snp.leading)
                         make.trailing.equalTo(view.snp.trailing)
                         make.top.equalTo(view.snp.top)
@@ -165,7 +168,7 @@ extension ViewPropertyMacroTests {
                     }
             
                     postImage.snp.makeConstraints { make in
-                        make.height.equalTo(25.0)
+                        make.height.equalTo(25)
                         make.leading.equalTo(layout.snp.leading)
                         make.trailing.equalTo(layout.snp.trailing)
                     }

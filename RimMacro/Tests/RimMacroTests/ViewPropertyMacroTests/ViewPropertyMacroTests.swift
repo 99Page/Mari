@@ -256,8 +256,8 @@ final class ViewPropertyMacroTests: XCTestCase {
             
                 func activateConstraints() {
                     title.snp.makeConstraints { make in
-                        make.width.equalTo(100.0)
-                        make.height.equalTo(100.0)
+                        make.width.equalTo(100)
+                        make.height.equalTo(100)
                     }
                 }
             
@@ -316,13 +316,13 @@ final class ViewPropertyMacroTests: XCTestCase {
             
                 func activateConstraints() {
                     title.snp.makeConstraints { make in
-                        make.width.equalTo(100.0)
-                        make.height.equalTo(100.0)
+                        make.width.equalTo(100)
+                        make.height.equalTo(100)
                     }
 
                     description.snp.makeConstraints { make in
-                        make.width.equalTo(200.0)
-                        make.height.equalTo(400.0)
+                        make.width.equalTo(200)
+                        make.height.equalTo(400)
                     }
                 }
             
@@ -385,8 +385,8 @@ final class ViewPropertyMacroTests: XCTestCase {
                     }
             
                     image.snp.makeConstraints { make in
-                        make.width.equalTo(100.0)
-                        make.height.equalTo(100.0)
+                        make.width.equalTo(100)
+                        make.height.equalTo(100)
                     }
                 }
             

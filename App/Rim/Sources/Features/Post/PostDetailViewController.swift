@@ -276,7 +276,7 @@ class PostDetailViewController: UIViewController {
                     $0.image = self.$store.image
                 }
                 .constraint(leading: \.leading, trailing: \.trailing)
-                .constraint(height: 25)
+                .constraint(height: 200)
                 
                 RimLabel("postTitle") {
                     $0.text = self.$store.titleText
@@ -292,6 +292,7 @@ class PostDetailViewController: UIViewController {
                 }
             }
             .constraint(leading: \.leading, trailing: \.trailing, top: \.top, bottom: \.bottom)
+            .constraint(width: view.frame.width)
         }
         .constraint(leading: \.leading, trailing: \.trailing, top: \.top, bottom: \.bottom)
         .onScroll { offset, _ in
@@ -306,15 +307,19 @@ class PostDetailViewController: UIViewController {
 //        postImage.snp.updateConstraints { make in
 //            make.height.equalTo(height)
 //        }
+        layout.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide.snp.top)
+        }
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         addSubviews()
         activateConstraints()
         bind()
         addEvents()
+        
+        scroll.backgroundColor = .red
         
         makeConstraint()
         setupView()

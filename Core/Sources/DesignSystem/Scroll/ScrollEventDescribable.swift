@@ -14,11 +14,13 @@ public protocol ScrollEventDescribable: AnyObject {
 }
 
 extension ScrollEventDescribable {
+    @discardableResult
     public func onScroll(handler: @escaping ((_ contentOffset: CGPoint, _ contentSize: CGSize) -> Void)) -> Self {
         self.onScroll = handler
         return self
     }
     
+    @discardableResult
     public func onScrollEnd(handler: @escaping (() -> Void)) -> Self {
         self.onScrollEnd = handler
         return self
