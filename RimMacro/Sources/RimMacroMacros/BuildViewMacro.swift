@@ -34,7 +34,7 @@ public struct BuildViewMacro: MemberMacro {
             let parent = ViewDecl(propertyName: parentView, typeName: "UIView")
             let viewHierarchy = try extractViewHierarchy(superview: parent, subviews: [lastChainedFunctionCall.findRootFunctionCall()])
             let constraints = try extractConstraintPair(item: lastChainedFunctionCall)
-            
+
             
             let viewPropertyDecl = try buildViewPropertyDecl(from: lastChainedFunctionCall)
             let addViewDecl = buildAddSubviewsDecl(hierarchy: viewHierarchy)
@@ -220,9 +220,7 @@ extension BuildViewMacro {
                }
            }
            
-           if !lines.isEmpty {
-               lines.append("\(propertyName).updateView()")
-           }
+           lines.append("\(propertyName).updateView()")
 
            // 자식 노드들도 재귀적으로 수집
            for sub in root.findSubviews() {
@@ -286,12 +284,14 @@ extension BuildViewMacro {
     
     static func extractConstraintPair(item: FunctionCallExprSyntax) throws -> [String: [ConstraintRelation]] {
         var constraints: [String: [ConstraintRelation]] = [:]
+        var current: FunctionCallExprSyntax? = item
         
-        if let call = item.findCallee(named: "constraint") {
+        while let call = current?.findCallee(named: "constraint") {
             let root = call.findRootFunctionCall()
             let viewPropertyName = try root.findViewPropertyName()
             let relations = extractConstaints(from: [LabeledExprSyntax](call.arguments))
             constraints[viewPropertyName, default: []].append(contentsOf: relations)
+            current = call.withoutLastCall
         }
         
         if let codeBlockItemList = item.findRootFunctionCall().trailingClosure?.statements {
@@ -310,7 +310,7 @@ extension BuildViewMacro {
     
     static func isContainer(_ item: FunctionCallExprSyntax) throws -> Bool {
         let typeName = try item.findViewTypeName().lowercased()
-        return typeName.hasSuffix("layout") || typeName.hasSuffix("container")
+        return typeName.hasSuffix("layout") || typeName.hasSuffix("container") || typeName.hasSuffix("scrollview")
     }
 }
 

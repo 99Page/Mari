@@ -70,6 +70,10 @@ final class ViewPropertyMacroTests: XCTestCase {
                 func activateConstraints() {
 
                 }
+            
+                func bind() {
+                    layout.updateView()
+                }
             }
             """,
             macros: testMacros
@@ -105,6 +109,10 @@ final class ViewPropertyMacroTests: XCTestCase {
             
                 func activateConstraints() {
 
+                }
+            
+                func bind() {
+                    layout.updateView()
                 }
             }
             """,
@@ -145,6 +153,10 @@ final class ViewPropertyMacroTests: XCTestCase {
             
                 func activateConstraints() {
 
+                }
+            
+                func bind() {
+                    layout.updateView()
                 }
             }
             """,
@@ -189,6 +201,12 @@ final class ViewPropertyMacroTests: XCTestCase {
             
                 func activateConstraints() {
 
+                }
+            
+                func bind() {
+                    layout.updateView()
+                    title.updateView()
+                    description.updateView()
                 }
             }
             """,
@@ -241,6 +259,12 @@ final class ViewPropertyMacroTests: XCTestCase {
                         make.width.equalTo(100.0)
                         make.height.equalTo(100.0)
                     }
+                }
+            
+                func bind() {
+                    layout.updateView()
+                    title.updateView()
+                    description.updateView()
                 }
             }
             """,
@@ -301,6 +325,12 @@ final class ViewPropertyMacroTests: XCTestCase {
                         make.height.equalTo(400.0)
                     }
                 }
+            
+                func bind() {
+                    layout.updateView()
+                    title.updateView()
+                    description.updateView()
+                }
             }
             """,
             macros: testMacros
@@ -358,6 +388,12 @@ final class ViewPropertyMacroTests: XCTestCase {
                         make.width.equalTo(100.0)
                         make.height.equalTo(100.0)
                     }
+                }
+            
+                func bind() {
+                    layout.updateView()
+                    image.updateView()
+                    description.updateView()
                 }
             }
             """,
@@ -422,6 +458,7 @@ final class ViewPropertyMacroTests: XCTestCase {
                 }
             
                 func bind() {
+                    layout.updateView()
                     title.text = .constant("제목")
                     title.updateView()
                     description.text = .constant("설명")
@@ -494,6 +531,7 @@ final class ViewPropertyMacroTests: XCTestCase {
                     layout.spacing = .constant(16)
                     layout.alignment = .constant(.center)
                     layout.updateView()
+                    lockImage.updateView()
                     message.text = .constant("test")
                     message.updateView()
                 }

@@ -26,10 +26,11 @@ extension FunctionCallExprSyntax {
     /// a.function1().function2() -> function2()
     var lastCall: FunctionCallExprSyntax? {
         guard let callee else { return nil }
+        guard let dedentedTrailingClosure = try? trailingClosure?.dedent() else { return nil }
         
         return FunctionCallExprSyntax(
             callee: ExprSyntax(stringLiteral: callee),
-            trailingClosure: trailingClosure?.dedented,
+            trailingClosure: dedentedTrailingClosure,
             additionalTrailingClosures: additionalTrailingClosures) {
             arguments
         }

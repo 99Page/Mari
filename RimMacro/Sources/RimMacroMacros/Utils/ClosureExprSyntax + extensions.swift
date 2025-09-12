@@ -12,7 +12,7 @@ import SwiftSyntaxMacros
 import SwiftBasicFormat
 
 extension ClosureExprSyntax {
-    var dedented: ClosureExprSyntax {
+    func dedent() throws -> ClosureExprSyntax {
         let spacingCount = self.formatted().description.prefixCount(of: " ")
         var codeBlockItemList = CodeBlockItemListSyntax()
         
@@ -22,8 +22,9 @@ extension ClosureExprSyntax {
             trimmed = String(trimmed.dropFirst(dropCount))
             
             let newItem = CodeBlockItemSyntax(stringLiteral: "\n\(trimmed)")
+            let validateItem = try CodeBlockItemSyntax(validating: newItem)
             
-            codeBlockItemList.append(newItem)
+            codeBlockItemList.append(validateItem)
         }
         
         return ClosureExprSyntax(signature: signature, statements: codeBlockItemList)

@@ -10,6 +10,7 @@ import ComposableArchitecture
 import SnapKit
 import SwiftUI
 import Core
+import RimMacro
 
 @Reducer
 struct PostDetailFeature {
@@ -248,10 +249,12 @@ struct PostDetailFeature {
     }
 }
 
+@BuildView("view")
 @ViewAction(for: PostDetailFeature.self)
 class PostDetailViewController: UIViewController {
     
     @UIBindable var store: StoreOf<PostDetailFeature>
+    let baseImageHeight: CGFloat = 25
     
     private let scrollView = UIScrollView()
     
@@ -277,6 +280,45 @@ class PostDetailViewController: UIViewController {
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    var bluePrint: UIView {
+        RimScrollView("scroll") {
+            VerticalLayout("layout") {
+                RimImageView("postImage") {
+                    $0.image = $store.image
+                }
+                .constraint(leading: \.leading, trailing: \.trailing)
+                .constraint(height: self.baseImageHeight)
+                
+                RimLabel("postTitle") {
+                    $0.text = $store.titleText
+                    $0.textColor = .constant(.black)
+                    $0.alignment = .constant(.natural)
+                    $0.typography = .constant(.contentTitle)
+                }
+                
+                RimLabel("postDescription") {
+                    $0.text = $store.descriptionText
+                    $0.textColor = .constant(.black)
+                    $0.alignment = .constant(.natural)
+                }
+            }
+            .constraint(leading: \.leading, trailing: \.trailing, top: \.top, bottom: \.bottom)
+        }
+        .constraint(leading: \.leading, trailing: \.trailing, top: \.top, bottom: \.bottom)
+        .onScroll { offset, _ in
+            self.updateImageHeight(to: offset.y)
+        }
+        .onScrollEnd {
+            self.updateImageHeight(to: self.baseImageHeight)
+        }
+    }
+    
+    private func updateImageHeight(to height: CGFloat) {
+        postImage.snp.updateConstraints { make in
+            make.height.equalTo(height)
+        }
     }
     
     override func viewDidLoad() {
@@ -355,6 +397,10 @@ class PostDetailViewController: UIViewController {
         view.backgroundColor = .systemBackground
         navigationController?.setNavigationBarHidden(false, animated: false)
         
+        scrollView.alwaysBounceVertical = true
+        scrollView.isScrollEnabled = true
+        scrollView.bounces = true
+        
         setupMenuButton()
     }
     
@@ -397,14 +443,14 @@ class PostDetailViewController: UIViewController {
         contentView.snp.makeConstraints { make in
             make.top.equalTo(view.snp.top)
             make.width.equalToSuperview()
-            make.leading.equalToSuperview()
+            make.leading.trailing.bottom.equalToSuperview()
         }
         
         imageView.snp.makeConstraints { make in
             make.top.equalToSuperview()
             make.centerX.equalToSuperview()
             make.width.equalToSuperview()
-            make.height.equalTo(250)
+            make.height.equalTo(25)
         }
         
         titleLabel.snp.makeConstraints { make in
