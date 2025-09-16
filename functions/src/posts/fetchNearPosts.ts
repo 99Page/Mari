@@ -12,7 +12,7 @@ export const nearPostsV1 = onRequest({ region: region }, async (req, res) => {
   const lng = parseFloat(req.query.longitude as string);
   const precision = parseInt(req.query.precision as string, 10); // 10진법
   const nextCursor = req.query.nextCursor as string;
-  const limit = parseInt(req.query.precision as string, 10)
+  const limit = parseInt(req.query.limit as string, 10)
 
   const uid = await verifyAuthAndGetUid(req, res);
   if (uid == null) return; 
@@ -33,14 +33,15 @@ export const nearPostsV1 = onRequest({ region: region }, async (req, res) => {
         .limit(limit);
 
     if (nextCursor) {
-         const date = new Date(nextCursor);
+        const date = new Date(nextCursor);
         const cursor = admin.firestore.Timestamp.fromDate(date);
         query = query.startAfter(cursor); 
     }
 
     const snapshot = await query.get();
+
     const posts: PostDetail[] = snapshot.docs.map(doc => 
-        mapDataToPostDetail(doc.data, uid)
+        mapDataToPostDetail(doc, uid)
     )
 
         // 다음 페이지 커서 (마지막 createdAt)

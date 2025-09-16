@@ -32,9 +32,10 @@ export interface PostDetail {
 
 // Firestore DocumentData → PostDetail 변환 함수
 export function mapDataToPostDetail(
-  data: FirebaseFirestore.DocumentData,
+  doc: FirebaseFirestore.QueryDocumentSnapshot,
   uid: string
 ): PostDetail {
+  const data = doc.data();
   return {
     id: data.id,
     title: data.title,
