@@ -23,7 +23,8 @@ public class RimImageView: RimView, ConstraintDescribable {
     private var lastLoadedImageURL: String?
     private var imageLoader: ImageLoader
     
-    private var observeToken: ObserveToken?
+    public var observeToken: ObserveToken?
+    public var onImageLoaded: ((UIImage) -> Void)?
     
     public init() {
         let memoryLoader = MemoryCacheImageLoader()
@@ -110,6 +111,7 @@ public class RimImageView: RimView, ConstraintDescribable {
         case .custom(let url):
             loadImage(from: url)
         case let .symbol(name, color):
+            self.imageView.contentMode = .scaleAspectFit // 비율 유지 및 크기 안에 전부 표시 
             self.imageView.image = UIImage(systemName: name)
             self.imageView.tintColor = color
             self.placeholder.isHidden = true
@@ -128,8 +130,11 @@ public class RimImageView: RimView, ConstraintDescribable {
         Task {
             do {
                 let loadedImage = try await imageLoader.loadImage(fromKey: url)
+                self.onImageLoaded?(loadedImage)
                 self.imageView.image = loadedImage
                 self.placeholder.isHidden = true
+                
+                layoutIfNeeded()
                 lastLoadedImageURL = url
             } catch {
                 self.imageView.image = UIImage(systemName: "photo")

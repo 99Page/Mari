@@ -15,18 +15,24 @@ public protocol SectionProvidable: Identifiable & Equatable {
     var section: Section { get }
 }
 
+public protocol EventEmittingCell {
+    associatedtype Event
+    var emit: ((Event) -> Void)? { get set }
+}
+
 public protocol CellConfigurable: UITableViewCell {
     associatedtype Value: SectionProvidable
     func configure(with value: UIBinding<Value?>)
 }
 
-public class RimTableView<Cell: CellConfigurable>: UITableView, UITableViewDelegate {
+public class RimTableView<Cell: CellConfigurable & EventEmittingCell>: UITableView, UITableViewDelegate {
     
     typealias Section = Cell.Value.Section
     typealias ID = Cell.Value.ID
     
     private var diffableDataSource: UITableViewDiffableDataSource<Section, ID>?
     var oldItems = IdentifiedArrayOf<Cell.Value>()
+    
     public var items: UIBinding<IdentifiedArrayOf<Cell.Value>> = .constant([])
     private var observeToken: ObserveToken?
     
@@ -35,6 +41,8 @@ public class RimTableView<Cell: CellConfigurable>: UITableView, UITableViewDeleg
     private var onRowSelected: ((IndexPath) -> Void)?
     private var onTrailingSwipe: ((IndexPath) -> UISwipeActionsConfiguration?)?
     private var onPaginated: (() -> Void)?
+    
+    public var event: ((Cell.Event) -> Void)?
     
     public init() {
         super.init(frame: .zero, style: .plain)
@@ -84,10 +92,11 @@ public class RimTableView<Cell: CellConfigurable>: UITableView, UITableViewDeleg
     
     func setupDataSource() {
         diffableDataSource = UITableViewDiffableDataSource(tableView: self, cellProvider: { tableView, indexPath, itemIdentifier in
-            let cell = tableView.dequeueReusableCell(withIdentifier: "Cell") as? Cell
+            var cell = tableView.dequeueReusableCell(withIdentifier: "Cell") as? Cell
             
             let binding = self.items[id: itemIdentifier]
             cell?.configure(with: binding)
+            cell?.emit = self.event
             
             return cell
         })
@@ -117,6 +126,7 @@ public class RimTableView<Cell: CellConfigurable>: UITableView, UITableViewDeleg
     
     func append(ids: [ID], to section: Section, animating: Bool = true) {
         guard let ds = diffableDataSource else { return }
+        debugPrint("append")
         var snapshot = ds.snapshot()
         
         let sections = snapshot.sectionIdentifiers

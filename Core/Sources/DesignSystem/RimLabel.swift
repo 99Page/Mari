@@ -29,7 +29,7 @@ public class RimLabel: RimView, ConstraintDescribable {
     private var height: CGFloat = 0
     private var keyboardAvoidClosure: ((_ make: ConstraintMaker) -> Void)?
     
-    private var observeToken: ObserveToken?
+    public var observeToken: ObserveToken?
     
     public init() {
         self.labelState = .init()

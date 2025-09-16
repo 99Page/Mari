@@ -36,14 +36,6 @@ struct PostDetailFeature {
             self.image = .custom(url: nil)
         }
         
-        var menu: [PostMenuFeature.State.Menu] {
-            isMyPost ? [.delete] : othersPostMenu
-        }
-        
-        private var othersPostMenu: [PostMenuFeature.State.Menu] {
-            isPostBlocked ? [.unblock] : [.block, .report]
-        }
-        
         var isPostBlocked: Bool {
             guard let creatorID else { return false }
             return blockedUserIds.contains(creatorID)
@@ -107,7 +99,7 @@ struct PostDetailFeature {
                 )
                 
             case .view(.menuButtonTapped):
-                state.postMenu = .init(activeMenus: state.menu)
+                state.postMenu = .init(menuOption: .myPost)
                 return .none
                 
             case .view(.binding(_)):

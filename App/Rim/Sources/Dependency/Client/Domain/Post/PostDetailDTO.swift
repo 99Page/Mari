@@ -18,7 +18,7 @@ struct PostDetailDTO: Decodable, Stub {
     let isMine: Bool
     
     static func stub() -> Self {
-        Self(id: UUID().uuidString, title: "title", content: "content", imageUrl: "imageURL", location: .init(latitude: 0, longitude: 0), creatorID: "creator", isMine: true)
+        Self(id: UUID().uuidString, title: "title", content: "content", imageUrl: "https://picsum.photos/id/950/200/300", location: .init(latitude: 0, longitude: 0), creatorID: "creator", isMine: true)
     }
 }
 
