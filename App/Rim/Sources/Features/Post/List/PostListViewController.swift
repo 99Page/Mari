@@ -20,13 +20,23 @@ struct PostListFeature {
         @Shared(.blockedUserIds) var blockedUserIds = Set()
         @Presents var postMenu: PostMenuFeature.State?
         
+        let topPostId: String
         var posts = IdentifiedArrayOf<PostCell>()
+        
+        init(selectedPostID: String) {
+            self.topPostId = selectedPostID
+        }
+        
+        var lastCreatedAt: Date? {
+            posts.last?.createdAt
+        }
     }
     
     enum Action: ViewAction {
         case view(View)
-        case addPostCell(FetchNearPostsResponse)
+        case addPostCell([PostDetailDTO])
         case postMenu(PresentationAction<PostMenuFeature.Action>)
+        case fetchTopPost
         
         enum View: BindableAction {
             case binding(BindingAction<State>)
@@ -46,12 +56,7 @@ struct PostListFeature {
             case .view(.binding):
                 return .none
             case .view(.viewDidLoad):
-                return .run { send in
-                    let response = try await postClient.fetchNearPosts()
-                    await send(.addPostCell(response.result))
-                } catch: { error, send in
-                    
-                }
+                return .send(.fetchTopPost)
                 
             case let .view(.cellMenuTapped(post)):
                 if post.isMyPost {
@@ -64,13 +69,21 @@ struct PostListFeature {
             case .view(.paginated):
                 return .none
                 
-            case let .addPostCell(response):
-                let fetchedPosts = response.posts.map { PostCell(postDetailDTO: $0) }
+            case let .addPostCell(posts):
+                let fetchedPosts = posts.map{ PostCell(postDetailDTO: $0) }
                 state.posts.append(contentsOf: fetchedPosts)
                 return .none
                 
             case .postMenu:
                 return .none
+                
+            case .fetchTopPost:
+                return .run { [id = state.topPostId] send in
+                    let response = try await postClient.fetchPostByID(id: id)
+                    await send(.addPostCell([response.result]))
+                } catch: { error, send in
+                    
+                }
             }
         }
         .ifLet(\.$postMenu, action: \.postMenu) { PostMenuFeature() }
@@ -126,7 +139,7 @@ class PostListViewController: UIViewController {
 }
 
 #Preview {
-    let store = Store(initialState: PostListFeature.State()) {
+    let store = Store(initialState: PostListFeature.State(selectedPostID: "id1")) {
         PostListFeature()
     }
     

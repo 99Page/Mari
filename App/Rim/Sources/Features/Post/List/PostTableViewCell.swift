@@ -19,6 +19,7 @@ struct PostCell: SectionProvidable {
     let isMyPost: Bool
     let isBlokcedPost: Bool
     var image: RimImageView.ImageType
+    let createdAt: Date
     
     init(postDetailDTO: PostDetailDTO) {
         self.id = postDetailDTO.id
@@ -27,15 +28,7 @@ struct PostCell: SectionProvidable {
         self.image = .custom(url: postDetailDTO.imageUrl)
         self.isMyPost = postDetailDTO.isMine
         self.isBlokcedPost = false
-    }
-    
-    init(dto: PostSummaryDTO) {
-        self.id = dto.id
-        self.title = dto.title
-        self.description = ""
-        self.image = .custom(url: dto.imageUrl)
-        self.isMyPost = true
-        self.isBlokcedPost = false
+        self.createdAt = postDetailDTO.createdAt
     }
 }
 
