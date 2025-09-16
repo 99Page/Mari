@@ -17,6 +17,7 @@ export { createPost } from './posts/createPost'
 export { scheduleAggregateLast6HoursRanking } from './posts/aggregateRanking'
 export { testAggregateLast6HoursRanking } from './posts/aggregateRanking'
 export { reportPost } from "./posts/reportPost"
+export { nearPostsV1 } from "./posts/fetchNearPosts"
 
 export { debugFirestorePath } from './debug/debugFirstorePath'
 

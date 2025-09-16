@@ -28,7 +28,7 @@ struct PostCell: SectionProvidable {
         self.image = .custom(url: postDetailDTO.imageUrl)
         self.isMyPost = postDetailDTO.isMine
         self.isBlokcedPost = false
-        self.createdAt = postDetailDTO.createdAt
+        self.createdAt = postDetailDTO.createdAt.date
     }
 }
 
@@ -67,14 +67,14 @@ class PostTableViewCell: UITableViewCell, CellConfigurable, EventEmittingCell {
         
         title.snp.makeConstraints { make in
             make.top.equalToSuperview()
-            make.leading.equalToSuperview()
+            make.leading.equalToSuperview().offset(16)
             make.height.equalTo(24)
         }
         
         menu.snp.makeConstraints { make in
             make.top.equalToSuperview()
             make.height.equalTo(30)
-            make.trailing.equalToSuperview()
+            make.trailing.equalToSuperview().offset(-16)
             make.width.equalTo(30)
         }
         
@@ -105,7 +105,7 @@ class PostTableViewCell: UITableViewCell, CellConfigurable, EventEmittingCell {
         postImage.onImageLoaded = { image in
             let ratio = image.size.height / image.size.width
             
-            self.postImage.snp.makeConstraints { make in
+            self.postImage.snp.remakeConstraints { make in
                 make.leading.equalToSuperview()
                 make.width.equalToSuperview()
                 make.top.equalTo(self.title.snp.bottom).offset(10)
@@ -131,6 +131,7 @@ class PostTableViewCell: UITableViewCell, CellConfigurable, EventEmittingCell {
         title.observeToken?.cancel()
         postImage.observeToken?.cancel()
         content.observeToken?.cancel()
+        resetImageConstraint()
     }
     
     private func resetImageConstraint() {

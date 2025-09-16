@@ -82,7 +82,7 @@ struct PostListFeature {
                     let response = try await postClient.fetchPostByID(id: id)
                     await send(.addPostCell([response.result]))
                 } catch: { error, send in
-                    
+                    debugPrint(error)
                 }
             }
         }
@@ -110,10 +110,15 @@ class PostListViewController: UIViewController {
         makeConstraint()
         setupView()
         send(.viewDidLoad)
+        tableView.separatorStyle = .none
         
         present(item: $store.scope(state: \.postMenu, action: \.postMenu)) { store in
             PostMenuViewController(store: store)
         }
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
     }
     
     private func setupView() {

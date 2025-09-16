@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreLocation
+import FirebaseCore
 
 struct PostDetailDTO: Decodable, Stub {
     let id: String
@@ -16,10 +17,10 @@ struct PostDetailDTO: Decodable, Stub {
     let location: CoordinateDTO
     let creatorID: String
     let isMine: Bool
-    let createdAt: Date
+    let createdAt: TimestampDTO
     
     static func stub() -> Self {
-        Self(id: UUID().uuidString, title: "title", content: "content", imageUrl: "https://picsum.photos/id/950/200/300", location: .init(latitude: 0, longitude: 0), creatorID: "creator", isMine: true, createdAt: .now)
+        Self(id: UUID().uuidString, title: "title", content: "content", imageUrl: "https://picsum.photos/id/950/200/300", location: .init(latitude: 0, longitude: 0), creatorID: "creator", isMine: true, createdAt: .init(seconds: 0, nanoseconds: 0))
     }
 }
 
@@ -38,15 +39,5 @@ struct PostSummaryDTO: Decodable, Stub {
             creatorID: "creatorID",
             location: .init(latitude: 0, longitude: 0)
         )
-    }
-}
-
-struct CoordinateDTO: Decodable {
-    let latitude: Double
-    let longitude: Double
-
-    private enum CodingKeys: String, CodingKey {
-        case latitude = "_latitude"
-        case longitude = "_longitude"
     }
 }

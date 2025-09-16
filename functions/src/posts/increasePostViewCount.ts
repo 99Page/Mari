@@ -2,7 +2,6 @@ import * as functions from 'firebase-functions';
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import { fetchPostById } from './fetchPostById';
-export { fetchPostById } from './fetchPostById';
 import { db } from "../utils/firebase";
 import { ErrorResponse, errors } from '../resopnse/errorResponse';
 

@@ -124,9 +124,8 @@ public class RimTableView<Cell: CellConfigurable & EventEmittingCell>: UITableVi
         ds.apply(snapshot)
     }
     
-    func append(ids: [ID], to section: Section, animating: Bool = true) {
+    func append(ids: [ID], to section: Section, animating: Bool = false) {
         guard let ds = diffableDataSource else { return }
-        debugPrint("append")
         var snapshot = ds.snapshot()
         
         let sections = snapshot.sectionIdentifiers
