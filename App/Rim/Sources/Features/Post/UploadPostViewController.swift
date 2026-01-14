@@ -120,6 +120,8 @@ struct UploadPostFeature {
                 return .none
                 
             case .view(.uploadButtonTapped):
+                debugPrint("button tapped")
+                
                 if !state.isProgressViewPresented {
                     state.isProgressViewPresented = true
                 }

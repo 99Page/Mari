@@ -82,7 +82,7 @@ struct PostListFeature {
                     let response = try await postClient.fetchPostByID(id: id)
                     await send(.addPostCell([response.result]))
                 } catch: { error, send in
-                    debugPrint(error)
+                    
                 }
             }
         }
