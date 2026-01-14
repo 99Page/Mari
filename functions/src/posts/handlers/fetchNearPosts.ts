@@ -1,11 +1,11 @@
 import { onRequest } from "firebase-functions/v2/https";
 import Geohash from "latlon-geohash";
-import { db, adminInstance as admin } from "../utils/firebase";
-import { mapDataToPostDetail, PostDetail } from "./post";
-import { ErrorResponse, Errors } from "../resopnse/errorResponse";
-import { region } from "../utils/firebase";
-import type { SuccessResponse } from "../resopnse/successResponse";
-import { verifyAuthAndGetUid } from "../auth/verifyToken";
+import { db, adminInstance as admin } from "@/utils/firebase";
+import { ErrorResponse, Errors } from "@/resopnse/errorResponse";
+import { region } from "@/utils/firebase";
+import type { SuccessResponse } from "@/resopnse/successResponse";
+import { verifyAuthAndGetUid } from "@/auth/verifyToken";
+import { PostDetail, convertToPostDetail } from "@/posts/models/postDetail";
 
 export const nearPostsV1 = onRequest({ region: region }, async (req, res) => {
   const lat = parseFloat(req.query.latitude as string);
@@ -41,10 +41,10 @@ export const nearPostsV1 = onRequest({ region: region }, async (req, res) => {
     const snapshot = await query.get();
 
     const posts: PostDetail[] = snapshot.docs.map(doc => 
-        mapDataToPostDetail(doc, uid)
-    )
+      convertToPostDetail(doc, uid)
+    );
 
-        // 다음 페이지 커서 (마지막 createdAt)
+    // 다음 페이지 커서 (마지막 createdAt)
     const nextCursorRaw = snapshot.docs.length > 0
       ? snapshot.docs[snapshot.docs.length - 1].data().createdAt
       : null;

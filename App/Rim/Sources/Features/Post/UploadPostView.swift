@@ -28,20 +28,16 @@ struct UploadPostFeature {
         var image: RimImageView.ImageType
         var uploadTryCount = 0
         var imageURL: String?
-        var description = RimTextView.State(text: "", placeholder: "더 자세한 내용을 알려주세요.")
+        
+        var descriptionText = ""
         let maxImageUploadRetry = 3
         
-        var isPostButtonEnabled = false
+        var isPostButtonEnabled = true
         var postButton = RimLabel.State(
             appearance: .init(cornerRadius: 25, backgroundColor: UIColor(resource: .main))
         )
         
-        var title = RimTextField.State(
-            text: "",
-            alignment: .left,
-            typography: .contentTitle,
-            placeholder: "여기는 어떤 곳인가요?",
-        )
+        var title = ""
         
         init(pickedImage: UIImage, photoLocation: NMGLatLng) {
             self.image = .uiImage(uiImage: pickedImage)
@@ -120,8 +116,6 @@ struct UploadPostFeature {
                 return .none
                 
             case .view(.uploadButtonTapped):
-                debugPrint("button tapped")
-                
                 if !state.isProgressViewPresented {
                     state.isProgressViewPresented = true
                 }
@@ -147,14 +141,14 @@ struct UploadPostFeature {
                 
             case .uploadPost:
                 let locationManager = CLLocationManager()
-                guard !state.title.text.isEmpty else { return .send(.showMissingTitleAlert) }
+                guard !state.title.isEmpty else { return .send(.showMissingTitleAlert) }
                 guard let imageURL = state.imageURL else { return .none }
                 guard let location = locationManager.location else { return .none }
                 guard let uid = state.uid else { return .none }
                 
                 let request = CreatePostRequest(
-                    title: state.title.text,
-                    content: state.description.text,
+                    title: state.title,
+                    content: state.descriptionText,
                     latitude: location.coordinate.latitude,
                     longitude: location.coordinate.longitude,
                     creatorID: uid,
@@ -168,9 +162,7 @@ struct UploadPostFeature {
                 } catch: { error, send in
                     if let response = error as? ErrorResponse {
                         await send(.showAlert(title: response.message))
-                    } else {
-                        await send(.showUploadFailAlert)
-                    }
+                    } 
                 }
                 
             case .dismissProgress:
@@ -230,6 +222,8 @@ struct UploadPostFeature {
                 }
                 return .none
             case .showMissingTitleAlert:
+                state.isProgressViewPresented = false
+                
                 state.alert = AlertState {
                     TextState("게시글의 제목을 입력해주세요")
                 } actions: {
@@ -263,165 +257,110 @@ struct UploadPostFeature {
 }
 
 @ViewAction(for: UploadPostFeature.self)
-class UploadPostViewController: UIViewController {
+struct UploadPostView: View {
+    @Bindable var store: StoreOf<UploadPostFeature>
     
-    @UIBindable var store: StoreOf<UploadPostFeature>
+    // 키보드 내리기 위한 포커스 상태
+    @FocusState private var isFocused: Bool
     
-    private let contentBackgroundView = UIView()
-    private let scrollView = UIScrollView(frame: .zero)
-    private let photoImage: RimImageView
-    private let titleTextField: RimTextField
-    private let restrictionLabel: RimLabel
-    private let contentTextView: RimTextView
-    private let postButton: RimLabel
-    
-    init(store: StoreOf<UploadPostFeature>) {
-        @UIBindable var binding = store
-        
-        self.store = store
-        self.postButton = RimLabel(state: $binding.postButton)
-        self.photoImage = RimImageView()
-        self.contentTextView = RimTextView(state: $binding.description)
-        self.titleTextField = RimTextField(state: $binding.title)
-        self.restrictionLabel = RimLabel()
-        
-        super.init(nibName: nil, bundle: nil)
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        
-        makeConstraint()
-        setupView()
-        updateView()
-        
-        present(item: $store.scope(state: \.alert, action: \.alert)) { store in
-            UIAlertController(store: store)
-        }
-        
-        present(item: $store.scope(state: \.dismissDialog, action: \.dialog)) { store in
-            UIAlertController(store: store)
-        }
-        
-        present(isPresented: $store.isProgressViewPresented) {
-            ProgressViewController()
-        }
-        
-        send(.viewDidLoad)
-    }
-    
-    private func updateView() {
-        postButton.text = .constant("공유하기")
-        postButton.textColor = .constant(.white)
-        postButton.isEnabled = $store.isPostButtonEnabled
-        postButton.updateView()
-        
-        restrictionLabel.text = .constant("부적절하거나 불쾌감을 줄 수 있는 게시글은 제재를 받을 수 있습니다.")
-        restrictionLabel.textColor = .constant(.gray)
-        restrictionLabel.typography = .constant(.hint)
-        restrictionLabel.updateView()
-        
-        photoImage.image = $store.image
-        photoImage.updateView()
-    }
-    
-    private func setupView() {
-        title = "새 게시물"
-        view.backgroundColor = .systemBackground
-        
-        setupNavigationBar()
-        
-        scrollView.alwaysBounceVertical = true
-        scrollView.contentInset.top = 16
-        scrollView.contentInset.bottom = 16 // 스크롤이 올라올 때 텍스트가 잘리는 걸 막습니다. -page, 2025. 07. 11
-        
-        postButton.addAction(.touchUpInside({ [weak self] in
-            self?.send(.uploadButtonTapped)
-        }))
-        
-        contentBackgroundView.addAction(.touchUpInside({ [weak self] in
-            self?.view.endEditing(true)
-        }), animation: .none)
-    }
-    
-    private func setupNavigationBar() {
-        let appearance = UINavigationBarAppearance()
-        appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = .systemBackground
-        
-        appearance.shadowColor = UIColor.lightGray
-        
-        navigationController?.navigationBar.standardAppearance = appearance
-        navigationController?.navigationBar.scrollEdgeAppearance = appearance
-        navigationController?.navigationBar.isTranslucent = false
-        
-        navigationItem.leftBarButtonItem = UIBarButtonItem(
-            image: UIImage(systemName: "xmark"),
-            style: .plain,
-            target: self,
-            action: #selector(didTapClose)
-        )
-        
-        navigationItem.leftBarButtonItem?.tintColor = .darkText
-    }
-    
-    @objc private func didTapClose() {
-        send(.xButtonTapped)
-    }
-    
-    private func makeConstraint() {
-        view.addSubview(contentBackgroundView)
-        view.addSubview(postButton)
+    var body: some View {
+        ZStack {
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: 16) {
+                        if case let .uiImage(uiImage) = store.image {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(maxWidth: .infinity)
+                                .aspectRatio(3.0 / 4.0, contentMode: .fit)
+                                .containerRelativeFrame(.horizontal) { length, _ in
+                                    length * 0.6
+                                }
+                                .clipped()
+                        }
+                        
+                        TextField(
+                            "여기는 어떤 곳인가요?",
+                            text: $store.title
+                        )
+                        .font(.headline)
+                        .multilineTextAlignment(.leading)
+                        .focused($isFocused)
+                        .padding(.horizontal, 16)
 
-        contentBackgroundView.addSubview(scrollView)
-        scrollView.addSubview(photoImage)
-        scrollView.addSubview(titleTextField)
-        scrollView.addSubview(contentTextView)
-        scrollView.addSubview(restrictionLabel)
-        
-        postButton.withKeyboardAvoid(height: 50) { make in
-            make.leading.trailing.equalToSuperview().inset(16)
-            make.bottom.equalToSuperview().inset(40)
-            make.height.equalTo(50)
+                        TextField(
+                            "더 자세한 내용을 알려주세요.",
+                            text: $store.descriptionText,
+                            axis: .vertical
+                        )
+                        .focused($isFocused)
+                        .padding(.horizontal, 16)
+
+                        Text("부적절하거나 불쾌감을 줄 수 있는 게시글은 제재를 받을 수 있습니다.")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 4)
+                    }
+                    .padding(.vertical, 16)
+                }
+                .scrollDismissesKeyboard(.interactively)
+                
+                Button {
+                    send(.uploadButtonTapped)
+                } label: {
+                    Text("공유하기")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(
+                            store.isPostButtonEnabled ? Color(uiColor: .systemBlue) : Color.gray
+                        )
+                        .cornerRadius(25)
+                }
+                .disabled(!store.isPostButtonEnabled)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16) // Safe Area 고려
+            }
+            
+            if store.isProgressViewPresented {
+                Color.black.opacity(0.4)
+                    .ignoresSafeArea()
+                    .overlay {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .tint(.white)
+                            .scaleEffect(1.5)
+                    }
+                    .onTapGesture {
+                        
+                    }
+            }
         }
-        
-        contentBackgroundView.snp.makeConstraints { make in
-            make.top.leading.trailing.equalToSuperview()
-            make.bottom.equalTo(postButton.snp.top)
+        .navigationTitle("새 게시물")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // X 버튼 (닫기)
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button {
+                    send(.xButtonTapped)
+                } label: {
+                    Image(systemName: "xmark")
+                        .foregroundColor(.black)
+                }
+            }
         }
-        
-        scrollView.snp.makeConstraints { make in
-            make.top.equalTo(view.safeAreaLayoutGuide.snp.top)
-            make.leading.trailing.top.equalToSuperview()
-            make.bottom.equalTo(postButton.snp.top).offset(-16)
+        .onTapGesture {
+            isFocused = false
         }
-        
-        photoImage.snp.makeConstraints { make in
-            make.top.equalTo(scrollView.contentLayoutGuide.snp.top)
-            make.centerX.equalToSuperview()
-            make.width.equalToSuperview().multipliedBy(0.6)
-            make.height.equalTo(photoImage.snp.width).multipliedBy(4.0 / 3.0)
+        .onAppear {
+            send(.viewDidLoad)
         }
-        
-        titleTextField.snp.makeConstraints { make in
-            make.leading.trailing.equalToSuperview().inset(16)
-            make.top.equalTo(photoImage.snp.bottom).offset(16)
-        }
-        
-        contentTextView.snp.makeConstraints { make in
-            make.leading.trailing.equalToSuperview().inset(16)
-            make.top.equalTo(titleTextField.snp.bottom).offset(16)
-        }
-        
-        restrictionLabel.snp.makeConstraints { make in
-            make.top.equalTo(contentTextView.snp.bottom).offset(4)
-            make.bottom.equalTo(scrollView.contentLayoutGuide.snp.bottom)
-            make.leading.trailing.equalToSuperview().inset(16)
-        }
+        .alert($store.scope(state: \.alert, action: \.alert))
+        .confirmationDialog($store.scope(state: \.dismissDialog, action: \.dialog))
     }
 }
 

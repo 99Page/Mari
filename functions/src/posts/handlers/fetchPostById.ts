@@ -1,9 +1,9 @@
-import type { SuccessResponse } from "../resopnse/successResponse";
+import type { SuccessResponse } from "../../resopnse/successResponse";
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
-import { PostDetail } from './post'
-import { db, adminInstance as admin } from "../utils/firebase";
-import { ErrorResponse, errors } from "../resopnse/errorResponse";
+import { db, adminInstance as admin } from "../../utils/firebase";
+import { ErrorResponse, errors } from "../../resopnse/errorResponse";
+import { PostDetail, convertToPostDetail } from "../models/postDetail"
 
 const REGION = "asia-northeast3";
 
@@ -14,27 +14,8 @@ export async function fetchPostById(postId: string, userID: string): Promise<Pos
   if (!doc.exists) {
     throw new Error("Post not found");
   }
-  const data = doc.data();
-  return {
-    id: doc.id,
-    title: data?.title,
-    content: data?.content,
-    imageUrl: data?.imageUrl,
-    location: data?.location,
-    createdAt: data?.createdAt,
-    creatorID: data?.creatorID,
-    geohash_1: data?.geohash_1,
-    geohash_2: data?.geohash_2,
-    geohash_3: data?.geohash_3,
-    geohash_4: data?.geohash_4,
-    geohash_5: data?.geohash_5,
-    geohash_6: data?.geohash_6,
-    geohash_7: data?.geohash_7,
-    geohash_8: data?.geohash_8,
-    geohash_9: data?.geohash_9,
-    geohash_10: data?.geohash_10,
-    isMine: userID === data?.creatorID
-  };
+
+  return convertToPostDetail(doc, userID);
 }
 
 export const getPostById = onRequest({ region: REGION }, async (req, res) => {

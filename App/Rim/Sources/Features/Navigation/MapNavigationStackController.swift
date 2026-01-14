@@ -8,6 +8,7 @@
 import Foundation
 import ComposableArchitecture
 import UIKit
+import SwiftUI
 
 @Reducer
 struct MapNavigationStack {

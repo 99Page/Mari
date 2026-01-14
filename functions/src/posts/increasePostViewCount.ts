@@ -1,7 +1,7 @@
-import * as functions from 'firebase-functions';
+import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
-import { fetchPostById } from './fetchPostById';
+import { fetchPostById } from './handlers/fetchPostById';
 import { db } from "../utils/firebase";
 import { ErrorResponse, errors } from '../resopnse/errorResponse';
 
@@ -14,7 +14,7 @@ const MISSING_POST_ID: ErrorResponse = {
   message: "Missing postId in request path"
 };
 
-export const increasePostViewCount = functions.https.onRequest(
+export const increasePostViewCount = onRequest(
   { region: REGION },
   async (req, res) => {
     if (req.method !== 'POST') {
