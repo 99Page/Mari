@@ -283,9 +283,10 @@ final class CameraViewController: UIViewController {
         
         captureSession.commitConfiguration()
         
-        Task { @MainActor in
+        Task(priority: .background) {
             captureSession.startRunning()
         }
+
     }
     
     @objc private func capturePhoto() {

@@ -33,7 +33,7 @@ extension ImageClient: DependencyKey {
             let metadata = StorageMetadata()
             metadata.contentType = "image/jpeg"
             
-            let _ = try await imageReference.putDataAsync(imageData)
+            let _ = try await imageReference.putDataAsync(imageData, metadata: metadata)
             let url = try await imageReference.downloadURL()
             
             return ImageResponse(imageURL: url.absoluteString)

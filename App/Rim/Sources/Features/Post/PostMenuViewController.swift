@@ -18,7 +18,24 @@ struct PostMenuFeature {
     struct State: Equatable {
         @Presents var alert: AlertState<Action.Alert>?
         
-        let activeMenus: [Menu]
+        let menuOption: MenuOption
+        
+        enum MenuOption: Equatable {
+            case myPost
+            case blockedPost
+            case unblockedPost
+            
+            var activeMenus: [Menu] {
+                switch self {
+                case .myPost:
+                    return [.delete]
+                case .blockedPost:
+                    return [.unblock]
+                case .unblockedPost:
+                    return [.block, .report]
+                }
+            }
+        }
         
         enum Menu: Equatable {
             case delete
@@ -133,12 +150,13 @@ class PostMenuViewController: UIViewController, UITableViewDataSource, UITableVi
     private let tableView = UITableView()
     
     private var activeMenus: [PostMenuFeature.State.Menu] {
-        store.state.activeMenus
+        store.state.menuOption.activeMenus
     }
     
     init(store: StoreOf<PostMenuFeature>) {
         self.store = store
         super.init(nibName: nil, bundle: nil)
+        self.presentWithHeight()
     }
     
     required init?(coder: NSCoder) {
@@ -351,7 +369,7 @@ private extension AlertState where Action == PostMenuFeature.Action.Alert {
 
 
 #Preview("unblocked user") {
-    let store = Store(initialState: PostMenuFeature.State(activeMenus: [.block, .report])) {
+    let store = Store(initialState: PostMenuFeature.State(menuOption: .unblockedPost)) {
         PostMenuFeature()
     }
     
@@ -361,7 +379,7 @@ private extension AlertState where Action == PostMenuFeature.Action.Alert {
 }
 
 #Preview("blocked user") {
-    let store = Store(initialState: PostMenuFeature.State(activeMenus: [.unblock])) {
+    let store = Store(initialState: PostMenuFeature.State(menuOption: .blockedPost)) {
         PostMenuFeature()
     }
     
@@ -372,7 +390,7 @@ private extension AlertState where Action == PostMenuFeature.Action.Alert {
 
 
 #Preview("Mine") {
-    let store = Store(initialState: PostMenuFeature.State(activeMenus: [.delete])) {
+    let store = Store(initialState: PostMenuFeature.State(menuOption: .myPost)) {
         PostMenuFeature()
     }
     

@@ -114,7 +114,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
             let marker = NMFMarker(position: NMGLatLng(lat: lat, lng: lng))
 
             marker.touchHandler = { [weak self] (o: NMFOverlay) -> Bool in
-                self?.traitCollection.push(state: MapNavigationStack.Path.State.postDetail(.init(postID: post.id)))
+                self?.traitCollection.push(state: MapNavigationStack.Path.State.postList(.init(selectedPostID: post.id)))
                 return true
             }
             
@@ -201,8 +201,6 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         mapView.addCameraDelegate(delegate: self)
         mapView.zoomLevel = store.zoomLevel
         mapView.locationOverlay.hidden = false
-        
-        navigationController?.setNavigationBarHidden(true, animated: false)
         
         latestBackgroundView.addAction(.touchUpInside({ [weak self] in
             self?.store.selectedFilter = .latest

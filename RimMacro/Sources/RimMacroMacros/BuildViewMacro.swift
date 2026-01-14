@@ -34,7 +34,7 @@ public struct BuildViewMacro: MemberMacro {
             let parent = ViewDecl(propertyName: parentView, typeName: "UIView")
             let viewHierarchy = try extractViewHierarchy(superview: parent, subviews: [lastChainedFunctionCall.findRootFunctionCall()])
             let constraints = try extractConstraintPair(item: lastChainedFunctionCall)
-            
+
             
             let viewPropertyDecl = try buildViewPropertyDecl(from: lastChainedFunctionCall)
             let addViewDecl = buildAddSubviewsDecl(hierarchy: viewHierarchy)
@@ -143,8 +143,8 @@ extension BuildViewMacro {
                         makeText.append(makeLine)
                     }
                     
-                    if let value = link.toValue {
-                        let makeLine = "make.\(link.fromConstraint).equalTo(\(value))"
+                    if let argument = link.toArgument {
+                        let makeLine = "make.\(link.fromConstraint).equalTo(\(argument))"
                         makeText.append(makeLine)
                     }
                 }
@@ -220,9 +220,7 @@ extension BuildViewMacro {
                }
            }
            
-           if !lines.isEmpty {
-               lines.append("\(propertyName).updateView()")
-           }
+           lines.append("\(propertyName).updateView()")
 
            // 자식 노드들도 재귀적으로 수집
            for sub in root.findSubviews() {
@@ -267,16 +265,14 @@ extension BuildViewMacro {
         for argument in arguments {
             guard let from = argument.label?.text else { continue }
             
-            if let expression = argument.expression.as(IntegerLiteralExprSyntax.self) {
-                let value = expression.literal.text
-                let relation = ConstraintRelation(fromConstraint: from, toConstraintItem: nil, toValue: Double(value))
-                relations.append(relation)
-            }
-            
             if let expression = argument.expression.as(KeyPathExprSyntax.self),
                let component = expression.components.first?.component.as(KeyPathPropertyComponentSyntax.self) {
                 let constraintItem = component.declName.baseName.text
-                let relation = ConstraintRelation(fromConstraint: from, toConstraintItem: constraintItem, toValue: nil)
+                let relation = ConstraintRelation(fromConstraint: from, toConstraintItem: constraintItem, toArgument: nil)
+                relations.append(relation)
+            } else {
+                let argument = argument.expression.description
+                let relation = ConstraintRelation(fromConstraint: from, toConstraintItem: nil, toArgument: argument)
                 relations.append(relation)
             }
         }
@@ -286,12 +282,14 @@ extension BuildViewMacro {
     
     static func extractConstraintPair(item: FunctionCallExprSyntax) throws -> [String: [ConstraintRelation]] {
         var constraints: [String: [ConstraintRelation]] = [:]
+        var current: FunctionCallExprSyntax? = item
         
-        if let call = item.findCallee(named: "constraint") {
+        while let call = current?.findCallee(named: "constraint") {
             let root = call.findRootFunctionCall()
             let viewPropertyName = try root.findViewPropertyName()
             let relations = extractConstaints(from: [LabeledExprSyntax](call.arguments))
             constraints[viewPropertyName, default: []].append(contentsOf: relations)
+            current = call.withoutLastCall
         }
         
         if let codeBlockItemList = item.findRootFunctionCall().trailingClosure?.statements {
@@ -310,7 +308,7 @@ extension BuildViewMacro {
     
     static func isContainer(_ item: FunctionCallExprSyntax) throws -> Bool {
         let typeName = try item.findViewTypeName().lowercased()
-        return typeName.hasSuffix("layout") || typeName.hasSuffix("container")
+        return typeName.hasSuffix("layout") || typeName.hasSuffix("container") || typeName.hasSuffix("scrollview")
     }
 }
 
@@ -382,5 +380,5 @@ struct ConstraintRelation {
     let fromConstraint: String
     
     let toConstraintItem: String?
-    let toValue: Double?
+    let toArgument: String?
 }

@@ -1,9 +1,10 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import Geohash from "latlon-geohash";
-import { db, adminInstance as admin } from "../utils/firebase";
-import { errors } from "../resopnse/errorResponse";
-import type { ErrorResponse } from "../resopnse/errorResponse";
+import { db, adminInstance as admin } from "../../utils/firebase";
+import { errors } from "../../resopnse/errorResponse";
+import type { ErrorResponse } from "../../resopnse/errorResponse";
+import { PostDetail } from "../models/postDetail";
 
 const REGION = "asia-northeast3";
 
@@ -60,16 +61,16 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       };
       res.status(400).json(errorResponse);
       return;
-}
+    }
 
-const bannedInTitle = hasBannedWord(title);
-const bannedInContent = hasBannedWord(content);
-const allBannedWords = [...bannedInTitle, ...bannedInContent];
+    const bannedInTitle = hasBannedWord(title);
+    const bannedInContent = hasBannedWord(content);
+    const allBannedWords = [...bannedInTitle, ...bannedInContent];
 
-if (allBannedWords.length > 0) {
-  res.status(400).json(errors.BANNED_WORD_DETECTED(allBannedWords[0]));
-  return;
-}
+    if (allBannedWords.length > 0) {
+      res.status(400).json(errors.BANNED_WORD_DETECTED(allBannedWords[0]));
+      return;
+    }
 
     // GeoHash는 위치 기반 검색 최적화를 위해 사용됨
     // precision 값이 작을수록 더 넓은 범위를 커버하고, 클수록 정밀도가 높아짐
@@ -90,34 +91,49 @@ if (allBannedWords.length > 0) {
       return;
     }
 
+    const now = new Date();
+    const createdAtTimestamp = admin.firestore.Timestamp.fromDate(now);
+    const locationGeoPoint = new admin.firestore.GeoPoint(latitude, longitude);
+
     // Firestore에 저장할 새로운 포스트 객체 구성
     const newPost = {
       title,
       content,
-      location: new admin.firestore.GeoPoint(latitude, longitude),
+      location: locationGeoPoint,
       creatorID,
       imageUrl,
-      createdAt: new Date(),
+      createdAt: createdAtTimestamp,
       ...geohashFields
     };
 
     // Firestore의 "posts" 컬렉션에 문서 추가
     const postRef = await db.collection("posts").add(newPost);
 
-  res.status(201).json({
-    status: "SUCCESS",
-    message: "Post created successfully",
-    result: {
+    const resultData: PostDetail = {
       id: postRef.id,
       title,
       content,
       imageUrl,
-      location: new admin.firestore.GeoPoint(latitude, longitude),
-      createdAt: newPost.createdAt,
+      location: locationGeoPoint,     // GeoPoint 타입
+      createdAt: createdAtTimestamp,  // Timestamp 타입
       creatorID,
-      ...geohashFields,
+      geohash_1: geohashFields["geohash_1"],
+      geohash_2: geohashFields["geohash_2"],
+      geohash_3: geohashFields["geohash_3"],
+      geohash_4: geohashFields["geohash_4"],
+      geohash_5: geohashFields["geohash_5"],
+      geohash_6: geohashFields["geohash_6"],
+      geohash_7: geohashFields["geohash_7"],
+      geohash_8: geohashFields["geohash_8"],
+      geohash_9: geohashFields["geohash_9"],
+      geohash_10: geohashFields["geohash_10"],
       isMine: true
-    }
+    };
+
+  res.status(201).json({
+    status: "SUCCESS",
+    message: "Post created successfully",
+    result: resultData
   });
   } catch (error) {
     logger.error("Error creating post:", error);

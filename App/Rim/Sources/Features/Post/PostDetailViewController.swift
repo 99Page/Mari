@@ -10,6 +10,7 @@ import ComposableArchitecture
 import SnapKit
 import SwiftUI
 import Core
+import RimMacro
 
 @Reducer
 struct PostDetailFeature {
@@ -33,14 +34,6 @@ struct PostDetailFeature {
         init(postID: String) {
             self.postID = postID
             self.image = .custom(url: nil)
-        }
-        
-        var menu: [PostMenuFeature.State.Menu] {
-            isMyPost ? [.delete] : othersPostMenu
-        }
-        
-        private var othersPostMenu: [PostMenuFeature.State.Menu] {
-            isPostBlocked ? [.unblock] : [.block, .report]
         }
         
         var isPostBlocked: Bool {
@@ -106,7 +99,7 @@ struct PostDetailFeature {
                 )
                 
             case .view(.menuButtonTapped):
-                state.postMenu = .init(activeMenus: state.menu)
+                state.postMenu = .init(menuOption: .myPost)
                 return .none
                 
             case .view(.binding(_)):
@@ -248,30 +241,19 @@ struct PostDetailFeature {
     }
 }
 
+@BuildView("view")
 @ViewAction(for: PostDetailFeature.self)
 class PostDetailViewController: UIViewController {
     
     @UIBindable var store: StoreOf<PostDetailFeature>
-    
-    private let scrollView = UIScrollView()
-    
-    private let contentView = UIView()
-    private let titleLabel: RimLabel
-    private let descriptionLabel: RimLabel
-    private let imageView: RimImageView
+    let baseImageHeight: CGFloat = 25
     
     private var menuButton = UIBarButtonItem()
-    
     private let blockedPostView = BlockedPostView()
     
     init(store: StoreOf<PostDetailFeature>) {
-        @UIBindable var binding = store
         self.store = store
-        self.titleLabel = RimLabel()
-        self.descriptionLabel = RimLabel()
-        self.imageView = RimImageView()
         super.init(nibName: nil, bundle: nil)
-        
         hidesBottomBarWhenPushed = true
     }
     
@@ -279,8 +261,58 @@ class PostDetailViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
     
+    var bluePrint: UIView {
+        RimScrollView("scroll") {
+            VerticalLayout("layout") {
+                RimImageView("postImage") {
+                    $0.image = self.$store.image
+                }
+                .constraint(leading: \.leading, trailing: \.trailing)
+                .constraint(height: 200)
+                
+                RimLabel("postTitle") {
+                    $0.text = self.$store.titleText
+                    $0.textColor = .constant(.black)
+                    $0.alignment = .constant(.natural)
+                    $0.typography = .constant(.contentTitle)
+                }
+                
+                RimLabel("postDescription") {
+                    $0.text = self.$store.descriptionText
+                    $0.textColor = .constant(.black)
+                    $0.alignment = .constant(.natural)
+                }
+            }
+            .constraint(leading: \.leading, trailing: \.trailing, top: \.top, bottom: \.bottom)
+            .constraint(width: view.frame.width)
+        }
+        .constraint(leading: \.leading, trailing: \.trailing, top: \.top, bottom: \.bottom)
+        .onScroll { offset, _ in
+            self.updateImageHeight(to: offset.y)
+        }
+        .onScrollEnd {
+            self.updateImageHeight(to: self.baseImageHeight)
+        }
+    }
+    
+    private func updateImageHeight(to height: CGFloat) {
+//        postImage.snp.updateConstraints { make in
+//            make.height.equalTo(height)
+//        }
+        layout.snp.makeConstraints { make in
+            make.top.equalTo(view.safeAreaLayoutGuide.snp.top)
+        }
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
+        addSubviews()
+        activateConstraints()
+        bind()
+        addEvents()
+        
+        scroll.backgroundColor = .red
+        
         makeConstraint()
         setupView()
         updateView()
@@ -328,33 +360,17 @@ class PostDetailViewController: UIViewController {
         observe { [weak self] in
             guard let self else { return }
             
-            scrollView.isHidden = store.isPostBlocked
             blockedPostView.isHidden = !store.isPostBlocked
             
             menuButton.isHidden = !store.isMenuButtonPresented
             menuButton.tintColor = store.navigationColor
             navigationController?.navigationBar.tintColor = store.navigationColor
         }
-        
-        titleLabel.text = $store.titleText
-        titleLabel.textColor = .constant(.black)
-        titleLabel.alignment = .constant(.natural)
-        titleLabel.typography = .constant(.contentTitle)
-        titleLabel.updateView()
-        
-        descriptionLabel.text = $store.descriptionText
-        descriptionLabel.textColor = .constant(.black)
-        descriptionLabel.alignment = .constant(.natural)
-        descriptionLabel.updateView()
-        
-        imageView.image = $store.image
-        imageView.updateView()
     }
     
     private func setupView() {
         view.backgroundColor = .systemBackground
         navigationController?.setNavigationBarHidden(false, animated: false)
-        
         setupMenuButton()
     }
     
@@ -377,45 +393,10 @@ class PostDetailViewController: UIViewController {
     }
     
     private func makeConstraint() {
-        view.addSubview(scrollView)
         view.addSubview(blockedPostView)
-        
-        scrollView.addSubview(contentView)
-        
-        contentView.addSubview(imageView)
-        contentView.addSubview(titleLabel)
-        contentView.addSubview(descriptionLabel)
-        
-        scrollView.snp.makeConstraints { make in
-            make.edges.equalToSuperview()
-        }
         
         blockedPostView.snp.makeConstraints { make in
             make.centerX.centerY.equalToSuperview()
-        }
-        
-        contentView.snp.makeConstraints { make in
-            make.top.equalTo(view.snp.top)
-            make.width.equalToSuperview()
-            make.leading.equalToSuperview()
-        }
-        
-        imageView.snp.makeConstraints { make in
-            make.top.equalToSuperview()
-            make.centerX.equalToSuperview()
-            make.width.equalToSuperview()
-            make.height.equalTo(250)
-        }
-        
-        titleLabel.snp.makeConstraints { make in
-            make.top.equalTo(imageView.snp.bottom).offset(16)
-            make.leading.trailing.equalToSuperview().inset(16)
-        }
-        
-        descriptionLabel.snp.makeConstraints { make in
-            make.top.equalTo(titleLabel.snp.bottom).offset(16)
-            make.leading.trailing.equalToSuperview().inset(16)
-            make.bottom.equalToSuperview().offset(-32) // 스크롤 content 끝 정의
         }
     }
 }
@@ -447,7 +428,7 @@ class PostDetailViewController: UIViewController {
     let store = Store(initialState: stackState) {
         MapNavigationStack()
     } withDependencies: {
-        let dto = PostDetailDTO(id: "", title: "", content: "", imageUrl: "", location: .init(latitude: 0, longitude: 0), creatorID: "", isMine: false)
+        let dto = PostDetailDTO(id: "", title: "", content: "", imageUrl: "", location: .init(latitude: 0, longitude: 0), creatorID: "", isMine: false, createdAt: .init(seconds: 0, nanoseconds: 0))
         $0.postClient.fetchPostByID = { _ in APIResponse(status: "", message: "", result: dto) }
         $0.userRelationClient.blocksUser = { _ in .stub() }
     }

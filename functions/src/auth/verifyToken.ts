@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import type { Request } from "firebase-functions/v2/https";
+import { Response } from "express"
 import * as admin from "firebase-admin";
 import { logger } from "firebase-functions";
 import { errors } from "../resopnse/errorResponse";

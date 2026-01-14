@@ -104,7 +104,7 @@ struct MapFeature {
         case view(UIAction)
         case removePost(id: String)
         case fetchPosts
-        case setPosts(FetchNearPostsResponse)
+        case setPosts(FetchRepresentativePostsResponse)
         case showFetchFailAlert
         case dismissProgress
         case setImage(postID: String, image: UIImage)
@@ -276,7 +276,7 @@ struct MapFeature {
                 )
                 
                 return .run { send in
-                    let response = try await postClient.fetchNearPosts(request).result
+                    let response = try await postClient.fetchRepresentativePosts(request).result
                     await send(.setPosts(response))
                     await send(.dismissProgress)
                 } catch: { error, send in

@@ -3,7 +3,14 @@ export type ErrorResponse = {
   message: string;
 };
 
-// errorResponse.ts
+export class Errors {
+  static NEAR_POST_FETCH_FAILED: ErrorResponse = {
+    code: "near-post-fetch-failed",
+    message: "주변 게시물 조회에 실패했습니다.",
+  };
+}
+
+// Legacy
 export const errors = {
   // 일반
   METHOD_NOT_ALLOWED: {

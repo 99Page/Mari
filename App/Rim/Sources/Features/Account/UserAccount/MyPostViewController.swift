@@ -238,8 +238,12 @@ struct MyPost: SectionProvidable {
     var section = "main"
 }
 
-class MyPostTableViewCell: UITableViewCell, CellConfigurable {
+class MyPostTableViewCell: UITableViewCell, CellConfigurable, EventEmittingCell {
     typealias Value = MyPost
+    
+    enum CellEvent { }
+     
+    var emit: ((CellEvent) -> Void)? = nil
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: .default, reuseIdentifier: reuseIdentifier)
