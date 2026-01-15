@@ -118,14 +118,15 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
                 return true
             }
             
-            marker.captionText = post.title
-            marker.width = 80
-            marker.height = 80
-            
+            let markerSize = CGSize(width: 94, height: 86) /// ImageMarkerView의 크기 참고
+            marker.width = markerSize.width
+            marker.height = markerSize.height
             let iconImage: UIImage
             
+            marker.anchor = CGPoint(x: 0.5, y: 1)
+            
             if store.blockedUserIds.contains(post.creatorID) {
-                iconImage = resizedImage(UIImage(systemName: "lock.circle")!, size: CGSize(width: 80, height: 80))
+                iconImage = resizedImage(UIImage(systemName: "lock.circle")!, size: markerSize)
             } else {
                 iconImage = post.image ?? UIImage(resource: .placeholder)
             }

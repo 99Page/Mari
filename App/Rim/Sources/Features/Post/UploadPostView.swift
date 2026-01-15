@@ -33,6 +33,8 @@ struct UploadPostFeature {
         let maxImageUploadRetry = 3
         
         var isPostButtonEnabled = true
+        var isPendingPostUpload = false
+        
         var postButton = RimLabel.State(
             appearance: .init(cornerRadius: 25, backgroundColor: UIColor(resource: .main))
         )
@@ -65,6 +67,7 @@ struct UploadPostFeature {
         case view(View)
         case dialog(PresentationAction<DialogAction>)
         case delegate(Delegate)
+        case uploadMarkerImage(image: UIImage, title: String)
         case uploadImage
         case uploadPost
         case setImageURL(url: String)
@@ -73,6 +76,7 @@ struct UploadPostFeature {
         case showMissingTitleAlert
         case showAlert(title: String)
         case checkUID
+        case checkPendingPostUpload
         
         enum View: BindableAction {
             case binding(BindingAction<State>)
@@ -92,6 +96,7 @@ struct UploadPostFeature {
     @Dependency(\.uuid) var uuid
     @Dependency(\.dismiss) var dismiss
     @Dependency(\.continuousClock) var clock
+    @Dependency(\.viewImageGenerator) var viewImageGenerator
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
@@ -116,18 +121,13 @@ struct UploadPostFeature {
                 return .none
                 
             case .view(.uploadButtonTapped):
-                if !state.isProgressViewPresented {
-                    state.isProgressViewPresented = true
-                }
+                state.isProgressViewPresented = true
                 
                 if state.isImageUploaded {
                     return .send(.uploadPost)
                 } else {
-                    return .run { send in
-                        for await _ in clock.timer(interval: .seconds(1)) {
-                            await send(.view(.uploadButtonTapped))
-                        }
-                    }
+                    state.isPendingPostUpload = true
+                    return .none
                 }
                 
             case .view(.binding(_)):
@@ -139,9 +139,16 @@ struct UploadPostFeature {
                     .send(.uploadImage)
                 )
                 
+            case .checkPendingPostUpload:
+                guard state.isPendingPostUpload else { return .none }
+                state.isPendingPostUpload = false
+                return .send(.uploadPost)
+                
             case .uploadPost:
                 let locationManager = CLLocationManager()
                 guard !state.title.isEmpty else { return .send(.showMissingTitleAlert) }
+                
+                guard case let .uiImage(uiImage) = state.image else { return .none }
                 guard let imageURL = state.imageURL else { return .none }
                 guard let location = locationManager.location else { return .none }
                 guard let uid = state.uid else { return .none }
@@ -155,7 +162,8 @@ struct UploadPostFeature {
                     imageUrl: imageURL
                 )
                 
-                return .run { send in
+                return .run { [state] send in
+                    await send(.uploadMarkerImage(image: uiImage, title: state.title))
                     let _ = try await postClient.createPost(request: request)
                     await send(.dismissProgress)
                     await send(.delegate(.uploadSucceeded))
@@ -174,14 +182,39 @@ struct UploadPostFeature {
                 NotificationCenter.default.post(name: .appErrorNotification, object: AppError.emptyUID)
                 return .none
                 
+            case let .uploadMarkerImage(uiImage, title):
+                let image = Image(uiImage: uiImage)
+                let view = ImageMarkerView(image: image, title: title)
+                
+                return .run { send in
+                    guard let viewImage = await viewImageGenerator.generate(view) else { return }
+                    let id = uuid().uuidString
+                    
+                    let param = ImageClient.UploadImageParameter(
+                        image: viewImage,
+                        path: "marker",
+                        fileName: id,
+                        format: .png
+                    )
+                    
+                    let response = try await imageClient.uploadImage(param)
+                }
+                
             case .uploadImage:
                 guard state.hasRetryLeft else { return .send(.showUploadFailAlert) }
                 guard case let .uiImage(uiImage) = state.image else { return .send(.showUploadFailAlert) }
                 state.uploadTryCount += 1
                 
                 return .run { send in
-                    let resposne = try await imageClient.uploadImage(image: uiImage, fileName: uuid().uuidString)
-                    await send(.setImageURL(url: resposne.imageURL))
+                    let param = ImageClient.UploadImageParameter(
+                        image: uiImage,
+                        path: "photo",
+                        fileName: uuid().uuidString,
+                        format: .png
+                    )
+                    let response = try await imageClient.uploadImage(param: param)
+                    await send(.setImageURL(url: response.imageURL))
+                    await send(.checkPendingPostUpload)
                 } catch: { error, send in
                     await send(.uploadImage)
                 }
