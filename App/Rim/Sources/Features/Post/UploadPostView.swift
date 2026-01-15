@@ -145,19 +145,18 @@ struct UploadPostFeature {
                 return .send(.uploadPost)
                 
             case .uploadPost:
-                let locationManager = CLLocationManager()
                 guard !state.title.isEmpty else { return .send(.showMissingTitleAlert) }
                 
                 guard case let .uiImage(uiImage) = state.image else { return .none }
                 guard let imageURL = state.imageURL else { return .none }
-                guard let location = locationManager.location else { return .none }
+                
                 guard let uid = state.uid else { return .none }
                 
                 let request = CreatePostRequest(
                     title: state.title,
                     content: state.descriptionText,
-                    latitude: location.coordinate.latitude,
-                    longitude: location.coordinate.longitude,
+                    latitude: state.photoLocation.lat,
+                    longitude: state.photoLocation.lng,
                     creatorID: uid,
                     imageUrl: imageURL
                 )
@@ -286,6 +285,7 @@ struct UploadPostFeature {
                 return .none
             }
         }
+        ._printChanges()
     }
 }
 
