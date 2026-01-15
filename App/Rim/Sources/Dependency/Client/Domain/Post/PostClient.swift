@@ -13,7 +13,7 @@ import FirebaseFunctions
 
 @DependencyClient
 struct PostClient {
-    var createPost: (_ request: CreatePostRequest) async throws -> APIResponse<PostDetailDTO>
+    var createPost: (_ request: CreatePostRequestV2) async throws -> APIResponse<PostDetailDTO>
     
     var fetchRepresentativePosts: (_ request: FetchNearPostsRequest) async throws -> APIResponse<FetchRepresentativePostsResponse>
     
@@ -31,7 +31,7 @@ struct PostClient {
     var report: (_ postID: String) async throws -> APIResponse<EmptyResult>
     
     enum PostAPI: APITarget {
-        case createPost(request: CreatePostRequest)
+        case createPost(request: CreatePostRequestV2)
         case fetchRepresentativePosts(request: FetchNearPostsRequest)
         case fetchPostByID(id: String)
         case incrementPostViewCount(postID: String)
@@ -81,7 +81,7 @@ struct PostClient {
         
         var path: String {
             switch self {
-            case .createPost: "/createPost"
+            case .createPost: "/v2/posts"
             case let .fetchRepresentativePosts(request):
                 "/getPosts/?latitude=\(request.latitude)&longitude=\(request.longitude)&precision=\(request.precision)&type=\(request.type)&groupSize=\(request.groupSize)"
             case let .fetchPostByID(id): "/getPostById?id=\(id)"

@@ -7,7 +7,9 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-// posts
+import { onRequest } from "firebase-functions/v2/https";
+import app from "@/app"; 
+
 export { deletePost } from './posts/deletePost';
 export { getPostById } from './posts/handlers/fetchPostById'
 export { increasePostViewCount } from './posts/increasePostViewCount'
@@ -28,3 +30,5 @@ export  { withdrawAccount} from './account/withdrawAccount'
 export { blocksUser } from './userRelationships/blocksUser'
 export { fetchBlockedUserIds } from './userRelationships/fetchBlockedUserIds'
 export { unblocksUser } from './userRelationships/unblocksUser'
+
+export const api = onRequest({ region: "asia-northeast3" }, app);

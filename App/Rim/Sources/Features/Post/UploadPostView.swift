@@ -152,17 +152,33 @@ struct UploadPostFeature {
                 
                 guard let uid = state.uid else { return .none }
                 
-                let request = CreatePostRequest(
-                    title: state.title,
-                    content: state.descriptionText,
-                    latitude: state.photoLocation.lat,
-                    longitude: state.photoLocation.lng,
-                    creatorID: uid,
-                    imageUrl: imageURL
-                )
-                
+           
                 return .run { [state] send in
-                    await send(.uploadMarkerImage(image: uiImage, title: state.title))
+                    let image = Image(uiImage: uiImage)
+                    let view = ImageMarkerView(image: image, title: state.title)
+                    
+                    guard let viewImage = await viewImageGenerator.generate(view) else { return }
+                    let id = uuid().uuidString
+                    
+                    let imageParam = ImageClient.UploadImageParameter(
+                        image: viewImage,
+                        path: "marker",
+                        fileName: id,
+                        format: .png
+                    )
+                    
+                    let response = try await imageClient.uploadImage(imageParam)
+                    
+                    let request = CreatePostRequestV2(
+                        title: state.title,
+                        content: state.descriptionText,
+                        latitude: state.photoLocation.lat,
+                        longitude: state.photoLocation.lng,
+                        creatorID: uid,
+                        imageUrl: imageURL,
+                        markerUrl: response.imageURL
+                    )
+                    
                     let _ = try await postClient.createPost(request: request)
                     await send(.dismissProgress)
                     await send(.delegate(.uploadSucceeded))

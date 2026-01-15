@@ -1,4 +1,4 @@
-import { onRequest } from "firebase-functions/v2/https";
+import { Request, Response } from "express"; 
 import * as logger from "firebase-functions/logger";
 import Geohash from "latlon-geohash";
 import { db, adminInstance as admin } from "../../utils/firebase";
@@ -6,10 +6,9 @@ import { errors } from "../../resopnse/errorResponse";
 import type { ErrorResponse } from "../../resopnse/errorResponse";
 import { PostDetail } from "../models/postDetail";
 
-const REGION = "asia-northeast3";
 
 
-export const createPost = onRequest({ region: REGION }, async (req, res) => {
+export const createPost = async (req: Request, res: Response) => {
   try {
     // 클라이언트에서 전달된 Firebase 인증 토큰을 확인
     const authHeader = req.headers.authorization;
@@ -40,9 +39,9 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       return;
     }
 
-    const { title, content, latitude, longitude, creatorID, imageUrl } = body;
+    const { title, content, latitude, longitude, creatorID, imageUrl, markerUrl} = body;
 
-    if (!title || latitude == null || longitude == null || !creatorID || !imageUrl) {
+    if (!title || latitude == null || longitude == null || !creatorID || !imageUrl || !markerUrl) {
       const errorResponse: ErrorResponse = {
         code: "MISSING_REQUIRED_FIELDS",
         message: "Missing required fields"
@@ -102,6 +101,7 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       location: locationGeoPoint,
       creatorID,
       imageUrl,
+      markerUrl,
       createdAt: createdAtTimestamp,
       ...geohashFields
     };
@@ -114,6 +114,7 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
       title,
       content,
       imageUrl,
+      markerUrl,
       location: locationGeoPoint,     // GeoPoint 타입
       createdAt: createdAtTimestamp,  // Timestamp 타입
       creatorID,
@@ -143,7 +144,7 @@ export const createPost = onRequest({ region: REGION }, async (req, res) => {
     };
     res.status(500).json(errorResponse);
   }
-});
+};
 
 function hasBannedWord(text: string): string[] {
   const normalizedText = text
