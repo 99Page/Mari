@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct FetchNearPostsRequest: Encodable {
+struct FetchPostsForMapV1: Encodable {
     let type: String
     let latitude: Double
     let longitude: Double

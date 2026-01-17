@@ -8,7 +8,7 @@
 import Foundation
 
 struct FetchUserPostsResponse: Decodable, Stub {
-    let posts: [PostSummaryDTO]
+    let posts: [MapPostDTO]
     let nextCursor: Date? // 더 가져올게 없는 경우 nil
     
     static func stub() -> FetchUserPostsResponse {

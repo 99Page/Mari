@@ -1,6 +1,6 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
-import { PostSummary } from "./post"
+import { PostSummary } from "./models/postSummary"
 import { db, adminInstance as admin } from "../utils/firebase";
 import { ErrorResponse, errors } from "../resopnse/errorResponse";
 import type { SuccessResponse } from "../resopnse/successResponse";

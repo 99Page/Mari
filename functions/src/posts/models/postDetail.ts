@@ -6,6 +6,7 @@ export interface PostDetail {
   title: string;
   content: string;
   imageUrl: string;
+  markerUrl: string;
   location: FirebaseFirestore.GeoPoint;
   createdAt: FirebaseFirestore.Timestamp;
   creatorID: string;
@@ -32,6 +33,7 @@ export function convertToPostDetail(doc: admin.firestore.DocumentSnapshot, userI
     title: data.title,
     content: data.content,
     imageUrl: data.imageUrl,
+    markerUrl: data.markerUrl ?? null,
     location: data.location,
     createdAt: data.createdAt,
     creatorID: data.creatorID,

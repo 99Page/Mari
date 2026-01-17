@@ -14,28 +14,31 @@ struct PostDetailDTO: Decodable, Stub {
     let title: String
     let content: String
     let imageUrl: String
+    let markerUrl: String
     let location: CoordinateDTO
     let creatorID: String
     let isMine: Bool
     let createdAt: TimestampDTO
     
     static func stub() -> Self {
-        Self(id: UUID().uuidString, title: "title", content: "content", imageUrl: "https://picsum.photos/id/950/200/300", location: .init(latitude: 0, longitude: 0), creatorID: "creator", isMine: true, createdAt: .init(seconds: 0, nanoseconds: 0))
+        Self(id: UUID().uuidString, title: "title", content: "content", imageUrl: "https://picsum.photos/id/950/200/300", markerUrl: "https://picsum.photos/id/950/200/300", location: .init(latitude: 0, longitude: 0), creatorID: "creator", isMine: true, createdAt: .init(seconds: 0, nanoseconds: 0))
     }
 }
 
-struct PostSummaryDTO: Decodable, Stub {
+struct MapPostDTO: Decodable, Stub {
     let id: String
     let title: String
     let imageUrl: String
+    let markerUrl: String? // v2
     let creatorID: String
     let location: CoordinateDTO
     
     static func stub() -> Self {
-        PostSummaryDTO(
+        MapPostDTO(
             id: UUID().uuidString,
             title: "title",
             imageUrl: "https://picsum.photos/200/300",
+            markerUrl: "https://picsum.photos/200/300",
             creatorID: "creatorID",
             location: .init(latitude: 0, longitude: 0)
         )

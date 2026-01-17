@@ -1,16 +1,15 @@
-import { onRequest } from "firebase-functions/v2/https";
+import { Request, Response } from "express"; 
 import * as logger from "firebase-functions/logger";
 import Geohash from "latlon-geohash";
 import { fetchPostById } from "@/posts/handlers/fetchPostById";
 import { db, adminInstance as admin } from "@/utils/firebase";
 import { convertToPostDetail, PostDetail } from "@/posts/models/postDetail";
-import { PostSummary } from "@/posts/models/postSummary";
+import { PostSummaryV2 } from "@/posts/models/postSummary";
 import { ErrorResponse } from "@/resopnse/errorResponse";
 import type { SuccessResponse } from "@/resopnse/successResponse";
 
-const REGION = "asia-northeast3";
 
-export const getPosts = onRequest({ region: REGION }, async (req, res) => {
+export const fetchPostsForMap = async (req: Request, res: Response) => {
   const lat = parseFloat(req.query.latitude as string);
   const lng = parseFloat(req.query.longitude as string);
   const precision = parseInt(req.query.precision as string, 10); // 10진법으로 변환
@@ -99,7 +98,7 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
       const filteredPosts = filterLatestPostPerGroup(posts, geohashField, geohashGroup);
       const successResponse: SuccessResponse<{
         type: string;
-        posts: PostSummary[];
+        posts: PostSummaryV2[];
         geohashBlocks: string[];
         postCount: number;
       }> = {
@@ -124,7 +123,7 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
     }
     return;
   }
-});
+};
 
 // geohash 블록별로 최신 게시글을 가져옴 (각 블록당 최대 1개, createdAt 기준 내림차순 정렬)
 async function fetchLatestPosts(geohashBlocks: string[], geohashField: string, userID: string): Promise<PostDetail[]> {
@@ -260,8 +259,8 @@ function filterLatestPostPerGroup(
   posts: PostDetail[],
   geohashField: string,
   geohashGroups: Record<string, number>
-): PostSummary[] {
-  const result: PostSummary[] = [];
+): PostSummaryV2[] {
+  const result: PostSummaryV2[] = [];
   const seenGroups = new Set<number>();
 
   for (const post of posts) {
@@ -273,6 +272,7 @@ function filterLatestPostPerGroup(
         id: post.id,
         title: post.title,
         imageUrl: post.imageUrl,
+        markerUrl: post.markerUrl,
         creatorID: post.creatorID,
         location: post.location
       });

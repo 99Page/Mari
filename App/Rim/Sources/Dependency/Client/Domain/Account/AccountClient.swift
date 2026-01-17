@@ -23,6 +23,16 @@ struct AccountClient {
     var refreshIdToken: () async throws -> Void
     var withdraw: () async throws -> APIResponse<EmptyResult>
     
+    // 로그아웃이 필요한 상황에서 호출. 예시) uid 가 없음
+    var triggerLogout: @Sendable () -> Void
+    
+    // 이벤트 구독 스트림
+    var delegate: @Sendable () -> AsyncStream<Delegate> = { .finished }
+    
+    enum Delegate {
+        case logoutRequired
+    }
+    
     enum AccountAPI: APITarget {
         case withdraw
         
@@ -63,6 +73,8 @@ struct AccountClient {
 
 extension AccountClient: DependencyKey {
     static var liveValue: AccountClient {
+        let (stream, continuation) = AsyncStream.makeStream(of: Delegate.self)
+        
         let signIn: (_ credential: AuthCredential) async throws -> SignInResult = { credential in
             let authData: AuthDataResult? = try await withCheckedThrowingContinuation { continuation in
                 Auth.auth().signIn(with: credential) { result, error in
@@ -106,7 +118,9 @@ extension AccountClient: DependencyKey {
             try keychain.save(value: idToken, service: .firebase, account: .idToken)
         } withdraw: {
             try await Client.request(target: AccountAPI.withdraw)
-        }
+        } triggerLogout: {
+            continuation.yield(.logoutRequired)
+        } delegate: { stream }
     }
 }
 
