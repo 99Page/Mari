@@ -104,7 +104,7 @@ struct MapFeature {
         case view(UIAction)
         case removePost(id: String)
         case fetchPosts
-        case setPosts(MapPostsResponse)
+        case setPosts(PostResponse.MapPosts)
         case showFetchFailAlert
         case dismissProgress
         case setImage(postID: String, image: UIImage)
@@ -267,7 +267,7 @@ struct MapFeature {
             case .fetchPosts:
                 state.isProgressPresented = true
                 
-                let request = PostRequest.MapPost(
+                let request = PostRequest.GetMapPost(
                     type: state.selectedFilter.rawValue,
                     latitude: state.mapCameraCenterPosition.lat,
                     longitude: state.mapCameraCenterPosition.lng,

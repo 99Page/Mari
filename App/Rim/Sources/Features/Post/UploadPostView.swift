@@ -169,7 +169,7 @@ struct UploadPostFeature {
                     
                     let response = try await imageClient.uploadImage(imageParam)
                     
-                    let request = CreatePostRequestV2(
+                    let request = PostRequest.Post(
                         title: state.title,
                         content: state.descriptionText,
                         latitude: state.photoLocation.lat,

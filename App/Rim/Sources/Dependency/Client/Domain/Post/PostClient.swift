@@ -13,9 +13,9 @@ import FirebaseFunctions
 
 @DependencyClient
 struct PostClient {
-    var createPost: (_ request: CreatePostRequestV2) async throws -> APIResponse<PostDetailDTO>
+    var createPost: (_ request: Request.Post) async throws -> APIResponse<PostDetailDTO>
     
-    var fetchMapPosts: (_ request: Request.MapPost) async throws -> APIResponse<MapPostsResponse>
+    var fetchMapPosts: (_ request: Request.GetMapPost) async throws -> APIResponse<Response.MapPosts>
     
     var fetchNearPosts: () async throws -> APIResponse<FetchNearPostsResponse>
     
@@ -31,8 +31,8 @@ struct PostClient {
     var report: (_ postID: String) async throws -> APIResponse<EmptyResult>
     
     enum PostAPI: APITarget {
-        case createPost(request: CreatePostRequestV2)
-        case fetchMapPosts(request: PostRequest.MapPost )
+        case createPost(request: PostRequest.Post)
+        case fetchMapPosts(request: PostRequest.GetMapPost )
         case fetchPostByID(id: String)
         case incrementPostViewCount(postID: String)
         case fetchUserPosts(lastCreatedAt: Date)

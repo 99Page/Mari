@@ -12,12 +12,24 @@ typealias PostRequest = PostClient.Request
 extension PostClient {
     enum Request {
         // MARK: MapPost
-        struct MapPost: Encodable {
+        struct GetMapPost: Encodable {
             let type: String
             let latitude: Double
             let longitude: Double
             let precision: Int
             let groupSize: Int
         }
+        
+        // MARK: CreatePost
+        struct Post: Encodable {
+            let title: String
+            let content: String
+            let latitude: Double
+            let longitude: Double
+            let creatorID: String
+            let imageUrl: String
+            let markerUrl: String
+        }
+
     }
 }
