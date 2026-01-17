@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { createPost } from "@/posts/handlers/createPost"
+import { fetchPostsForMap } from "../handlers/fetchPostsForMap";
 
 
-const router = Router();
+const v2Router = Router();
 
-router.post("/", createPost);
+v2Router.post("/", createPost);
+v2Router.get("/", fetchPostsForMap);
 
-export default router;
+export default v2Router;

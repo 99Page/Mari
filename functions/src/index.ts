@@ -31,4 +31,5 @@ export { blocksUser } from './userRelationships/blocksUser'
 export { fetchBlockedUserIds } from './userRelationships/fetchBlockedUserIds'
 export { unblocksUser } from './userRelationships/unblocksUser'
 
+// restful 적용
 export const api = onRequest({ region: "asia-northeast3" }, app);

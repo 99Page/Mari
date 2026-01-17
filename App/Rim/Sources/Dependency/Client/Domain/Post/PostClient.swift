@@ -15,7 +15,7 @@ import FirebaseFunctions
 struct PostClient {
     var createPost: (_ request: CreatePostRequestV2) async throws -> APIResponse<PostDetailDTO>
     
-    var fetchRepresentativePosts: (_ request: FetchNearPostsRequest) async throws -> APIResponse<FetchRepresentativePostsResponse>
+    var fetchMapPosts: (_ request: Request.MapPost) async throws -> APIResponse<MapPostsResponse>
     
     var fetchNearPosts: () async throws -> APIResponse<FetchNearPostsResponse>
     
@@ -32,7 +32,7 @@ struct PostClient {
     
     enum PostAPI: APITarget {
         case createPost(request: CreatePostRequestV2)
-        case fetchRepresentativePosts(request: FetchNearPostsRequest)
+        case fetchMapPosts(request: PostRequest.MapPost )
         case fetchPostByID(id: String)
         case incrementPostViewCount(postID: String)
         case fetchUserPosts(lastCreatedAt: Date)
@@ -41,7 +41,7 @@ struct PostClient {
         
         var method: HTTPMethod {
             switch self {
-            case .fetchRepresentativePosts: .get
+            case .fetchMapPosts: .get
             case .fetchPostByID: .get
             case .createPost, .report, .incrementPostViewCount: .post
             case .fetchUserPosts: .get
@@ -52,7 +52,7 @@ struct PostClient {
         var body: (any Encodable)? {
             switch self {
             case .createPost(let request): request
-            case .fetchRepresentativePosts: nil
+            case .fetchMapPosts: nil
             case .fetchPostByID: nil
             case .incrementPostViewCount: nil
             case .fetchUserPosts: nil
@@ -71,19 +71,24 @@ struct PostClient {
             case .incrementPostViewCount, .createPost, .fetchUserPosts, .deletePost, .fetchPostByID, .report:
                 let idToken = try? keychain.load(service: .firebase, account: .idToken)
                 headers["Authorization"] = "Bearer \(idToken ?? "")"
-            case .fetchRepresentativePosts:
+            case .fetchMapPosts:
                 break
             }
             return headers
         }
         
-        var baseURLString: String { functionsURL }
+        var baseURLString: String {
+            switch self {
+            case .fetchMapPosts: v2URL
+            default: functionsURL
+            }
+        }
         
         var path: String {
             switch self {
             case .createPost: "/v2/posts"
-            case let .fetchRepresentativePosts(request):
-                "/getPosts/?latitude=\(request.latitude)&longitude=\(request.longitude)&precision=\(request.precision)&type=\(request.type)&groupSize=\(request.groupSize)"
+            case let .fetchMapPosts(request):
+                "/posts/?latitude=\(request.latitude)&longitude=\(request.longitude)&precision=\(request.precision)&type=\(request.type)&groupSize=\(request.groupSize)"
             case let .fetchPostByID(id): "/getPostById?id=\(id)"
             case let .incrementPostViewCount(postID):
                 "/increasePostViewCount/posts/\(postID)/views"
@@ -102,8 +107,8 @@ extension PostClient: DependencyKey {
     static var liveValue: PostClient {
         PostClient { request in
             try await Client.request(target: PostAPI.createPost(request: request))
-        } fetchRepresentativePosts: { request in
-            try await Client.request(target: PostAPI.fetchRepresentativePosts(request: request))
+        } fetchMapPosts: { request in
+            try await Client.request(target: PostAPI.fetchMapPosts(request: request))
         } fetchNearPosts: {
             throw ErrorResponse(code: "", message: "")
         } fetchPostByID: { id in
@@ -122,7 +127,7 @@ extension PostClient: DependencyKey {
     static var testValue: PostClient {
         PostClient { _ in
                 .stub()
-        } fetchRepresentativePosts: { request in
+        } fetchMapPosts: { request in
                 .stub()
         } fetchNearPosts: {
                 .stub()

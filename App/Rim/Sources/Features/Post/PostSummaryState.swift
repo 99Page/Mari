@@ -33,9 +33,9 @@ struct PostSummaryState: Equatable, Identifiable, Hashable {
         self.location = CLLocation(latitude: dto.location.latitude, longitude: dto.location.longitude)
     }
     
-    init(dto: PostSummaryDTO) {
+    init(dto: MapPostDTO) {
         self.id = dto.id
-        self.imageURL = dto.imageUrl
+        self.imageURL = dto.markerUrl ?? dto.imageUrl
         self.title = dto.title
         self.creatorID = dto.creatorID
         self.location = CLLocation(latitude: dto.location.latitude, longitude: dto.location.longitude)

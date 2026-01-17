@@ -7,9 +7,9 @@
 
 import Foundation
 
-struct PostsForMapV1Response: Decodable, Stub {
-    static func stub() -> PostsForMapV1Response {
-        PostsForMapV1Response(posts: [.stub()], geohashBlocks: ["a", "b", "c"])
+struct MapPostsResponse: Decodable, Stub {
+    static func stub() -> MapPostsResponse {
+        MapPostsResponse(posts: [.stub()], geohashBlocks: ["a", "b", "c"])
     }
     
     let posts: [PostSummaryDTO]
