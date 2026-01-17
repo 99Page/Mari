@@ -44,8 +44,8 @@ struct RootFeature {
         case view(UIAction)
         case signOut
         case destination(Destination.Action)
-        case handleError(AppError)
         case alert(PresentationAction<AlertAction>)
+        case accountDelegate(AccountClient.Delegate)
         
         enum UIAction: BindableAction {
             case binding(BindingAction<State>)
@@ -55,7 +55,6 @@ struct RootFeature {
     
     @Dependency(\.accountClient) var accountClient
     @Dependency(\.continuousClock) var clock
-    @Dependency(\.appErrorStream) var appErrorStream
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
@@ -72,17 +71,17 @@ struct RootFeature {
             switch action {
             case .view(.viewDidLoad):
                 return .run { send in
-                    for await error in await appErrorStream.stream() {
-                        await send(.handleError(error))
+                    for await event in accountClient.delegate() {
+                        await send(.accountDelegate(event))
                     }
                 }
                 
             case .view(_):
                 return .none
                 
-            case let .handleError(error):
-                switch error {
-                case .emptyUID:
+            case let .accountDelegate(delegate):
+                switch delegate {
+                case .logoutRequired:
                     state.alert = AlertState {
                         TextState("사용자 정보가 없어요")
                     } actions: {

@@ -35,10 +35,6 @@ struct UploadPostFeature {
         var isPostButtonEnabled = true
         var isPendingPostUpload = false
         
-        var postButton = RimLabel.State(
-            appearance: .init(cornerRadius: 25, backgroundColor: UIColor(resource: .main))
-        )
-        
         var title = ""
         
         init(pickedImage: UIImage, photoLocation: NMGLatLng) {
@@ -91,6 +87,7 @@ struct UploadPostFeature {
         }
     }
     
+    @Dependency(\.accountClient) var accountClient
     @Dependency(\.postClient) var postClient
     @Dependency(\.imageClient) var imageClient
     @Dependency(\.uuid) var uuid
@@ -152,12 +149,16 @@ struct UploadPostFeature {
                 
                 guard let uid = state.uid else { return .none }
                 
-           
+                
                 return .run { [state] send in
-                    let image = Image(uiImage: uiImage)
-                    let view = ImageMarkerView(image: image, title: state.title)
+                    let viewImage = await MainActor.run {
+                        let image = Image(uiImage: uiImage)
+                        let view = ImageMarkerView(image: image, title: state.title)
+                        return viewImageGenerator.generate(view)
+                    }
                     
-                    guard let viewImage = await viewImageGenerator.generate(view) else { return }
+                    guard let viewImage else { return }
+                    
                     let id = uuid().uuidString
                     
                     let imageParam = ImageClient.UploadImageParameter(
@@ -169,7 +170,7 @@ struct UploadPostFeature {
                     
                     let response = try await imageClient.uploadImage(imageParam)
                     
-                    let request = PostRequest.Post(
+                    let request = PostRequest.Create(
                         title: state.title,
                         content: state.descriptionText,
                         latitude: state.photoLocation.lat,
@@ -185,7 +186,7 @@ struct UploadPostFeature {
                 } catch: { error, send in
                     if let response = error as? ErrorResponse {
                         await send(.showAlert(title: response.message))
-                    } 
+                    }
                 }
                 
             case .dismissProgress:
@@ -194,7 +195,7 @@ struct UploadPostFeature {
                 
             case .checkUID:
                 guard state.uid == nil else { return .none }
-                NotificationCenter.default.post(name: .appErrorNotification, object: AppError.emptyUID)
+                accountClient.triggerLogout()
                 return .none
                 
             case let .uploadMarkerImage(uiImage, title):
@@ -231,6 +232,7 @@ struct UploadPostFeature {
                     await send(.setImageURL(url: response.imageURL))
                     await send(.checkPendingPostUpload)
                 } catch: { error, send in
+                    try? await clock.sleep(for: .seconds(1))
                     await send(.uploadImage)
                 }
                 
@@ -301,7 +303,6 @@ struct UploadPostFeature {
                 return .none
             }
         }
-        ._printChanges()
     }
 }
 

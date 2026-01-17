@@ -25,10 +25,10 @@ struct ImageMarkerView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 
                 Text(title)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(size: 13, font: .spoqa(.bold))
                     .foregroundColor(.white)
                     .lineLimit(1)
-                    .padding(.bottom, 6)
+                    .padding(.bottom, 2.5)
                     .padding(.horizontal, 4)
                     // 테두리 효과
                     .shadow(color: .black.opacity(0.8), radius: 1, x: 1, y: 1)
@@ -49,6 +49,6 @@ struct ImageMarkerView: View {
 }
 
 #Preview {
-    ImageMarkerView(image: Image(.mustafa), title: "mustafa")
+    ImageMarkerView(image: Image(.mustafa), title: "무스타파")
 }
 

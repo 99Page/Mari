@@ -21,7 +21,7 @@ extension PostClient {
         }
         
         // MARK: CreatePost
-        struct Post: Encodable {
+        struct Create: Encodable {
             let title: String
             let content: String
             let latitude: Double
