@@ -39,9 +39,9 @@ export const createPost = async (req: Request, res: Response) => {
       return;
     }
 
-    const { title, content, latitude, longitude, creatorID, imageUrl, markerUrl} = body;
+    const { title, content, latitude, longitude, creatorID, imageUrl } = body;
 
-    if (!title || latitude == null || longitude == null || !creatorID || !imageUrl || !markerUrl) {
+    if (!title || latitude == null || longitude == null || !creatorID || !imageUrl) {
       const errorResponse: ErrorResponse = {
         code: "MISSING_REQUIRED_FIELDS",
         message: "Missing required fields"
@@ -101,7 +101,6 @@ export const createPost = async (req: Request, res: Response) => {
       location: locationGeoPoint,
       creatorID,
       imageUrl,
-      markerUrl,
       createdAt: createdAtTimestamp,
       ...geohashFields
     };
@@ -114,7 +113,6 @@ export const createPost = async (req: Request, res: Response) => {
       title,
       content,
       imageUrl,
-      markerUrl,
       location: locationGeoPoint,     // GeoPoint 타입
       createdAt: createdAtTimestamp,  // Timestamp 타입
       creatorID,

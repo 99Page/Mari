@@ -28,7 +28,6 @@ extension PostClient {
             let longitude: Double
             let creatorID: String
             let imageUrl: String
-            let markerUrl: String
         }
 
     }
