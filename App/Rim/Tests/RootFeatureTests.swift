@@ -60,7 +60,7 @@ struct RootFeatureTests {
             
             await store.send(.view(.viewDidLoad))
             
-            await store.send(.destination(.tab(.mapStack(.root(.uploadPost(.presented(.root(.view(.viewDidLoad)))))))))
+            await store.send(.destination(.tab(.mapStack(.root(.uploadPost(.presented(.root(.view(.onAppear)))))))))
             await store.receive(\.destination.tab.mapStack.root.uploadPost.presented.root.checkUID)
             await store.receive(\.accountDelegate.logoutRequired)
             await store.send(.alert(.presented(.signOut)))
