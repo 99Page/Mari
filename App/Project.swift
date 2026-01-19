@@ -13,6 +13,8 @@ let infoPlist: [String: Plist.Value] = [
     "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"], // 세로 모드만 허용
     "UIUserInterfaceStyle": "Light", // 다크모드 끄기
     "BASE_URL": "$(BASE_URL)",
+    "CFBundleShortVersionString": "$(MARKETING_VERSION)",
+    "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
     
     "UIApplicationSceneManifest": [
         "UIApplicationSupportsMultipleScenes": true,
@@ -58,6 +60,7 @@ let target = Target.target(
         .package(product: "FirebaseAnalytics"),
         .package(product: "FirebaseAuth"),
         .package(product: "NMapsMap"),
+        .package(product: "FirebaseRemoteConfig"),
         .package(product: "FirebaseStorage"),
         .package(product: "FirebaseCore"),
         .package(product: "FirebaseFirestore"),
