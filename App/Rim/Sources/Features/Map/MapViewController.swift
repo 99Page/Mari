@@ -29,16 +29,11 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     
     private let progressView = UIActivityIndicatorView(style: .medium)
     
-    private let cameraButton: RimImageView
-    private let cameraBackgroundView: RimView
+    private let cameraButton = UIButton()
     
     init(store: StoreOf<MapFeature>) {
         @UIBindable var binding = store
         self.store = store
-        
-        self.cameraButton = RimImageView()
-        self.cameraBackgroundView = RimView(state: .constant(.init(borderColor: .gray, borderWidth: 1, cornerRadius: 20, backgroundColor: .systemBackground, shadowColor: .gray, shadowOpacity: 0.8, shadowOffset: CGSize(width: 0, height: 0.5), shadowRadius: 1)))
-        
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -74,9 +69,6 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
             updateMarkers()
             updateProgressView()
         }
-
-        cameraButton.image = .constant(.symbol(name: "camera", fgColor: .gray))
-        cameraButton.updateView()
     }
     
     private func updateProgressView() {
@@ -125,16 +117,14 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     private func makeConstraint() {
         
         view.addSubview(mapView)
-        view.addSubview(cameraBackgroundView)
+        view.addSubview(cameraButton)
         view.addSubview(progressView)
-        
-        cameraButton.background(cameraBackgroundView, insets: UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8))
         
         mapView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
         
-        cameraButton.snpTarget.makeConstraints { make in
+        cameraButton.snp.makeConstraints { make in
             make.bottom.equalToSuperview().inset(16)
             make.trailing.equalToSuperview().inset(16)
             make.width.height.equalTo(40)
@@ -157,9 +147,31 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         progressView.startAnimating()
         progressView.color = .gray
         
-        cameraBackgroundView.addAction(.touchUpInside({ [weak self] in
+        setupCameraButton()
+    }
+    
+    private func setupCameraButton() {
+        let imageSize = CGFloat(20)
+        let inset = imageSize / 2
+        let symbolConfig = UIImage.SymbolConfiguration(pointSize: imageSize, weight: .bold, scale: .medium)
+        let image = UIImage(systemName: "camera.fill", withConfiguration: symbolConfig)
+        
+        var config = UIButton.Configuration.filled()
+        config.image = image
+        config.baseBackgroundColor = .systemBlue
+        config.baseForegroundColor = .white
+        config.cornerStyle = .capsule
+        config.contentInsets = NSDirectionalEdgeInsets(top: inset, leading: inset, bottom: inset, trailing: inset)
+        
+        cameraButton.configuration = config
+        cameraButton.layer.shadowColor = UIColor.black.cgColor
+        cameraButton.layer.shadowOpacity = 0.3
+        cameraButton.layer.shadowOffset = CGSize(width: 0, height: 4)
+        cameraButton.layer.shadowRadius = 4
+        cameraButton.translatesAutoresizingMaskIntoConstraints = false
+        cameraButton.addAction(UIAction { [weak self] _ in
             self?.send(.cameraButtonTapped)
-        }))
+        }, for: .touchUpInside)
     }
     
     

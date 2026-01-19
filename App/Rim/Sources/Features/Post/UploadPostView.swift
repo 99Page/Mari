@@ -77,7 +77,7 @@ struct UploadPostFeature {
         enum View: BindableAction {
             case binding(BindingAction<State>)
             case uploadButtonTapped
-            case viewDidLoad
+            case onAppear
             case xButtonTapped
         }
         
@@ -130,7 +130,7 @@ struct UploadPostFeature {
             case .view(.binding(_)):
                 return .none
                 
-            case .view(.viewDidLoad):
+            case .view(.onAppear):
                 return .concatenate(
                     .send(.checkUID),
                     .send(.uploadImage)
@@ -315,9 +315,11 @@ struct UploadPostView: View {
     
     var body: some View {
         ZStack {
+            Color(uiColor: .systemBackground).ignoresSafeArea()
+            
             VStack(spacing: 0) {
                 ScrollView {
-                    VStack(spacing: 16) {
+                    VStack(spacing: 24) {
                         if case let .uiImage(uiImage) = store.image {
                             Image(uiImage: uiImage)
                                 .resizable()
@@ -327,34 +329,46 @@ struct UploadPostView: View {
                                 .containerRelativeFrame(.horizontal) { length, _ in
                                     length * 0.6
                                 }
-                                .clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
+                                .padding(.top, 20)
                         }
                         
-                        TextField(
-                            "여기는 어떤 곳인가요?",
-                            text: $store.title
-                        )
-                        .font(.headline)
-                        .multilineTextAlignment(.leading)
-                        .focused($isFocused)
-                        .padding(.horizontal, 16)
-
-                        TextField(
-                            "더 자세한 내용을 알려주세요.",
-                            text: $store.descriptionText,
-                            axis: .vertical
-                        )
-                        .focused($isFocused)
-                        .padding(.horizontal, 16)
-
-                        Text("부적절하거나 불쾌감을 줄 수 있는 게시글은 제재를 받을 수 있습니다.")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 16)
-                            .padding(.top, 4)
+                        VStack(alignment: .leading, spacing: 16) {
+                            TextField(
+                                "여기는 어떤 곳인가요?",
+                                text: $store.title
+                            )
+                            .font(size: 20, font: .spoqa(.bold))
+                            .focused($isFocused)
+                            
+                            Divider() //
+                            
+                            TextField(
+                                "더 자세한 내용을 알려주세요.",
+                                text: $store.descriptionText,
+                                axis: .vertical
+                            )
+                            .font(size: 16, font: .spoqa(.regular))
+                            .focused($isFocused)
+                            .frame(minHeight: 120, alignment: .top)
+                        }
+                        .padding(.horizontal, 20)
+                        
+                        Spacer()
+                        
+                        HStack(alignment: .top, spacing: 6) {
+                            Image(systemName: "info.circle.fill")
+                                .font(.system(size: 12))
+                            Text("부적절하거나 불쾌감을 줄 수 있는 게시글은 제재를 받을 수 있습니다.")
+                                .font(size: 12, font: .spoqa(.medium))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .foregroundColor(.gray)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .padding(.vertical, 16)
                 }
                 .scrollDismissesKeyboard(.interactively)
                 
@@ -365,15 +379,16 @@ struct UploadPostView: View {
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 50)
+                        .frame(height: 54)
                         .background(
-                            store.isPostButtonEnabled ? Color(uiColor: .systemBlue) : Color.gray
+                            store.isPostButtonEnabled ? Color(uiColor: .systemBlue) : Color(uiColor: .systemGray4)
                         )
-                        .cornerRadius(25)
+                        .cornerRadius(16)
                 }
                 .disabled(!store.isPostButtonEnabled)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16) // Safe Area 고려
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 16)
             }
             
             if store.isProgressViewPresented {
@@ -385,21 +400,18 @@ struct UploadPostView: View {
                             .tint(.white)
                             .scaleEffect(1.5)
                     }
-                    .onTapGesture {
-                        
-                    }
             }
         }
         .navigationTitle("새 게시물")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // X 버튼 (닫기)
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
                     send(.xButtonTapped)
                 } label: {
                     Image(systemName: "xmark")
-                        .foregroundColor(.black)
+                        .foregroundColor(.primary)
+                        .fontWeight(.semibold)
                 }
             }
         }
@@ -407,7 +419,7 @@ struct UploadPostView: View {
             isFocused = false
         }
         .onAppear {
-            send(.viewDidLoad)
+            send(.onAppear)
         }
         .alert($store.scope(state: \.alert, action: \.alert))
         .confirmationDialog($store.scope(state: \.dismissDialog, action: \.dialog))

@@ -33,27 +33,6 @@ struct MapFeature {
         
         var isProgressPresented = false
         
-        var latestBackground = RimView.State(
-            borderColor: UIColor(resource: .main),
-            borderWidth: 1.2,
-            cornerRadius: 13,
-            backgroundColor: .white,
-            shadowColor: .clear,
-            shadowOpacity: 0.9,
-            shadowOffset: CGSize(width: -2, height: 2),
-            shadowRadius: 2
-        )
-        
-        var popularBackground = RimView.State(
-            borderWidth: 1.2,
-            cornerRadius: 13,
-            backgroundColor: .white,
-            shadowColor: .gray,
-            shadowOpacity: 0.9,
-            shadowOffset: CGSize(width: -2, height: 2),
-            shadowRadius: 2
-        )
-        
         var selectedFilter = Filter.latest
         var lastFetchPrecision: Int = 7
         
@@ -147,30 +126,6 @@ struct MapFeature {
                 guard !state.retrievedGeoHashes.contains(centerGeoHash) else { return .none }
                 
                 return .send(.fetchPosts)
-                
-            case .view(.binding(.set(\.selectedFilter, .latest))):
-                state.latestBackground.borderColor = UIColor(resource: .main)
-                state.latestBackground.shadowColor = .clear
-                
-                state.popularBackground.shadowColor = .gray
-                state.popularBackground.borderColor = .clear
-                
-                let generator = UIImpactFeedbackGenerator(style: .light)
-                generator.prepare()
-                generator.impactOccurred()
-                return .none
-                
-            case .view(.binding(.set(\.selectedFilter, .popular))):
-                state.latestBackground.borderColor = .clear
-                state.latestBackground.shadowColor = .gray
-                
-                state.popularBackground.shadowColor = .clear
-                state.popularBackground.borderColor = UIColor(resource: .main)
-                
-                let generator = UIImpactFeedbackGenerator(style: .light)
-                generator.prepare()
-                generator.impactOccurred()
-                return .none
                 
             case .view(.binding):
                 return .none
