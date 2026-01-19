@@ -77,8 +77,6 @@ struct RootFeature {
             switch action {
             case .view(.viewDidLoad):
                 return .run { send in
-                    await send(.checkVersion)
-                    
                     for await event in accountClient.delegate() {
                         await send(.accountDelegate(event))
                     }
@@ -192,7 +190,6 @@ struct RootFeature {
                 return .none
             }
         }
-        ._printChanges()
     }
 }
 
