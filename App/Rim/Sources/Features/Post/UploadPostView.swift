@@ -63,7 +63,6 @@ struct UploadPostFeature {
         case view(View)
         case dialog(PresentationAction<DialogAction>)
         case delegate(Delegate)
-        case uploadMarkerImage(image: UIImage, title: String)
         case uploadImage
         case uploadPost
         case setImageURL(url: String)
@@ -93,7 +92,6 @@ struct UploadPostFeature {
     @Dependency(\.uuid) var uuid
     @Dependency(\.dismiss) var dismiss
     @Dependency(\.continuousClock) var clock
-    @Dependency(\.viewImageGenerator) var viewImageGenerator
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
@@ -143,41 +141,18 @@ struct UploadPostFeature {
                 
             case .uploadPost:
                 guard !state.title.isEmpty else { return .send(.showMissingTitleAlert) }
-                
-                guard case let .uiImage(uiImage) = state.image else { return .none }
                 guard let imageURL = state.imageURL else { return .none }
-                
                 guard let uid = state.uid else { return .none }
                 
                 
                 return .run { [state] send in
-                    let viewImage = await MainActor.run {
-                        let image = Image(uiImage: uiImage)
-                        let view = ImageMarkerView(image: image, title: state.title)
-                        return viewImageGenerator.generate(view)
-                    }
-                    
-                    guard let viewImage else { return }
-                    
-                    let id = uuid().uuidString
-                    
-                    let imageParam = ImageClient.UploadImageParameter(
-                        image: viewImage,
-                        path: "marker",
-                        fileName: id,
-                        format: .png
-                    )
-                    
-                    let response = try await imageClient.uploadImage(imageParam)
-                    
                     let request = PostRequest.Create(
                         title: state.title,
                         content: state.descriptionText,
                         latitude: state.photoLocation.lat,
                         longitude: state.photoLocation.lng,
                         creatorID: uid,
-                        imageUrl: imageURL,
-                        markerUrl: response.imageURL
+                        imageUrl: imageURL
                     )
                     
                     let _ = try await postClient.createPost(request: request)
@@ -186,6 +161,15 @@ struct UploadPostFeature {
                 } catch: { error, send in
                     if let response = error as? ErrorResponse {
                         await send(.showAlert(title: response.message))
+                    } else if let clientError = error as? ClientError,
+                              case let .failDecoding(statusCode) = clientError,
+                              (200..<300).contains(statusCode) {
+                        await send(.dismissProgress)
+                        await send(.delegate(.uploadSucceeded))
+                        Logger.error("")
+                    } else {
+                        await send(.showAlert(title: "알 수 없는 오류가 발생했습니다."))
+                        Logger.error("\(error)")
                     }
                 }
                 
@@ -197,24 +181,6 @@ struct UploadPostFeature {
                 guard state.uid == nil else { return .none }
                 accountClient.triggerLogout()
                 return .none
-                
-            case let .uploadMarkerImage(uiImage, title):
-                let image = Image(uiImage: uiImage)
-                let view = ImageMarkerView(image: image, title: title)
-                
-                return .run { send in
-                    guard let viewImage = await viewImageGenerator.generate(view) else { return }
-                    let id = uuid().uuidString
-                    
-                    let param = ImageClient.UploadImageParameter(
-                        image: viewImage,
-                        path: "marker",
-                        fileName: id,
-                        format: .png
-                    )
-                    
-                    let response = try await imageClient.uploadImage(param)
-                }
                 
             case .uploadImage:
                 guard state.hasRetryLeft else { return .send(.showUploadFailAlert) }
@@ -303,6 +269,7 @@ struct UploadPostFeature {
                 return .none
             }
         }
+
     }
 }
 

@@ -4,7 +4,7 @@ import Geohash from "latlon-geohash";
 import { fetchPostById } from "@/posts/handlers/fetchPostById";
 import { db, adminInstance as admin } from "@/utils/firebase";
 import { convertToPostDetail, PostDetail } from "@/posts/models/postDetail";
-import { PostSummaryV2 } from "@/posts/models/postSummary";
+import { PostSummary } from "@/posts/models/postSummary";
 import { ErrorResponse } from "@/resopnse/errorResponse";
 import type { SuccessResponse } from "@/resopnse/successResponse";
 
@@ -98,7 +98,7 @@ export const fetchPostsForMap = async (req: Request, res: Response) => {
       const filteredPosts = filterLatestPostPerGroup(posts, geohashField, geohashGroup);
       const successResponse: SuccessResponse<{
         type: string;
-        posts: PostSummaryV2[];
+        posts: PostSummary[];
         geohashBlocks: string[];
         postCount: number;
       }> = {
@@ -259,8 +259,8 @@ function filterLatestPostPerGroup(
   posts: PostDetail[],
   geohashField: string,
   geohashGroups: Record<string, number>
-): PostSummaryV2[] {
-  const result: PostSummaryV2[] = [];
+): PostSummary[] {
+  const result: PostSummary[] = [];
   const seenGroups = new Set<number>();
 
   for (const post of posts) {
@@ -272,7 +272,6 @@ function filterLatestPostPerGroup(
         id: post.id,
         title: post.title,
         imageUrl: post.imageUrl,
-        markerUrl: post.markerUrl,
         creatorID: post.creatorID,
         location: post.location
       });

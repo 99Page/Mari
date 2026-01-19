@@ -14,5 +14,5 @@ enum ClientError: Error {
     case firebaseError
     case emptyValue
     case emptyToken
-    case failDecoding
+    case failDecoding(statusCode: Int)
 }

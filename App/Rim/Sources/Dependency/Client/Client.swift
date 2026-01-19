@@ -63,7 +63,7 @@ class Client {
             if let errorResponse = try? JSONDecoder().decode(ErrorResponse.self, from: data) {
                 throw errorResponse
             } else {
-                throw ClientError.failDecoding
+                throw ClientError.failDecoding(statusCode: httpResponse.statusCode)
             }
         }
     }
