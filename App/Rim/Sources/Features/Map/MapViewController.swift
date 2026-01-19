@@ -27,12 +27,6 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     private let locationManager = CLLocationManager()
     private var isUserLocationInitialzed = false
     
-    private let latestBackgroundView: RimView
-    private let latestLabel: RimLabel
-    
-    private let popularBackgroundView: RimView
-    private let popularLabel: RimLabel
-    
     private let progressView = UIActivityIndicatorView(style: .medium)
     
     private let cameraButton: RimImageView
@@ -41,11 +35,6 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     init(store: StoreOf<MapFeature>) {
         @UIBindable var binding = store
         self.store = store
-        
-        self.latestLabel = RimLabel()
-        self.popularLabel = RimLabel()
-        self.latestBackgroundView = RimView(state: $binding.latestBackground)
-        self.popularBackgroundView = RimView(state: $binding.popularBackground)
         
         self.cameraButton = RimImageView()
         self.cameraBackgroundView = RimView(state: .constant(.init(borderColor: .gray, borderWidth: 1, cornerRadius: 20, backgroundColor: .systemBackground, shadowColor: .gray, shadowOpacity: 0.8, shadowOffset: CGSize(width: 0, height: 0.5), shadowRadius: 1)))
@@ -85,15 +74,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
             updateMarkers()
             updateProgressView()
         }
-        
-        latestLabel.text = .constant("최신순")
-        latestLabel.textColor = .constant(.black)
-        latestLabel.updateView()
-        
-        popularLabel.text = .constant("인기순")
-        popularLabel.textColor = .constant(.black)
-        popularLabel.updateView()
-        
+
         cameraButton.image = .constant(.symbol(name: "camera", fgColor: .gray))
         cameraButton.updateView()
     }
@@ -112,11 +93,6 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
             let lat: Double = post.location.coordinate.latitude
             let lng: Double = post.location.coordinate.longitude
             let marker = NMFMarker(position: NMGLatLng(lat: lat, lng: lng))
-
-            marker.touchHandler = { [weak self] (o: NMFOverlay) -> Bool in
-                self?.traitCollection.push(state: MapNavigationStack.Path.State.postList(.init(selectedPostID: post.id)))
-                return true
-            }
             
             let markerSize = CGSize(width: 94, height: 86) /// ImageMarkerView의 크기 참고
             marker.width = markerSize.width
@@ -147,52 +123,27 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     }
     
     private func makeConstraint() {
-        let filterContainerView = UIView()
         
         view.addSubview(mapView)
-        view.addSubview(filterContainerView)
         view.addSubview(cameraBackgroundView)
-        
-        filterContainerView.addSubview(latestBackgroundView)
-        filterContainerView.addSubview(popularBackgroundView)
-        filterContainerView.addSubview(progressView)
+        view.addSubview(progressView)
         
         cameraButton.background(cameraBackgroundView, insets: UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8))
-        
-        let filterBgInsets = UIEdgeInsets(top: 5, left: 8, bottom: 5, right: 8)
         
         mapView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
         
         cameraButton.snpTarget.makeConstraints { make in
-            make.bottom.equalTo(filterContainerView.snp.top).offset(-8)
-            make.trailing.equalTo(filterContainerView)
+            make.bottom.equalToSuperview().inset(16)
+            make.trailing.equalToSuperview().inset(16)
             make.width.height.equalTo(40)
         }
-        
-        filterContainerView.snp.makeConstraints { make in
-            make.bottom.equalToSuperview().offset(-16)
-            make.trailing.equalToSuperview().offset(-16)
-        }
-        
+       
         progressView.snp.makeConstraints { make in
-            make.centerY.equalToSuperview()
             make.height.width.equalTo(20)
-            make.leading.equalToSuperview()
-        }
-        
-        latestLabel.background(latestBackgroundView, insets: filterBgInsets)
-        latestLabel.snpTarget.makeConstraints { make in
-            make.top.bottom.equalToSuperview()
-            make.leading.equalTo(progressView.snp.trailing).offset(6)
-        }
-        
-        popularLabel.background(popularBackgroundView, insets: filterBgInsets)
-        popularLabel.snpTarget.makeConstraints { make in
-            make.centerY.equalToSuperview()
-            make.leading.equalTo(latestLabel.snpTarget.trailing).offset(6)
-            make.trailing.equalToSuperview()
+            make.bottom.equalToSuperview().inset(40)
+            make.leading.equalToSuperview().inset(16)
         }
     }
     
@@ -202,15 +153,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         mapView.addCameraDelegate(delegate: self)
         mapView.zoomLevel = store.zoomLevel
         mapView.locationOverlay.hidden = false
-        
-        latestBackgroundView.addAction(.touchUpInside({ [weak self] in
-            self?.store.selectedFilter = .latest
-        }))
-        
-        popularBackgroundView.addAction(.touchUpInside({ [weak self] in
-            self?.store.selectedFilter = .popular
-        }))
-        
+    
         progressView.startAnimating()
         progressView.color = .gray
         
