@@ -85,12 +85,13 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
             let lat: Double = post.location.coordinate.latitude
             let lng: Double = post.location.coordinate.longitude
             let marker = NMFMarker(position: NMGLatLng(lat: lat, lng: lng))
-            
             let markerSize = CGSize(width: 94, height: 86) /// ImageMarkerView의 크기 참고
             marker.width = markerSize.width
             marker.height = markerSize.height
             let iconImage: UIImage
             
+            marker.isHideCollidedMarkers = true
+            marker.zIndex = post.zIndex
             marker.anchor = CGPoint(x: 0.5, y: 1)
             
             if store.blockedUserIds.contains(post.creatorID) {

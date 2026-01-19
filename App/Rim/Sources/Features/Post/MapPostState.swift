@@ -9,20 +9,22 @@ import CoreLocation
 import Foundation
 import UIKit
 
-struct PostSummaryState: Equatable, Identifiable, Hashable {
+struct MapPostState: Equatable, Identifiable, Hashable {
     let id: String
     let imageURL: String
     let title: String
     let location: CLLocation
     let creatorID: String
     var image: UIImage?
+    let zIndex: Int
     
-    init(id: String, imageURL: String, title: String, coordinate: CLLocation, creatorID: String) {
+    init(id: String, imageURL: String, title: String, coordinate: CLLocation, creatorID: String, zIndex: Int) {
         self.id = id
         self.imageURL = imageURL
         self.title = title
         self.location = coordinate
         self.creatorID = creatorID
+        self.zIndex = zIndex
     }
     
     init(dto: PostDetailDTO) {
@@ -31,6 +33,7 @@ struct PostSummaryState: Equatable, Identifiable, Hashable {
         self.title = dto.title
         self.creatorID = dto.creatorID
         self.location = CLLocation(latitude: dto.location.latitude, longitude: dto.location.longitude)
+        self.zIndex = Int(dto.createdAt.date.timeIntervalSince1970)
     }
     
     init(dto: MapPostDTO) {
@@ -39,5 +42,6 @@ struct PostSummaryState: Equatable, Identifiable, Hashable {
         self.title = dto.title
         self.creatorID = dto.creatorID
         self.location = CLLocation(latitude: dto.location.latitude, longitude: dto.location.longitude)
+        self.zIndex =  Int(dto.createdAt.date.timeIntervalSince1970)
     }
 }

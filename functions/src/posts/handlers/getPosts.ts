@@ -274,7 +274,8 @@ function filterLatestPostPerGroup(
         title: post.title,
         imageUrl: post.imageUrl,
         creatorID: post.creatorID,
-        location: post.location
+        location: post.location,
+        createdAt: post.createdAt
       });
       seenGroups.add(groupIndex);
     }

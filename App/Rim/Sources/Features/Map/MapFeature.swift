@@ -27,7 +27,7 @@ struct MapFeature {
         // 값이 커질수록 확대됩니다 -page, 2025. 07. 04
         var zoomLevel: Double = 18.0
         
-        var posts = IdentifiedArrayOf<PostSummaryState>()
+        var posts = IdentifiedArrayOf<MapPostState>()
         var retrievedGeoHashes: Set<String> = []
         var mapCameraCenterPosition = NMGLatLng(lat: 0, lng: 0)
         var photoLocation: NMGLatLng?
@@ -170,7 +170,7 @@ struct MapFeature {
             case let .setPosts(response):
                 let oldIDs = Set(state.posts.map(\.id))
                 let newIDs = Set(response.posts.map(\.id))
-                let newPosts = response.posts.map { PostSummaryState(dto: $0) }
+                let newPosts = response.posts.map { MapPostState(dto: $0) }
                 
                 let removedIDs = oldIDs.subtracting(newIDs)
                 
