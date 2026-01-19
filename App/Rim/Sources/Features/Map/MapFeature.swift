@@ -12,6 +12,7 @@ import Core
 import CoreLocation
 import NMapsMap
 import Geohash
+import SwiftUI
 
 @Reducer
 struct MapFeature {
@@ -103,6 +104,7 @@ struct MapFeature {
     @Dependency(\.imageClient) var imageClient
     @Dependency(\.postClient) var postClient
     @Dependency(\.locationManager) var locationManager
+    @Dependency(\.viewImageGenerator) var viewImageGenerator
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
@@ -193,7 +195,9 @@ struct MapFeature {
                         do {
                             let imageSize = CGSize(width: 80, height: 80)
                             let image = try await imageClient.loadImage(url: addedPost.imageURL, size: imageSize)
-                            await send(.setImage(postID: addedPost.id, image: image))
+                            let markerView = ImageMarkerView(image: Image(uiImage: image), title: addedPost.title)
+                            let markerImage = await viewImageGenerator.generate(markerView) ?? UIImage(resource: .placeholder)
+                            await send(.setImage(postID: addedPost.id, image: markerImage))
                         } catch {
                             Logger.error("이미지 로드 실패")
                             // 실패 무시 or 처리
