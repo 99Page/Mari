@@ -23,12 +23,9 @@ struct MapFeature {
         @Presents var uploadPost: UploadPostNavigationStack.State?
         @Presents var camera: CameraFeature.State?
         
-        // NaverMap에서 제공하는 줌 레벨의 최대값 22, 최솟값은 약 0.67
-        // 값이 커질수록 확대됩니다 -page, 2025. 07. 04
-        var zoomLevel: Double = 18.0
+        var precision: Geohash.Precision = .seventySixMeters
         
         var posts = IdentifiedArrayOf<MapPostState>()
-        var retrievedGeoHashes: Set<String> = []
         var mapCameraCenterPosition = NMGLatLng(lat: 0, lng: 0)
         var photoLocation: NMGLatLng?
         
@@ -37,33 +34,98 @@ struct MapFeature {
         var selectedFilter = Filter.latest
         var lastFetchPrecision: Int = 7
         
-        var precision: Geohash.Precision {
-            switch zoomLevel {
-            case 0..<5:
-                return .sixHundredThirtyKilometers
-            case 5..<7:
-                return .seventyEightKilometers
-            case 7..<10:
-                return .twentyKilometers
-            case 10..<12:
-                return .twentyFourHundredMeters
-            case 12..<16:
-                return .sixHundredTenMeters
-            case 16..<19:
-                return .seventySixMeters
-            case 19..<20:
-                return .nineteenMeters
-            case 20...22:
-                return .sixtyCentimeters
-            default:
-                return .seventyFourMillimeters
+        var visibleBoundes: NMGLatLngBounds?
+        var vRadius = 1
+        var hRadius = 1
+        
+        var postsNeedingImages: [MapPostState] {
+            return self.posts.filter { $0.image == nil }
+        }
+        
+        mutating func calculateRequestRadius(bounds: NMGLatLngBounds) {
+            let gridWidth = precision.gridWidthInMeters
+            let gridHeight = precision.gridHeightInMeters
+            
+            let southWest = bounds.southWest
+            let southEast = NMGLatLng(lat: bounds.southWest.lat, lng: bounds.northEast.lng)
+            let northWest = NMGLatLng(lat: bounds.northEast.lat, lng: bounds.southWest.lng)
+            
+            let screenWidthMeters = southWest.distance(to: southEast)
+            let screenHeightMeters = southWest.distance(to: northWest)
+            
+            let halfWidth = screenWidthMeters / 2.0
+            let halfHeight = screenHeightMeters / 2.0
+            
+            let requiredH = ceil(halfWidth / gridWidth)
+            let requiredV = ceil(halfHeight / gridHeight)
+            
+            let hRadius = Int(requiredH) + 1
+            let vRadius = Int(requiredV) + 1
+            
+            self.hRadius = min(hRadius, 8)
+            self.vRadius = min(vRadius, 8)
+        }
+        
+        mutating func appropriateGeohashPrecision(bounds: NMGLatLngBounds, density: Double = 3.0) {
+            let southWest = bounds.southWest
+            let southEast = NMGLatLng(lat: bounds.southWest.lat, lng: bounds.northEast.lng)
+            let screenWidthMeters = southWest.distance(to: southEast)
+            
+            let targetGridSize = screenWidthMeters / density
+            
+            let precisions: [Geohash.Precision] = [
+                .twentyFiveHundredKilometers,
+                .sixHundredThirtyKilometers,
+                .seventyEightKilometers,
+                .twentyKilometers,
+                .twentyFourHundredMeters,
+                .sixHundredTenMeters,
+                .seventySixMeters,
+                .nineteenMeters,
+                .twoHundredFourtyCentimeters
+            ]
+            
+            for precision in precisions {
+                if precision.gridWidthInMeters <= targetGridSize {
+                    self.precision = precision
+                    return
+                }
+            }
+            
+            self.precision = .twoHundredFourtyCentimeters
+        }
+        
+        mutating func updatePosts(from responsePosts: [MapPostDTO]) {
+            guard let bounds = self.visibleBoundes else { return }
+            
+            let center = self.mapCameraCenterPosition
+            let visibleRadius = center.distance(to: bounds.southWest)
+            let threshold = visibleRadius * 2.0
+            
+            removePostsOutsideRadius(center: center, threshold: threshold)
+            mergeNewPostsWithinRadius(responsePosts, center: center, threshold: threshold)
+        }
+        
+        private mutating func mergeNewPostsWithinRadius(_ newPosts: [MapPostDTO], center: NMGLatLng, threshold: Double) {
+            let validPosts = newPosts
+                .map { MapPostState(dto: $0) }
+                .filter { center.distance(to: $0.nmLocation) <= threshold }
+            
+            for var post in validPosts {
+                if let oldPost = self.posts[id: post.id],
+                   let oldImage = oldPost.image,
+                   oldPost.imageURL == post.imageURL {
+                    // URL이 변경되지 않았다면 기존 이미지 재사용
+                    post.image = oldImage
+                }
+                
+                self.posts.updateOrAppend(post)
             }
         }
         
-        var groupSize: Int {
-            switch zoomLevel {
-            case 17: 1
-            default: 1
+        private mutating func removePostsOutsideRadius(center: NMGLatLng, threshold: Double) {
+            self.posts.removeAll { post in
+                return center.distance(to: post.nmLocation) > threshold
             }
         }
     }
@@ -81,7 +143,7 @@ struct MapFeature {
         case alert(PresentationAction<Alert>)
         case uploadPost(PresentationAction<UploadPostNavigationStack.Action>)
         case camera(PresentationAction<CameraFeature.Action>)
-        case view(UIAction)
+        case view(View)
         case removePost(id: String)
         case fetchPosts
         case setPosts(PostResponse.MapPosts)
@@ -90,10 +152,10 @@ struct MapFeature {
         case setImage(postID: String, image: UIImage)
         case showFailedToGetPhotoLocationAlert
         
-        enum UIAction: BindableAction {
+        enum View: BindableAction {
             case cameraButtonTapped
             case binding(BindingAction<State>)
-            case cameraDidMove(zoomLevel: Double, centerPosition: NMGLatLng)
+            case cameraDidMove(centerPosition: NMGLatLng, bounds: NMGLatLngBounds)
         }
         
         enum Alert: Equatable {
@@ -120,12 +182,11 @@ struct MapFeature {
                 state.camera = .init()
                 return .none
                 
-            case let .view(.cameraDidMove(zoomLevel, cameraPosition)):
-                state.zoomLevel = zoomLevel
+            case let .view(.cameraDidMove(cameraPosition, bounds)):
+                state.appropriateGeohashPrecision(bounds: bounds)
+                state.calculateRequestRadius(bounds: bounds)
                 state.mapCameraCenterPosition = cameraPosition
-                
-                let centerGeoHash = Geohash.encode(latitude: cameraPosition.lat, longitude: cameraPosition.lng, precision: state.precision)
-                guard !state.retrievedGeoHashes.contains(centerGeoHash) else { return .none }
+                state.visibleBoundes = bounds
                 
                 return .send(.fetchPosts)
                 
@@ -168,36 +229,18 @@ struct MapFeature {
                 return .none
                 
             case let .setPosts(response):
-                let oldIDs = Set(state.posts.map(\.id))
-                let newIDs = Set(response.posts.map(\.id))
-                let newPosts = response.posts.map { MapPostState(dto: $0) }
+                state.updatePosts(from: response.posts)
                 
-                let removedIDs = oldIDs.subtracting(newIDs)
-                
-                // 이미지 로드를 최소화하기 위해 added 상태 분리
-                // 현재는 이미지 캐싱이 별도로 되어 있지 않습니다.
-                // 이미지 캐싱 처리 후에는 remove/add 분리할 필요가 없습니다. -page 2025. 08. 06
-                let addedIDs = newIDs.subtracting(oldIDs)
-                let addedPosts = newPosts.filter { addedIDs.contains($0.id) }
-                
-                for removedPostId in removedIDs {
-                    state.posts.remove(id: removedPostId)
-                }
-                
-                for addedPost in addedPosts {
-                    state.posts.append(addedPost)
-                }
-                
-                state.retrievedGeoHashes = Set(response.geohashBlocks)
+                let postsNeedingImage = state.postsNeedingImages
                 
                 return .run { send in
-                    for addedPost in addedPosts {
+                    for post in postsNeedingImage {
                         do {
                             let imageSize = CGSize(width: 80, height: 80)
-                            let image = try await imageClient.loadImage(url: addedPost.imageURL, size: imageSize)
-                            let markerView = ImageMarkerView(image: Image(uiImage: image), title: addedPost.title)
+                            let image = try await imageClient.loadImage(url: post.imageURL, size: imageSize)
+                            let markerView = ImageMarkerView(image: Image(uiImage: image), title: post.title)
                             let markerImage = await viewImageGenerator.generate(markerView) ?? UIImage(resource: .placeholder)
-                            await send(.setImage(postID: addedPost.id, image: markerImage))
+                            await send(.setImage(postID: post.id, image: markerImage))
                         } catch {
                             Logger.error("이미지 로드 실패")
                             // 실패 무시 or 처리
@@ -231,7 +274,8 @@ struct MapFeature {
                     latitude: state.mapCameraCenterPosition.lat,
                     longitude: state.mapCameraCenterPosition.lng,
                     precision: state.precision.rawValue,
-                    groupSize: state.groupSize
+                    hRadius: state.hRadius,
+                    vRadius: state.vRadius
                 )
                 
                 return .run { send in
@@ -271,3 +315,34 @@ struct MapFeature {
     }
 }
 
+extension Geohash.Precision {
+    var gridWidthInMeters: Double {
+        switch self {
+        case .twentyFiveHundredKilometers: return 5_000_000
+        case .sixHundredThirtyKilometers:  return 1_250_000
+        case .seventyEightKilometers:      return 156_000
+        case .twentyKilometers:            return 39_000
+        case .twentyFourHundredMeters:     return 4_900
+        case .sixHundredTenMeters:         return 1_200
+        case .seventySixMeters:            return 152
+        case .nineteenMeters:              return 38
+        case .twoHundredFourtyCentimeters: return 4.8
+        default: return 0
+        }
+    }
+    
+    var gridHeightInMeters: Double {
+        switch self {
+        case .twentyFiveHundredKilometers: return 5_000_000   // Level 1: 정사각형
+        case .sixHundredThirtyKilometers:  return 625_000     // Level 2: 직사각형 (가로의 절반)
+        case .seventyEightKilometers:      return 156_000     // Level 3: 정사각형
+        case .twentyKilometers:            return 19_500      // Level 4: 직사각형 (가로의 절반)
+        case .twentyFourHundredMeters:     return 4_900       // Level 5: 정사각형
+        case .sixHundredTenMeters:         return 600         // Level 6: 직사각형 (가로의 절반)
+        case .seventySixMeters:            return 152         // Level 7: 정사각형
+        case .nineteenMeters:              return 19          // Level 8: 직사각형 (가로의 절반)
+        case .twoHundredFourtyCentimeters: return 4.8         // Level 9: 정사각형
+        default: return 0
+        }
+    }
+}

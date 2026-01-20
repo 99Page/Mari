@@ -22,7 +22,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         return mapView
     }()
     
-    private var markers: [NMFMarker] = []
+    private var activeMarkers: [String: NMFMarker] = [:]
     
     private let locationManager = CLLocationManager()
     private var isUserLocationInitialzed = false
@@ -76,23 +76,14 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     }
     
     private func updateMarkers() {
-        removePresentedMarkers()
-        addNewMarkers()
+        removeMarkers()
+        syncMarkers()
     }
     
-    private func addNewMarkers() {
+    private func syncMarkers() {
         for post in store.posts {
-            let lat: Double = post.location.coordinate.latitude
-            let lng: Double = post.location.coordinate.longitude
-            let marker = NMFMarker(position: NMGLatLng(lat: lat, lng: lng))
-            let markerSize = CGSize(width: 94, height: 86) /// ImageMarkerView의 크기 참고
-            marker.width = markerSize.width
-            marker.height = markerSize.height
             let iconImage: UIImage
-            
-            marker.isHideCollidedMarkers = true
-            marker.zIndex = post.zIndex
-            marker.anchor = CGPoint(x: 0.5, y: 1)
+            let markerSize = CGSize(width: 94, height: 86)
             
             if store.blockedUserIds.contains(post.creatorID) {
                 iconImage = resizedImage(UIImage(systemName: "lock.circle")!, size: markerSize)
@@ -100,19 +91,46 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
                 iconImage = post.image ?? UIImage(resource: .placeholder)
             }
             
-            marker.iconImage = NMFOverlayImage(image: iconImage)
-            marker.mapView = mapView
-            
-            markers.append(marker)
+            if let existingMarker = activeMarkers[post.id] {
+                existingMarker.iconImage = NMFOverlayImage(image: iconImage)
+            } else {
+                let marker = makeNewMarker(post)
+                marker.mapView = mapView
+                activeMarkers[post.id] = marker
+            }
         }
     }
     
-    private func removePresentedMarkers() {
-        for marker in markers {
-            marker.mapView = nil
+    private func makeNewMarker(_ post: MapPostState) -> NMFMarker {
+        let iconImage: UIImage
+        let markerSize = CGSize(width: 94, height: 86)
+        
+        if store.blockedUserIds.contains(post.creatorID) {
+            iconImage = resizedImage(UIImage(systemName: "lock.circle")!, size: markerSize)
+        } else {
+            iconImage = post.image ?? UIImage(resource: .placeholder)
         }
         
-        markers.removeAll()
+        
+        let lat: Double = post.location.coordinate.latitude
+        let lng: Double = post.location.coordinate.longitude
+        let marker = NMFMarker(position: NMGLatLng(lat: lat, lng: lng))
+        marker.width = markerSize.width
+        marker.height = markerSize.height
+        marker.isHideCollidedMarkers = true
+        marker.zIndex = post.zIndex
+        marker.anchor = CGPoint(x: 0.5, y: 1)
+        marker.iconImage = NMFOverlayImage(image: iconImage)
+        
+        return marker
+    }
+    
+    private func removeMarkers() {
+        for (id, marker) in activeMarkers {
+            guard store.posts[id: id] == nil else { continue }
+            marker.mapView = nil
+            activeMarkers.removeValue(forKey: id)
+        }
     }
     
     private func makeConstraint() {
@@ -142,7 +160,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         addOverlay()
         
         mapView.addCameraDelegate(delegate: self)
-        mapView.zoomLevel = store.zoomLevel
+        mapView.zoomLevel = 17
         mapView.locationOverlay.hidden = false
     
         progressView.startAnimating()
@@ -195,7 +213,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     func mapViewCameraIdle(_ mapView: NMFMapView) {
         let zoomLevel = mapView.zoomLevel
         let centerPosition = mapView.cameraPosition
-        send(.cameraDidMove(zoomLevel: zoomLevel, centerPosition: centerPosition.target))
+        send(.cameraDidMove(centerPosition: centerPosition.target, bounds: mapView.coveringBounds))
     }
     
     private func showLocationPermissionAlert() {

@@ -17,7 +17,8 @@ extension PostClient {
             let latitude: Double
             let longitude: Double
             let precision: Int
-            let groupSize: Int
+            let hRadius: Int
+            let vRadius: Int
         }
         
         // MARK: CreatePost

@@ -8,6 +8,7 @@
 import CoreLocation
 import Foundation
 import UIKit
+import NMapsMap
 
 struct MapPostState: Equatable, Identifiable, Hashable {
     let id: String
@@ -17,6 +18,10 @@ struct MapPostState: Equatable, Identifiable, Hashable {
     let creatorID: String
     var image: UIImage?
     let zIndex: Int
+    
+    var nmLocation: NMGLatLng {
+        NMGLatLng(lat: location.coordinate.latitude, lng: location.coordinate.longitude)
+    }
     
     init(id: String, imageURL: String, title: String, coordinate: CLLocation, creatorID: String, zIndex: Int) {
         self.id = id

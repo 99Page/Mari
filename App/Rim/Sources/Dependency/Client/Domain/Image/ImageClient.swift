@@ -74,8 +74,6 @@ extension ImageClient: DependencyKey {
             let url = try await imageReference.downloadURL()
             
             return ImageResponse(imageURL: url.absoluteString)
-            
-            return ImageResponse(imageURL: url.absoluteString)
         } loadImage: { url, size in
             let memoryLoader = MemoryCacheImageLoader()
             let diskLoader = DiskCacheImageLoader()

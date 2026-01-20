@@ -166,10 +166,8 @@ struct UploadPostFeature {
                               (200..<300).contains(statusCode) {
                         await send(.dismissProgress)
                         await send(.delegate(.uploadSucceeded))
-                        Logger.error("")
                     } else {
                         await send(.showAlert(title: "알 수 없는 오류가 발생했습니다."))
-                        Logger.error("\(error)")
                     }
                 }
                 

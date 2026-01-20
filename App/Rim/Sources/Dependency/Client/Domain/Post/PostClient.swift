@@ -88,7 +88,7 @@ struct PostClient {
             switch self {
             case .createPost: "/posts"
             case let .fetchMapPosts(request):
-                "/posts/?latitude=\(request.latitude)&longitude=\(request.longitude)&precision=\(request.precision)&type=\(request.type)&groupSize=\(request.groupSize)"
+                "/posts/?latitude=\(request.latitude)&longitude=\(request.longitude)&precision=\(request.precision)&type=\(request.type)&hRadius=\(request.hRadius)&vRadius=\(request.vRadius)"
             case let .fetchPostByID(id): "/getPostById?id=\(id)"
             case let .incrementPostViewCount(postID):
                 "/increasePostViewCount/posts/\(postID)/views"
