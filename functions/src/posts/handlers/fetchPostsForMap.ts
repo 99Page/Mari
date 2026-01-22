@@ -125,29 +125,36 @@ export const fetchPostsForMap = async (req: Request, res: Response) => {
   }
 };
 
-// geohash 블록별로 최신 게시글을 가져옴 (각 블록당 최대 3개, createdAt 기준 내림차순 정렬)
+// geohash 블록별로 최신 게시글을 가져옴
 async function fetchLatestPosts(geohashBlocks: string[], geohashField: string, userID: string): Promise<PostDetail[]> {
-  const posts: PostDetail[] = [];
-
-  for (const hash of geohashBlocks) {
+  // 1. 각 격자(Hash)별로 쿼리를 생성하여 Promise 배열을 만듭니다. (아직 실행 완료 대기 X)
+  const queries = geohashBlocks.map(async (hash) => {
     const snapshot = await db
       .collectionGroup("posts")
       .where(geohashField, "==", hash)
       .orderBy("createdAt", "desc")
-      .limit(3)
+      .limit(5) // ⭐️ 5개로 증가
       .get();
 
+    // 2. 스냅샷이 비어있지 않으면, 5개의 문서를 모두 변환해서 반환합니다.
     if (!snapshot.empty) {
-      const doc = snapshot.docs[0];
-      const data = doc.data();
-      const postDetail = convertToPostDetail(doc, data?.creatorID)
-      posts.push(postDetail)
+      return snapshot.docs.map(doc => {
+        const data = doc.data();
+        return convertToPostDetail(doc, data?.creatorID);
+      });
+    } else {
+      return [];
     }
-  }
+  });
+
+  // 3. 25개의 쿼리를 '동시에' 실행하고 모두 끝날 때까지 기다립니다. (속도 대폭 향상)
+  const results = await Promise.all(queries);
+
+  // 4. 결과는 [[Post, Post], [Post], [], ...] 형태의 2차원 배열이므로 flat()으로 펴줍니다.
+  const posts: PostDetail[] = results.flat();
 
   return posts;
 }
-
 
 function move(startHash: string, direction: "n" | "s" | "e" | "w", steps: number): string {
   let current = startHash;
