@@ -34,7 +34,7 @@ struct MapFeature {
         var selectedFilter = Filter.latest
         var lastFetchPrecision: Int = 7
         
-        var visibleBoundes: NMGLatLngBounds?
+        var visibleBounds: NMGLatLngBounds?
         var vRadius = 1
         var hRadius = 1
         
@@ -42,90 +42,189 @@ struct MapFeature {
             return self.posts.filter { $0.image == nil }
         }
         
-        mutating func calculateRequestRadius(bounds: NMGLatLngBounds) {
-            let gridWidth = precision.gridWidthInMeters
-            let gridHeight = precision.gridHeightInMeters
+        mutating func optimizeGeohashState(bounds: NMGLatLngBounds) {
+            let (screenWidth, screenHeight) = calculateScreenSizeInMeters(bounds: bounds)
             
+            let maxRadiusLimit = 2
+            
+            self.precision = determineBestPrecision(
+                screenWidth: screenWidth,
+                screenHeight: screenHeight,
+                maxRadiusLimit: maxRadiusLimit
+            )
+            
+            updateRequestRadius(
+                screenWidth: screenWidth,
+                screenHeight: screenHeight
+            )
+        }
+        
+        // MARK: - Helper Methods
+        
+        /// 화면 크기를 미터 단위로 계산
+        private func calculateScreenSizeInMeters(bounds: NMGLatLngBounds) -> (width: Double, height: Double) {
             let southWest = bounds.southWest
             let southEast = NMGLatLng(lat: bounds.southWest.lat, lng: bounds.northEast.lng)
             let northWest = NMGLatLng(lat: bounds.northEast.lat, lng: bounds.southWest.lng)
             
-            let screenWidthMeters = southWest.distance(to: southEast)
-            let screenHeightMeters = southWest.distance(to: northWest)
+            let width = southWest.distance(to: southEast)
+            let height = southWest.distance(to: northWest)
             
-            let halfWidth = screenWidthMeters / 2.0
-            let halfHeight = screenHeightMeters / 2.0
-            
-            let requiredH = ceil(halfWidth / gridWidth)
-            let requiredV = ceil(halfHeight / gridHeight)
-            
-            let hRadius = Int(requiredH) + 1
-            let vRadius = Int(requiredV) + 1
-            
-            self.hRadius = min(hRadius, 8)
-            self.vRadius = min(vRadius, 8)
+            return (width, height)
         }
         
-        mutating func appropriateGeohashPrecision(bounds: NMGLatLngBounds, density: Double = 3.0) {
-            let southWest = bounds.southWest
-            let southEast = NMGLatLng(lat: bounds.southWest.lat, lng: bounds.northEast.lng)
-            let screenWidthMeters = southWest.distance(to: southEast)
-            
-            let targetGridSize = screenWidthMeters / density
-            
+        /// 주어진 예산(Limit) 내에서 사용할 수 있는 가장 높은 Precision 반환
+        private func determineBestPrecision(screenWidth: Double, screenHeight: Double, maxRadiusLimit: Int) -> Geohash.Precision {
+            // 검사 순서: 가장 정밀한 것(P9) -> 가장 넓은 것(P1)
             let precisions: [Geohash.Precision] = [
-                .twentyFiveHundredKilometers,
-                .sixHundredThirtyKilometers,
-                .seventyEightKilometers,
-                .twentyKilometers,
-                .twentyFourHundredMeters,
-                .sixHundredTenMeters,
-                .seventySixMeters,
+                .twoHundredFourtyCentimeters,
                 .nineteenMeters,
-                .twoHundredFourtyCentimeters
+                .seventySixMeters,
+                .sixHundredTenMeters,
+                .twentyFourHundredMeters,
+                .twentyKilometers,
+                .seventyEightKilometers,
+                .sixHundredThirtyKilometers,
+                .twentyFiveHundredKilometers
             ]
             
+            let halfWidth = screenWidth / 2.0
+            let halfHeight = screenHeight / 2.0
+            
             for precision in precisions {
-                if precision.gridWidthInMeters <= targetGridSize {
-                    self.precision = precision
-                    return
+                let gridW = precision.gridWidthInMeters
+                let gridH = precision.gridHeightInMeters
+                
+                // 이 Precision일 때 필요한 칸 수 계산
+                let requiredH = Int(ceil(halfWidth / gridW))
+                let requiredV = Int(ceil(halfHeight / gridH))
+                
+                // 예산 범위 안에 들어오면 즉시 당첨 (가장 높은 정밀도부터 돌기 때문)
+                if requiredH <= maxRadiusLimit && requiredV <= maxRadiusLimit {
+                    return precision
                 }
             }
             
-            self.precision = .twoHundredFourtyCentimeters
+            // 예산으로 커버 불가능한 거대 영역(지구 전체 뷰 등)인 경우 최후의 수단
+            return .twentyFiveHundredKilometers
         }
         
-        mutating func updatePosts(from responsePosts: [MapPostDTO]) {
-            guard let bounds = self.visibleBoundes else { return }
+        /// 현재 설정된 Precision을 기준으로 hRadius, vRadius를 업데이트
+        private mutating func updateRequestRadius(screenWidth: Double, screenHeight: Double) {
+            let gridW = self.precision.gridWidthInMeters
+            let gridH = self.precision.gridHeightInMeters
+            
+            let halfWidth = screenWidth / 2.0
+            let halfHeight = screenHeight / 2.0
+            
+            let requiredH = Int(ceil(halfWidth / gridW))
+            let requiredV = Int(ceil(halfHeight / gridH))
+            
+            // 최소 1칸은 보장 (화면 모서리 잘림 방지)
+            self.hRadius = max(1, requiredH)
+            self.vRadius = max(1, requiredV)
+            
+            // 로그 확인용 (필요시 주석 해제)
+            // print("✅ 최적화: P\(self.precision.rawValue), h:\(self.hRadius), v:\(self.vRadius)")
+        }
+        
+        mutating func updatePosts(from newPosts: [MapPostDTO]) {
+            guard let bounds = self.visibleBounds else { return }
             
             let center = self.mapCameraCenterPosition
             let visibleRadius = center.distance(to: bounds.southWest)
             let threshold = visibleRadius * 2.0
             
-            removePostsOutsideRadius(center: center, threshold: threshold)
-            mergeNewPostsWithinRadius(responsePosts, center: center, threshold: threshold)
+            mergePosts(newPosts: newPosts, center: center, threshold: threshold)
+            cleanPosts()
         }
         
-        private mutating func mergeNewPostsWithinRadius(_ newPosts: [MapPostDTO], center: NMGLatLng, threshold: Double) {
-            let validPosts = newPosts
-                .map { MapPostState(dto: $0) }
-                .filter { center.distance(to: $0.nmLocation) <= threshold }
+        private mutating func cleanPosts() {
             
-            for var post in validPosts {
-                if let oldPost = self.posts[id: post.id],
-                   let oldImage = oldPost.image,
-                   oldPost.imageURL == post.imageURL {
-                    // URL이 변경되지 않았다면 기존 이미지 재사용
-                    post.image = oldImage
-                }
+            let limitMB: Double = 40
+            
+            var currentTotalSize = self.posts.reduce(0) { total, post in
+                return total + (post.image?.memorySizeInMB ?? 0)
+            }
+            
+            if currentTotalSize <= limitMB { return }
+            
+            performDistanceCleanup(limitMB: limitMB, currentTotalSize: &currentTotalSize)
+            performPrecisionCleanup(limitMB: limitMB, currentTotalSize: &currentTotalSize)
+        }
+        
+        private mutating func performPrecisionCleanup(
+            limitMB: Double,
+            currentTotalSize: inout Double,
+        ) {
+            guard currentTotalSize > limitMB else { return }
+            
+            var idsToRemove: [String] = []
+            
+            let currentPrecision = precision
+            
+            for post in self.posts {
+                if currentTotalSize <= limitMB { break }
                 
-                self.posts.updateOrAppend(post)
+                if post.fetchedPrecision != currentPrecision {
+                    currentTotalSize -= post.image?.memorySizeInMB ?? 0
+                    idsToRemove.append(post.id)
+                }
+            }
+            for id in idsToRemove {
+                self.posts.remove(id: id)
             }
         }
         
-        private mutating func removePostsOutsideRadius(center: NMGLatLng, threshold: Double) {
-            self.posts.removeAll { post in
-                return center.distance(to: post.nmLocation) > threshold
+        private mutating func performDistanceCleanup(
+            limitMB: Double,
+            currentTotalSize: inout Double,
+        ) {
+            guard let bounds = visibleBounds else { return }
+            
+            var idsToRemove: [String] = []
+            
+            let center = self.mapCameraCenterPosition
+            let visibleRadius = center.distance(to: bounds.southWest)
+            let threshold = visibleRadius * 2.0 // 화면 반경의 2배
+            
+            for post in self.posts {
+                if currentTotalSize <= limitMB { break }
+                
+                if center.distance(to: post.nmLocation) > threshold {
+                    currentTotalSize -= post.image?.memorySizeInMB ?? 0
+                    idsToRemove.append(post.id)
+                }
+            }
+            
+            for id in idsToRemove {
+                posts.remove(id: id)
+            }
+        }
+        
+        private mutating func mergePosts(newPosts: [MapPostDTO], center: NMGLatLng, threshold: Double) {
+            let currentPrecision = self.precision
+            
+            for dto in newPosts {
+                let dtoLocation = NMGLatLng(lat: dto.location.latitude, lng: dto.location.longitude)
+                if center.distance(to: dtoLocation) > threshold { continue }
+                
+                if var existingPost = self.posts[id: dto.id] {
+                    let oldImage = existingPost.image
+                    let oldImageURL = existingPost.imageURL
+                    
+                    existingPost = MapPostState(dto: dto, fetchedPrecision: currentPrecision)
+                    
+                    if oldImageURL == dto.imageUrl {
+                        existingPost.image = oldImage
+                    }
+                    
+                    self.posts.updateOrAppend(existingPost)
+                    
+                } else {
+                    let newPost = MapPostState(dto: dto, fetchedPrecision: currentPrecision)
+                    self.posts.append(newPost)
+                }
             }
         }
     }
@@ -137,6 +236,7 @@ struct MapFeature {
     
     enum EffectID {
         case fetchPosts
+        case cancelImageLoad
     }
     
     enum Action: ViewAction {
@@ -183,10 +283,9 @@ struct MapFeature {
                 return .none
                 
             case let .view(.cameraDidMove(cameraPosition, bounds)):
-                state.appropriateGeohashPrecision(bounds: bounds)
-                state.calculateRequestRadius(bounds: bounds)
                 state.mapCameraCenterPosition = cameraPosition
-                state.visibleBoundes = bounds
+                state.visibleBounds = bounds
+                state.optimizeGeohashState(bounds: bounds)
                 
                 return .send(.fetchPosts)
                 
@@ -221,8 +320,8 @@ struct MapFeature {
                 
             case .alert(.presented(.openLocationSettings)):
                 if let url = URL(string: UIApplication.openSettingsURLString) {
-                     UIApplication.shared.open(url)
-                 }
+                    UIApplication.shared.open(url)
+                }
                 return .none
                 
             case .alert:
@@ -234,19 +333,28 @@ struct MapFeature {
                 let postsNeedingImage = state.postsNeedingImages
                 
                 return .run { send in
-                    for post in postsNeedingImage {
-                        do {
-                            let imageSize = CGSize(width: 80, height: 80)
-                            let image = try await imageClient.loadImage(url: post.imageURL, size: imageSize)
-                            let markerView = ImageMarkerView(image: Image(uiImage: image), title: post.title)
-                            let markerImage = await viewImageGenerator.generate(markerView) ?? UIImage(resource: .placeholder)
-                            await send(.setImage(postID: post.id, image: markerImage))
-                        } catch {
-                            Logger.error("이미지 로드 실패")
-                            // 실패 무시 or 처리
+                    await withTaskGroup(of: Void.self) { group in
+                        for post in postsNeedingImage {
+                            group.addTask {
+                                do {
+                                    let imageSize = CGSize(width: 80, height: 80)
+                                    let image = try await imageClient.loadImage(url: post.imageURL, size: imageSize)
+                                    
+                                    let markerImage: UIImage? = await MainActor.run {
+                                        let markerView = ImageMarkerView(image: Image(uiImage: image), title: post.title)
+                                        return viewImageGenerator.generate(markerView)
+                                    }
+                                    
+                                    guard let finalImage = markerImage else { return }
+                                    await send(.setImage(postID: post.id, image: finalImage))
+                                } catch {
+                                    Logger.error("이미지 로드 실패")
+                                }
+                            }
                         }
                     }
                 }
+                .cancellable(id: EffectID.cancelImageLoad, cancelInFlight: true)
                 
             case let .setImage(postID, image):
                 state.posts[id: postID]?.image = image
@@ -257,7 +365,7 @@ struct MapFeature {
                     TextState("주위 정보를 가져오지 못했어요")
                 } actions: {
                     ButtonState(role: .cancel) {
-                      TextState("확인")
+                        TextState("확인")
                     }
                 }
                 return .none
@@ -307,11 +415,6 @@ struct MapFeature {
         .ifLet(\.$alert, action: \.alert)
         .ifLet(\.$uploadPost, action: \.uploadPost) { UploadPostNavigationStack() }
         .ifLet(\.$camera, action: \.camera) { CameraFeature() }
-        .onChange(of: \.precision) { oldValue, newValue in
-            Reduce { _, _ in
-                return .send(.fetchPosts)
-            }
-        }
     }
 }
 
