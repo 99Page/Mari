@@ -21,7 +21,7 @@ struct TabTests {
                 MyPost(id: "id2", title: "title2")
             ]
             
-            let mapPosts: IdentifiedArrayOf<PostSummaryState> = [
+            let mapPosts: IdentifiedArrayOf<MapPostState> = [
                 .init(id: "id1", imageURL: "url", title: "title1", coordinate: .init(), creatorID: "creator"),
                 .init(id: "id2", imageURL: "url", title: "title2", coordinate: .init(), creatorID: "creator"),
             ]
@@ -47,8 +47,8 @@ struct TabTests {
         }
 
         @Test func removesPostFromMap_whenDeletedFromPostDetailsInAccountStack() async throws {
-            let deleteTarget = PostSummaryState(id: "post1", imageURL: "", title: "", coordinate: .init(), creatorID: "creator")
-            let posts: IdentifiedArrayOf<PostSummaryState> = [
+            let deleteTarget = MapPostState(id: "post1", imageURL: "", title: "", coordinate: .init(), creatorID: "creator")
+            let posts: IdentifiedArrayOf<MapPostState> = [
                 deleteTarget,
                 .init(id: "post2", imageURL: "", title: "", coordinate: .init(), creatorID: "creator"),
             ]

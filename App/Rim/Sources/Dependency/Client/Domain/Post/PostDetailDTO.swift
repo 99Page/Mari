@@ -30,6 +30,7 @@ struct MapPostDTO: Decodable, Stub {
     let imageUrl: String
     let creatorID: String
     let location: CoordinateDTO
+    let createdAt: TimestampDTO
     
     static func stub() -> Self {
         MapPostDTO(
@@ -37,7 +38,8 @@ struct MapPostDTO: Decodable, Stub {
             title: "title",
             imageUrl: "https://picsum.photos/200/300",
             creatorID: "creatorID",
-            location: .init(latitude: 0, longitude: 0)
+            location: .init(latitude: 0, longitude: 0),
+            createdAt: .init(seconds: 0, nanoseconds: 0)
         )
     }
 }
