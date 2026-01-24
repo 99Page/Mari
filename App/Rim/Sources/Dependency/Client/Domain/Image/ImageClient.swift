@@ -19,8 +19,18 @@ struct ImageClient {
 }
 
 extension ImageClient: DependencyKey {
+    
     static var liveValue: ImageClient {
-        ImageClient { param in
+        let memoryLoader = MemoryCacheImageLoader()
+        let diskLoader = DiskCacheImageLoader()
+        let networkLoader = NetworkImageLoader()
+        
+        memoryLoader.next = diskLoader
+        diskLoader.next = networkLoader
+        
+        let imageFinder = ResizeImageFinder()
+        
+        return ImageClient { param in
             // 지정된 fileName 경로에 이미지를 Firebase Storage에 저장합니다.
             let imageData: Data?
             
@@ -49,14 +59,6 @@ extension ImageClient: DependencyKey {
             
             return ImageResponse(imageURL: url.absoluteString)
         } loadImage: { request in
-            let memoryLoader = MemoryCacheImageLoader()
-            let diskLoader = DiskCacheImageLoader()
-            let networkLoader = NetworkImageLoader()
-            
-            memoryLoader.next = diskLoader
-            diskLoader.next = networkLoader
-            
-            let imageFinder = ResizeImageFinder()
             let imageUrl = await imageFinder.findResizedURL(request: request)
             let image = try await memoryLoader.loadImage(fromKey: imageUrl)
             return image
