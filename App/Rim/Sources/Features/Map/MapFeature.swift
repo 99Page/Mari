@@ -251,6 +251,7 @@ struct MapFeature {
         case dismissProgress
         case setImage(postID: String, image: UIImage)
         case showFailedToGetPhotoLocationAlert
+        case setLoadingIndicator(Bool)
         
         enum View: BindableAction {
             case cameraButtonTapped
@@ -290,6 +291,10 @@ struct MapFeature {
                 return .send(.fetchPosts)
                 
             case .view(.binding):
+                return .none
+                
+            case let .setLoadingIndicator(value):
+                state.isProgressPresented = value
                 return .none
                 
             case let .camera(.presented(.photoPreview(.presented(.delegate(.usePhoto(image)))))):
@@ -339,7 +344,7 @@ struct MapFeature {
                                 do {
                                     let imageSize = CGSize(width: 80, height: 80)
                                     let image = try await imageClient.loadImage(url: post.imageURL, size: imageSize)
-                                    
+                                        
                                     let markerImage: UIImage? = await MainActor.run {
                                         let markerView = ImageMarkerView(image: Image(uiImage: image), title: post.title)
                                         return viewImageGenerator.generate(markerView)
@@ -375,24 +380,28 @@ struct MapFeature {
                 return .none
                 
             case .fetchPosts:
-                state.isProgressPresented = true
                 
-                let request = PostRequest.GetMapPost(
-                    type: state.selectedFilter.rawValue,
-                    latitude: state.mapCameraCenterPosition.lat,
-                    longitude: state.mapCameraCenterPosition.lng,
-                    precision: state.precision.rawValue,
-                    hRadius: state.hRadius,
-                    vRadius: state.vRadius
-                )
-                
-                return .run { send in
+                return .run { [state] send in
+                    await send(.setLoadingIndicator(true))
+                    
+                    let request = PostRequest.GetMapPost(
+                        type: state.selectedFilter.rawValue,
+                        latitude: state.mapCameraCenterPosition.lat,
+                        longitude: state.mapCameraCenterPosition.lng,
+                        precision: state.precision.rawValue,
+                        hRadius: state.hRadius,
+                        vRadius: state.vRadius
+                    )
+                    
                     let response = try await postClient.fetchMapPosts(request: request).result
+                    
                     await send(.setPosts(response))
                     await send(.dismissProgress)
+                    await send(.setLoadingIndicator(false))
                 } catch: { error, send in
                     await send(.showFetchFailAlert)
                     await send(.dismissProgress)
+                    await send(.setLoadingIndicator(false))
                 }
                     .debounce(id: EffectID.fetchPosts, for: .seconds(1), scheduler: RunLoop.main)
                 

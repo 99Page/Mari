@@ -43,8 +43,6 @@ class Client {
             request.httpBody = try JSONEncoder().encode(body)
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
-        
-        Logger.debug("\(url)")
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
