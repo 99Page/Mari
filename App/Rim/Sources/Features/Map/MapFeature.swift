@@ -342,7 +342,7 @@ struct MapFeature {
                         for post in postsNeedingImage {
                             group.addTask {
                                 do {
-                                    let request = ImageClient.Request.Load(originUrl: post.imageURL, width: 240, height: 240)
+                                    let request = ImageClient.Request.Load(originalUrl: post.imageURL, size: .small)
                                     let image = try await imageClient.loadImage(request: request)
                                         
                                     let markerImage: UIImage? = await MainActor.run {

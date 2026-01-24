@@ -16,19 +16,19 @@ struct ResizeImageFinder {
     /// - Returns: 썸네일 URL 문자열 (없으면 원본 문자열)
     func findResizedURL(request: ImageClient.Request.Load) async -> String {
         
-        guard let width = request.width, let height = request.height else {
-            return request.originUrl
+        guard let width = request.size.width, let height = request.size.height else {
+            return request.originalUrl
         }
         
         let storage = Storage.storage()
         
-        let originalRef = storage.reference(forURL: request.originUrl)
+        let originalRef = storage.reference(forURL: request.originalUrl)
         
         let originalName = originalRef.name
         let components = originalName.split(separator: ".")
         
         guard components.count > 1, let fileExtension = components.last else {
-            return request.originUrl
+            return request.originalUrl
         }
         
         let fileNameWithoutExtension = components.dropLast().joined(separator: ".")
@@ -47,7 +47,7 @@ struct ResizeImageFinder {
             let url = try await resizedRef.downloadURL()
             return url.absoluteString
         } catch {
-            return request.originUrl
+            return request.originalUrl
         }
     }
 }

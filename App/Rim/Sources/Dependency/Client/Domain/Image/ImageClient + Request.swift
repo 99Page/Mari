@@ -10,12 +10,13 @@ import UIKit
 
 extension ImageClient {
     enum Request {
+        
+        // MARK: - Upload Request
         struct Upload {
             let image: UIImage
             let path: String
             let fileName: String
             let format: ImageUploadFormat
-            
             
             enum ImageUploadFormat {
                 case jpeg(quality: CGFloat)
@@ -37,10 +38,32 @@ extension ImageClient {
             }
         }
         
+        // MARK: - Load Request
         struct Load {
-            let originUrl: String
-            let width: Int?
-            let height: Int?
+            let originalUrl: String
+            let size: ImageSize // 👈 Int? 대신 Enum 사용
+        }
+        
+        enum ImageSize {
+            case original
+            case small
+            case large
+            
+            var width: Int? {
+                switch self {
+                case .original: nil
+                case .small: 240
+                case .large: 1080
+                }
+            }
+            
+            var height: Int? {
+                switch self {
+                case .original: nil
+                case .small: 240
+                case .large: 1080
+                }
+            }
         }
     }
 }

@@ -58,7 +58,7 @@ extension ImageClient: DependencyKey {
             
             let imageFinder = ResizeImageFinder()
             let imageUrl = await imageFinder.findResizedURL(request: request)
-            let image = try await memoryLoader.loadImage(fromKey: request.originUrl)
+            let image = try await memoryLoader.loadImage(fromKey: request.originalUrl)
             return image
         }
     }
