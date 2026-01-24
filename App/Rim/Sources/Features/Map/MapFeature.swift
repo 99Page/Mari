@@ -342,8 +342,8 @@ struct MapFeature {
                         for post in postsNeedingImage {
                             group.addTask {
                                 do {
-                                    let imageSize = CGSize(width: 80, height: 80)
-                                    let image = try await imageClient.loadImage(url: post.imageURL, size: imageSize)
+                                    let request = ImageClient.Request.Load(originUrl: post.imageURL, width: 240, height: 240)
+                                    let image = try await imageClient.loadImage(request: request)
                                         
                                     let markerImage: UIImage? = await MainActor.run {
                                         let markerView = ImageMarkerView(image: Image(uiImage: image), title: post.title)
