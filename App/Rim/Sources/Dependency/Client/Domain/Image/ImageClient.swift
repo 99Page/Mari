@@ -14,39 +14,23 @@ import Core
 
 @DependencyClient
 struct ImageClient {
-    var uploadImage: (_ param: UploadImageParameter) async throws -> ImageResponse
-    var loadImage: (_ url: String, _ size: CGSize) async throws -> UIImage
-    
-    struct UploadImageParameter {
-        let image: UIImage
-        let path: String
-        let fileName: String
-        let format: ImageUploadFormat
-    }
-    
-    enum ImageUploadFormat {
-        case jpeg(quality: CGFloat)
-        case png
-        
-        var contentType: String {
-            switch self {
-            case .jpeg: return "image/jpeg"
-            case .png: return "image/png"
-            }
-        }
-        
-        var fileExtension: String {
-            switch self {
-            case .jpeg: return "jpg"
-            case .png: return "png"
-            }
-        }
-    }
+    var uploadImage: (_ request: Request.Upload) async throws -> ImageResponse
+    var loadImage: (_ request: Request.Load) async throws -> UIImage
 }
 
 extension ImageClient: DependencyKey {
+    
     static var liveValue: ImageClient {
-        ImageClient { param in
+        let memoryLoader = MemoryCacheImageLoader()
+        let diskLoader = DiskCacheImageLoader()
+        let networkLoader = NetworkImageLoader()
+        
+        memoryLoader.next = diskLoader
+        diskLoader.next = networkLoader
+        
+        let imageFinder = ResizeImageFinder()
+        
+        return ImageClient { param in
             // 지정된 fileName 경로에 이미지를 Firebase Storage에 저장합니다.
             let imageData: Data?
             
@@ -74,27 +58,17 @@ extension ImageClient: DependencyKey {
             let url = try await imageReference.downloadURL()
             
             return ImageResponse(imageURL: url.absoluteString)
-        } loadImage: { url, size in
-            let memoryLoader = MemoryCacheImageLoader()
-            let diskLoader = DiskCacheImageLoader()
-            let networkLoader = NetworkImageLoader()
-            
-            memoryLoader.next = diskLoader
-            diskLoader.next = networkLoader
-            
-            let image = try await memoryLoader.loadImage(fromKey: url)
-            let renderer = UIGraphicsImageRenderer(size: size)
-            
-            return renderer.image { _ in
-                image.draw(in: CGRect(origin: .zero, size: size))
-            }
+        } loadImage: { request in
+            let imageUrl = await imageFinder.findResizedURL(request: request)
+            let image = try await memoryLoader.loadImage(fromKey: imageUrl)
+            return image
         }
     }
     
     static var previewValue: ImageClient {
         ImageClient { _ in
             return .init(imageURL: "https://picsum.photos/200/300")
-        } loadImage: { _, _ in
+        } loadImage: { _ in
             return UIImage(resource: .rimLogo)
         }
 

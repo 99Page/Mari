@@ -186,13 +186,13 @@ struct UploadPostFeature {
                 state.uploadTryCount += 1
                 
                 return .run { send in
-                    let param = ImageClient.UploadImageParameter(
+                    let request = ImageClient.Request.Upload(
                         image: uiImage,
                         path: "photo",
                         fileName: uuid().uuidString,
                         format: .png
                     )
-                    let response = try await imageClient.uploadImage(param: param)
+                    let response = try await imageClient.uploadImage(request: request)
                     await send(.setImageURL(url: response.imageURL))
                     await send(.checkPendingPostUpload)
                 } catch: { error, send in
