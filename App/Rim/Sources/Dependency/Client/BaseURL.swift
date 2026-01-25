@@ -7,6 +7,16 @@
 
 import Foundation
 
+let v2URL: String = {
+    guard let urlString = Bundle.main.infoDictionary?["BASE_URL"] as? String else {
+        assertionFailure("BASE_URL not set in Info.plist")
+        return ""
+    }
+    
+    return "\(urlString)/api/v2"
+}()
+
+
 let functionsURL: String = {
     guard let urlString = Bundle.main.infoDictionary?["BASE_URL"] as? String else {
         assertionFailure("BASE_URL not set in Info.plist")

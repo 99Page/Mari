@@ -13,6 +13,8 @@ let infoPlist: [String: Plist.Value] = [
     "UISupportedInterfaceOrientations": ["UIInterfaceOrientationPortrait"], // 세로 모드만 허용
     "UIUserInterfaceStyle": "Light", // 다크모드 끄기
     "BASE_URL": "$(BASE_URL)",
+    "CFBundleShortVersionString": "$(MARKETING_VERSION)",
+    "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
     
     "UIApplicationSceneManifest": [
         "UIApplicationSupportsMultipleScenes": true,
@@ -53,10 +55,12 @@ let target = Target.target(
     resources: ["../Core/Resources/**"],
     entitlements: "SupportingFiles/Rim.entitlements",
     dependencies: [
+        .package(product: "RimMacro"),
         .package(product: "GoogleSignIn"),
         .package(product: "FirebaseAnalytics"),
         .package(product: "FirebaseAuth"),
         .package(product: "NMapsMap"),
+        .package(product: "FirebaseRemoteConfig"),
         .package(product: "FirebaseStorage"),
         .package(product: "FirebaseCore"),
         .package(product: "FirebaseFirestore"),
@@ -106,8 +110,8 @@ let project = Project(
         .remote(url: "https://github.com/navermaps/SPM-NMapsMap", requirement: .exact("3.21.0")),
         .remote(url: "https://github.com/firebase/firebase-ios-sdk", requirement: .exact("11.13.0")),
         .remote(url: "https://github.com/google/GoogleSignIn-iOS", requirement: .exact("8.0.0")),
-        .remote(url: "https://github.com/nh7a/Geohash.git", requirement: .exact("1.0.0"))
-        
+        .remote(url: "https://github.com/nh7a/Geohash.git", requirement: .exact("1.0.0")),
+        .local(path: "../RimMacro")
     ],
     targets: [
         target,
@@ -120,7 +124,13 @@ let project = Project(
             infoPlist: .default,
             sources: ["Rim/Tests/**"],
             resources: [],
-            dependencies: [.target(name: "Rim")]
+            dependencies: [.target(name: "Rim")],
+            settings: .settings(
+                base: [
+                    "DEVELOPMENT_TEAM": "MAU8HFALP8", // 개인 개발 계정 ✅ 공개 상관 없는 값
+                    "ENABLE_SWIFT_MACROS": "YES"
+                ]
+            )
         ),
     ]
 )

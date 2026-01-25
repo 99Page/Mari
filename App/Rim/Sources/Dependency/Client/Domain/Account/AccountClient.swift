@@ -13,6 +13,7 @@ import FirebaseAuth
 import FirebaseCore
 import GoogleSignIn
 import Core
+import ComposableArchitecture
 
 @DependencyClient
 struct AccountClient {
@@ -22,6 +23,17 @@ struct AccountClient {
     var signInFirebase: (_ credential: AuthCredential) async throws -> SignInResult
     var refreshIdToken: () async throws -> Void
     var withdraw: () async throws -> APIResponse<EmptyResult>
+    
+    // 로그아웃이 필요한 상황에서 호출. 예시) uid 가 없음
+    var triggerLogout:  @Sendable () -> Void
+    
+    // 이벤트 구독 스트림
+    var delegate: @Sendable () -> AsyncStream<Delegate> = { .finished }
+    
+    @CasePathable
+    enum Delegate {
+        case logoutRequired
+    }
     
     enum AccountAPI: APITarget {
         case withdraw
@@ -63,6 +75,8 @@ struct AccountClient {
 
 extension AccountClient: DependencyKey {
     static var liveValue: AccountClient {
+        let (stream, continuation) = AsyncStream.makeStream(of: Delegate.self)
+        
         let signIn: (_ credential: AuthCredential) async throws -> SignInResult = { credential in
             let authData: AuthDataResult? = try await withCheckedThrowingContinuation { continuation in
                 Auth.auth().signIn(with: credential) { result, error in
@@ -102,12 +116,25 @@ extension AccountClient: DependencyKey {
             let idToken = try await Auth.auth().currentUser?.getIDToken(forcingRefresh: true)
             @Dependency(\.keychain) var keychain
             guard let idToken else { throw ClientError.emptyToken }
-            Logger.info("idToken: \(idToken)", category: .auth)
+            Logger.info("id token: \(idToken)")
             try keychain.save(value: idToken, service: .firebase, account: .idToken)
         } withdraw: {
             try await Client.request(target: AccountAPI.withdraw)
-        }
+        } triggerLogout: {
+            continuation.yield(.logoutRequired)
+        } delegate: { stream }
     }
+    
+    static let testValue = Self(
+        signInUsingApple: unimplemented("\(Self.self).signInUsingApple"),
+        logout: unimplemented("\(Self.self).logout"),
+        isLoggedIn: unimplemented("\(Self.self).isLoggedIn", placeholder: false),
+        signInFirebase: unimplemented("\(Self.self).signInFirebase"),
+        refreshIdToken: unimplemented("\(Self.self).refreshIdToken"),
+        withdraw: unimplemented("\(Self.self).withdraw"),
+        triggerLogout: unimplemented("\(Self.self).triggerLogout"),
+        delegate: unimplemented("\(Self.self).delegate", placeholder: .finished)
+    )
 }
 
 extension DependencyValues {

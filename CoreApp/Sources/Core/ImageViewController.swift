@@ -24,10 +24,6 @@ class ImageViewController: UIViewController {
         self.url = url
         
         super.init(nibName: nil, bundle: nil)
-        
-        for index in self.url.indices {
-            imageViews.append(RimImageView(imageURL: $url[index]))
-        }
     }
     
     required init?(coder: NSCoder) {
@@ -38,7 +34,6 @@ class ImageViewController: UIViewController {
         super.viewDidLoad()
         makeConstraints()
         setupView()
-        configure()
     }
     
     private func setupView() {
@@ -52,12 +47,6 @@ class ImageViewController: UIViewController {
         button.addAction(UIAction(handler: { _ in
             self.url[1] = "https://picsum.photos/200/300"
         }), for: .touchUpInside)
-    }
-    
-    func configure() {
-        for imageView in imageViews {
-            imageView.configure()
-        }
     }
     
     func makeConstraints() {

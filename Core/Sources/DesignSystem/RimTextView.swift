@@ -10,6 +10,7 @@ import Foundation
 import UIKit
 import SwiftNavigation
 import SnapKit
+import RimMacro
 
 public class RimTextView: UIView {
     @UIBinding var state: State

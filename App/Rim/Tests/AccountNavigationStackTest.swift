@@ -13,11 +13,10 @@ import ComposableArchitecture
 struct AccountNavigationStackTest {
 
     @Test func removesPostFromMyPosts_whenDeletedFromDetailView() async throws {
-        let myPosts = MyPostFeature.State(posts: [
-            .init(id: "post1", imageURL: "", title: "", coordinate: .init()),
-            .init(id: "post2", imageURL: "", title: "", coordinate: .init()),
-        ]
-        )
+        let myPosts = MyPostFeature.State(myPosts: [
+            .init(id: "post1", title: "title1"),
+            .init(id: "post2", title: "title2")
+        ])
         
         let detail = PostDetailFeature.State(postID: "post1")
         let path: StackState<AccountNavigationStack.Path.State> = .init([.myPosts(myPosts), .postDetail(detail)])
@@ -38,8 +37,8 @@ struct AccountNavigationStackTest {
         await store.receive(\.path[id: 1].postDetail.delegate.removePostFromMyPosts)
         await store.receive(\.path[id: 0].myPosts.removePostFromList)
         
-        #expect(store.state.path[id: 0]?.myPosts?.posts[id: "post1"] == nil)
-        #expect(store.state.path[id: 0]?.myPosts?.posts[id: "post2"] != nil)
+        #expect(store.state.path[id: 0]?.myPosts?.myPosts[id: "post1"] == nil)
+        #expect(store.state.path[id: 0]?.myPosts?.myPosts[id: "post2"] != nil)
     }
 
 }

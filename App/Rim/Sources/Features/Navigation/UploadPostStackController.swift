@@ -8,6 +8,7 @@
 import Foundation
 import ComposableArchitecture
 import UIKit
+import SwiftUI
 import NMapsMap
 
 @Reducer
@@ -56,11 +57,19 @@ extension UploadPostNavigationStack.Path.State: Equatable {
 class UploadPostStackController: NavigationStackController {
     private var store: StoreOf<UploadPostNavigationStack>!
     
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        return .portrait
+    }
+    
+    override var preferredInterfaceOrientationForPresentation: UIInterfaceOrientation {
+        return .portrait
+    }
+    
     convenience init(store: StoreOf<UploadPostNavigationStack>!) {
         @UIBindable var store = store
         
         self.init(path: $store.scope(state: \.path, action: \.path)) {
-            UploadPostViewController(store: store.scope(state: \.root, action: \.root))
+            UIHostingController(rootView: UploadPostView(store: store.scope(state: \.root, action: \.root)))
         } destination: { store in
             switch store.case {
             

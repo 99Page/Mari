@@ -17,9 +17,8 @@ import Core
 struct CameraFeature {
     @ObservableState
     struct State: Equatable {
-        var cancelButton = RimLabel.State(text: "취소", textColor: UIColor(.white), typography: .primaryAction)
-        var flipCameraButton = RimImageView.State(image: .symbol(name: "arrow.trianglehead.2.clockwise.rotate.90", fgColor: .white))
-        var flashButton = RimImageView.State(image: .symbol(name: "bolt.slash.fill", fgColor: .white))
+        var flipCameraButton = RimImageView.ImageType.symbol(name: "arrow.trianglehead.2.clockwise.rotate.90", fgColor: .white)
+        var flashButton = RimImageView.ImageType.symbol(name: "bolt.slash.fill", fgColor: .white)
         
         // 플래시가 없는 디바이스도 있으니 기본 값은 off
         var flashMode = Flash.off
@@ -91,7 +90,7 @@ struct CameraFeature {
                 let hasDeviceFlash = device?.hasFlash ?? false
                 
                 state.flashMode = hasDeviceFlash ? state.flashMode.next : .off
-                state.flashButton = .init(image: .symbol(name: state.flashMode.symbol, fgColor: .white))
+                state.flashButton = .symbol(name: state.flashMode.symbol, fgColor: .white)
                 return .none
                 
             case .view(.photoCaptured):
@@ -136,9 +135,9 @@ final class CameraViewController: UIViewController {
     init(store: StoreOf<CameraFeature>) {
         @UIBindable var binding = store
         self.store = store
-        self.cancelButton = RimLabel(state: $binding.cancelButton)
-        self.flipCameraButton = RimImageView(state: $binding.flipCameraButton)
-        self.flashButton = RimImageView(state: $binding.flashButton)
+        self.cancelButton = RimLabel()
+        self.flipCameraButton = RimImageView()
+        self.flashButton = RimImageView()
         super.init(nibName: nil, bundle: nil)
         self.modalPresentationStyle = .fullScreen
     }
@@ -156,10 +155,24 @@ final class CameraViewController: UIViewController {
         setupView()
         setupEvents()
         makeConstraint()
+        updateView()
 
         present(item: $store.scope(state: \.photoPreview, action: \.photoPreview)) { store in
             PhotoPreviewController(store: store)
         }
+    }
+    
+    private func updateView() {
+        cancelButton.text = .constant("취소")
+        cancelButton.textColor = .constant(.white)
+        cancelButton.typography = .constant(.primaryAction)
+        cancelButton.updateView()
+        
+        flipCameraButton.image = $store.flipCameraButton
+        flipCameraButton.updateView()
+        
+        flashButton.image = $store.flashButton
+        flashButton.updateView()
     }
     
     private func setupView() {
@@ -270,9 +283,10 @@ final class CameraViewController: UIViewController {
         
         captureSession.commitConfiguration()
         
-        Task { @MainActor in
+        Task(priority: .background) {
             captureSession.startRunning()
         }
+
     }
     
     @objc private func capturePhoto() {

@@ -14,43 +14,61 @@ import Core
 
 @DependencyClient
 struct ImageClient {
-    var uploadImage : (_ image: UIImage, _ fileName: String) async throws -> ImageResponse
-    var loadImage: (_ url: String, _ size: CGSize) async throws -> UIImage
+    var uploadImage: (_ request: Request.Upload) async throws -> ImageResponse
+    var loadImage: (_ request: Request.Load) async throws -> UIImage
 }
 
 extension ImageClient: DependencyKey {
+    
     static var liveValue: ImageClient {
-        ImageClient { image, fileName in
+        let memoryLoader = MemoryCacheImageLoader()
+        let diskLoader = DiskCacheImageLoader()
+        let networkLoader = NetworkImageLoader()
+        
+        memoryLoader.next = diskLoader
+        diskLoader.next = networkLoader
+        
+        let imageFinder = ResizeImageFinder()
+        
+        return ImageClient { param in
             // 지정된 fileName 경로에 이미지를 Firebase Storage에 저장합니다.
-            guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+            let imageData: Data?
+            
+            switch param.format {
+            case .jpeg(let quality):
+                imageData = param.image.jpegData(compressionQuality: quality)
+            case .png:
+                imageData = param.image.pngData()
+            }
+            
+            guard let data = imageData else {
                 throw ClientError.unwrappingFailed
             }
             
             let storageReference = Storage.storage().reference()
-            let imageName = fileName + ".jpg"
-            let imageReference = storageReference.child("images/\(imageName)")
+            
+            // 경로와 확장자 조합 (예: "markers/myMarker.png")
+            let fullFileName = "\(param.fileName).\(param.format.fileExtension)"
+            let imageReference = storageReference.child("\(param.path)/\(fullFileName)")
             
             let metadata = StorageMetadata()
-            metadata.contentType = "image/jpeg"
+            metadata.contentType = param.format.contentType
             
-            let _ = try await imageReference.putDataAsync(imageData)
+            let _ = try await imageReference.putDataAsync(data, metadata: metadata)
             let url = try await imageReference.downloadURL()
             
             return ImageResponse(imageURL: url.absoluteString)
-        } loadImage: { url, size in
-            let image = try await NetworkImageLoader().loadImage(fromKey: url)
-            let renderer = UIGraphicsImageRenderer(size: size)
-            
-            return renderer.image { _ in
-                image.draw(in: CGRect(origin: .zero, size: size))
-            }
+        } loadImage: { request in
+            let imageUrl = await imageFinder.findResizedURL(request: request)
+            let image = try await memoryLoader.loadImage(fromKey: imageUrl)
+            return image
         }
     }
     
     static var previewValue: ImageClient {
-        ImageClient { _, _ in
+        ImageClient { _ in
             return .init(imageURL: "https://picsum.photos/200/300")
-        } loadImage: { _, _ in
+        } loadImage: { _ in
             return UIImage(resource: .rimLogo)
         }
 

@@ -36,6 +36,8 @@ struct RootFeatureTests {
         @Test func singOut_afterMissingUID() async throws {
             @Shared(.uid) var uid = nil
             
+            let (stream, continuation) = AsyncStream.makeStream(of: AccountClient.Delegate.self)
+            
             let mapStack = MapNavigationStack.State(root: .init(uploadPost: .init(pickedImage: UIImage(), photoLocation: NMGLatLng(lat: 0, lng: 0))))
             let tab = TabFeature.State(mapStack: mapStack)
             let store: TestStoreOf<RootFeature> = TestStore(initialState: RootFeature.State(destination: .tab(tab))) {
@@ -43,6 +45,12 @@ struct RootFeatureTests {
             } withDependencies: {
                 $0.accountClient.logout = { } // 로그아웃 성공
                 $0.continuousClock = ImmediateClock()
+                $0.accountClient.triggerLogout = {
+                    continuation.yield(.logoutRequired)
+                    continuation.finish()
+                }
+                
+                $0.accountClient.delegate = { stream }
                 $0.uuid = .incrementing
             }
             
@@ -50,10 +58,11 @@ struct RootFeatureTests {
             
             #expect(store.state.$uid.wrappedValue == nil) // id 저장 사전 검사
             
-            await store.send(.view(.viewDidLoad)) // 구독 시작
-            await store.send(.destination(.tab(.mapStack(.root(.uploadPost(.presented(.root(.view(.viewDidLoad)))))))))
+            await store.send(.view(.viewDidLoad))
+            
+            await store.send(.destination(.tab(.mapStack(.root(.uploadPost(.presented(.root(.view(.onAppear)))))))))
             await store.receive(\.destination.tab.mapStack.root.uploadPost.presented.root.checkUID)
-            await store.receive(\.handleError)
+            await store.receive(\.accountDelegate.logoutRequired)
             await store.send(.alert(.presented(.signOut)))
             
             await store.receive(\.signOut) {

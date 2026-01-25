@@ -12,15 +12,37 @@ import SnapKit
 import SwiftUI
 import SwiftNavigation
 
-public class RimLabel: RimView {
+public class RimLabel: RimView, ConstraintDescribable {
+    
     @UIBinding var labelState: State
     
+    
+    public var text: UIBinding<String> = .constant("")
+    public var textColor: UIBinding<UIColor> = .constant(.black)
+    public var alignment: UIBinding<NSTextAlignment> = .constant(.center)
+    public var typography: UIBinding<Typography> = .constant(.contentDescription)
+    public var isEnabled: UIBinding<Bool> = .constant(true)
+    public var numberOfLines: UIBinding<Int> = .constant(0)
+    
     let label = UILabel(frame: .zero)
-    
     public var respondsToKeyboard: Bool = false
-    
     private var height: CGFloat = 0
     private var keyboardAvoidClosure: ((_ make: ConstraintMaker) -> Void)?
+    
+    public var observeToken: ObserveToken?
+    
+    public init() {
+        self.labelState = .init()
+        super.init(state: .constant(.init()))
+        makeConstraint()
+        updateView()
+        setupKeyboardObserver()
+    }
+    
+    public init(_ name: String, configure: ((RimLabel) -> Void)? = nil) {
+        self.labelState = .init()
+        super.init(state: .constant(.init()))
+    }
     
     public init(state: UIBinding<State>) {
         self._labelState = state
@@ -48,19 +70,18 @@ public class RimLabel: RimView {
         addSubview(label)
         
         label.snp.makeConstraints { make in
-            make.top.equalToSuperview()
-            make.bottom.equalToSuperview()
-            make.leading.equalToSuperview()
-            make.trailing.equalToSuperview()
+            make.edges.equalToSuperview()
         }
     }
     
-    private func updateView() {
-        observe { [weak self] in
+    public func updateView() {
+        observeToken?.cancel()
+        
+        observeToken = observe { [weak self] in
             guard let self else { return }
             updateAttributedString()
-            isUserInteractionEnabled = labelState.isEnabled
-            label.numberOfLines = labelState.numberOfLines
+            isUserInteractionEnabled = isEnabled.wrappedValue
+            label.numberOfLines = numberOfLines.wrappedValue
         }
     }
     
@@ -104,48 +125,29 @@ public class RimLabel: RimView {
     
     private func updateAttributedString() {
         let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.alignment = labelState.alignment
+        paragraphStyle.alignment = alignment.wrappedValue
         paragraphStyle.lineSpacing = 0
-        paragraphStyle.minimumLineHeight = labelState.typography.lineHeight
-        paragraphStyle.maximumLineHeight = labelState.typography.lineHeight
+        paragraphStyle.minimumLineHeight = typography.wrappedValue.lineHeight
+        paragraphStyle.maximumLineHeight = typography.wrappedValue.lineHeight
         
         let attributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: labelState.textColor,
+            .foregroundColor: textColor.wrappedValue,
             .paragraphStyle: paragraphStyle,
-            .font: UIFont(typography: labelState.typography),
+            .font: UIFont(typography: typography.wrappedValue),
             .baselineOffset: 0
-            
         ]
         
-        label.attributedText = NSAttributedString(string: labelState.text, attributes: attributes)
+        self.label.attributedText = NSAttributedString(string: text.wrappedValue, attributes: attributes)
     }
 }
 
 public extension RimLabel {
     struct State: Equatable {
-        public var text: String
-        var textColor: UIColor
-        var alignment: NSTextAlignment
-        
-        var typography: Typography
-        public var isEnabled = true
-        
         var appearance: RimView.State
-        var numberOfLines: Int
         
         public init(
-            text: String,
-            textColor: UIColor,
-            typography: Typography = .contentDescription,
-            alignment: NSTextAlignment = .center,
-            numberOfLines: Int = 1,
             appearance: RimView.State = .init()
         ) {
-            self.text = text
-            self.textColor = textColor
-            self.typography = typography
-            self.alignment = alignment
-            self.numberOfLines = numberOfLines
             self.appearance = appearance
         }
         

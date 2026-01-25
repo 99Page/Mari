@@ -37,25 +37,30 @@ struct RootFeature {
     @CasePathable
     enum AlertAction: Equatable {
         case signOut
+        case openAppStore
     }
     
     enum Action: ViewAction {
         case changeState(to: Destination.State)
-        case view(UIAction)
+        case showForceUpdateAlert
+        case view(View)
         case signOut
+        case forceNilAlert
+        case checkVersion
         case destination(Destination.Action)
-        case handleError(AppError)
         case alert(PresentationAction<AlertAction>)
+        case accountDelegate(AccountClient.Delegate)
         
-        enum UIAction: BindableAction {
+        enum View: BindableAction {
             case binding(BindingAction<State>)
+            case appDidBecomeActive
             case viewDidLoad
         }
     }
     
+    @Dependency(\.appUpdateClient) var appUpdateClient
     @Dependency(\.accountClient) var accountClient
     @Dependency(\.continuousClock) var clock
-    @Dependency(\.appErrorStream) var appErrorStream
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
@@ -72,17 +77,45 @@ struct RootFeature {
             switch action {
             case .view(.viewDidLoad):
                 return .run { send in
-                    for await error in await appErrorStream.stream() {
-                        await send(.handleError(error))
+                    for await event in accountClient.delegate() {
+                        await send(.accountDelegate(event))
                     }
                 }
                 
-            case .view(_):
+            case .view(.appDidBecomeActive):
+                return .send(.checkVersion)
+                
+            case .view(.binding(_)):
                 return .none
                 
-            case let .handleError(error):
-                switch error {
-                case .emptyUID:
+            case .forceNilAlert: // alert가 종료되어도 .alert(.dismiss) 가 호출되지 않아 강제 종료
+                state.alert = nil
+                return .none
+                
+            case .checkVersion:
+                return .run { send in
+                    if (try? await appUpdateClient.checkUpdateRequirement()) == true {
+                        await send(.showForceUpdateAlert)
+                    }
+                }
+                
+            case .showForceUpdateAlert:
+                
+                state.alert = AlertState {
+                    TextState("업데이트 안내")
+                } actions: {
+                    ButtonState(role: .cancel, action: .openAppStore) {
+                        TextState("업데이트 하러 가기")
+                    }
+                } message: {
+                    TextState("더 나은 서비스 이용을 위해 최신 버전으로 업데이트가 필요합니다.")
+                }
+                
+                return .none
+                
+            case let .accountDelegate(delegate):
+                switch delegate {
+                case .logoutRequired:
                     state.alert = AlertState {
                         TextState("사용자 정보가 없어요")
                     } actions: {
@@ -147,7 +180,13 @@ struct RootFeature {
             case .alert(.presented(.signOut)):
                 return .send(.signOut)
                 
-            case .alert(_):
+            case .alert(.presented(.openAppStore)):
+                return .run { send in
+                    await appUpdateClient.openAppStore()
+                    await send(.forceNilAlert)
+                }
+                
+            case .alert(.dismiss):
                 return .none
             }
         }
@@ -181,6 +220,17 @@ class RootViewController: UIViewController {
         present(item: $store.scope(state: \.alert, action: \.alert)) { store in
             UIAlertController(store: store)
         }
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(appDidBecomeActive),
+            name: UIApplication.didBecomeActiveNotification,
+            object: nil
+        )
+    }
+    
+    @objc private func appDidBecomeActive() {
+        send(.appDidBecomeActive)
     }
     
     private func setupView() {

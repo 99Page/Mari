@@ -17,9 +17,7 @@ import FirebaseAuth
 struct SplashFeature {
     @ObservableState
     struct State: Equatable {
-        // ChatGPT가 내부 로고만 있는 svg 파일을 제대로 생성해주지 못해서 png 사용
-        // -page 2025. 06. 27
-        var logo = RimImageView.State(image: .resource(imageResource: .rimWithBackground))
+
     }
     
     enum Action: ViewAction {
@@ -78,7 +76,7 @@ class SplashViewController: UIViewController {
     init(store: StoreOf<SplashFeature>) {
         @UIBindable var binding = store
         self.store = store
-        self.logoImageView = RimImageView(state: $binding.logo)
+        self.logoImageView = RimImageView()
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -88,11 +86,16 @@ class SplashViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
         setupView()
         makeConstraint()
+        updateView()
         
         send(.viewDidLoad)
+    }
+    
+    private func updateView() {
+        logoImageView.image = .constant(.resource(imageResource: .rimWithBackground))
+        logoImageView.updateView()
     }
     
     private func setupView() {
