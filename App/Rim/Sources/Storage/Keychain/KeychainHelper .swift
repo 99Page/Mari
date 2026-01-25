@@ -58,6 +58,16 @@ final class KeychainHelper {
 
         throw ClientError.emptyValue
     }
+    
+    static func clearAll(service: KeychainService) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service.rawValue
+        ]
+        
+        // 해당 서비스 이름으로 저장된 모든 아이템 삭제
+        SecItemDelete(query as CFDictionary)
+    }
 
     static func delete(service: KeychainService, account: KeychainAccount) {
         let query: [String: Any] = [
@@ -75,6 +85,7 @@ struct KeychainClient {
     var save: (_ value: String, _ service: KeychainService, _ account: KeychainAccount) throws -> Void = { _, _, _ in }
     var load: (_ service: KeychainService, _ account: KeychainAccount) throws -> String
     var delete: (_ service: KeychainService, _ account: KeychainAccount) -> Void = { _, _ in }
+    var clearAll: (_ service: KeychainService) -> Void = { _ in }
 }
 
 extension KeychainClient: DependencyKey {
@@ -88,6 +99,9 @@ extension KeychainClient: DependencyKey {
             },
             delete: { service, account in
                 KeychainHelper.delete(service: service, account: account)
+            },
+            clearAll: { service in
+                KeychainHelper.clearAll(service: service)
             }
         )
     }
@@ -98,6 +112,8 @@ extension KeychainClient: DependencyKey {
         } load: { service, account in
             return "keychain value"
         } delete: { service, account in
+            
+        } clearAll: { service in
             
         }
 

@@ -2,6 +2,7 @@ import UIKit
 import FirebaseCore
 import GoogleSignIn
 import Core
+import FirebaseAuth
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -9,26 +10,42 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         configureFirebase()
         FontLoader.registerFonts()
-        
+        checkAndClearKeychainOnFirstLaunch()
         return true
     }
-
+    
+    private func checkAndClearKeychainOnFirstLaunch() {
+        let hasRunBeforeKey = "hasRunBefore"
+        let userDefaults = UserDefaults.standard
+        
+        if userDefaults.bool(forKey: hasRunBeforeKey) == false {
+            do {
+                try Auth.auth().signOut()
+                KeychainHelper.clearAll(service: .firebase)
+            } catch {
+                Logger.error("로그아웃 실패")
+            }
+        }
+        
+        userDefaults.set(true, forKey: hasRunBeforeKey)
+    }
+    
     /// 주석: 빌드 구성(Debug/Release)에 따라 GoogleService-Info.plist를 선택해 Firebase를 초기화합니다.
     private func configureFirebase() {
         // Info.plist(Firebase 설정) 파일 분기 처리
-        #if DEBUG
+#if DEBUG
         let fileName = "GoogleService-Info-dev"
-        #else
+#else
         let fileName = "GoogleService-Info"
-        #endif
-
+#endif
+        
         guard let filePath = Bundle.main.path(forResource: fileName, ofType: "plist"),
               let options = FirebaseOptions(contentsOfFile: filePath) else {
             // 주석: 설정 파일 누락 시 크래시 대신 개발용 어서션으로 알림
             assertionFailure("Firebase 설정 파일을 불러올 수 없습니다: \(fileName).plist")
             return
         }
-
+        
         FirebaseApp.configure(options: options)
     }
     
