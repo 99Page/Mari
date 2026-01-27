@@ -1,0 +1,8 @@
+app_identifier("com.page.rim.dev") # The bundle identifier of your app
+apple_id("nou0ggid@gmail.com") # Your Apple Developer Portal username
+
+itc_team_id("125287507") # App Store Connect Team ID
+team_id("MAU8HFALP8") # Developer Portal Team ID
+
+# For more information about the Appfile, see:
+#     https://docs.fastlane.tools/advanced/#appfile

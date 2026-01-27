@@ -55,7 +55,6 @@ let target = Target.target(
     resources: ["../Core/Resources/**"],
     entitlements: "SupportingFiles/Rim.entitlements",
     dependencies: [
-        .package(product: "RimMacro"),
         .package(product: "GoogleSignIn"),
         .package(product: "FirebaseAnalytics"),
         .package(product: "FirebaseAuth"),
@@ -67,10 +66,11 @@ let target = Target.target(
         .package(product: "FirebaseFunctions"),
         .package(product: "Geohash"),
         .project(target: "Core", path: .relativeToRoot("Core")),
-        .package(product: "ComposableArchitecture") // Core가 ComposableAchitecture를 의존 중입니다. -page 2025. 06. 18
     ],
     settings: .settings(
         base: [
+            "VERSIONING_SYSTEM": "apple-generic", 
+            "CURRENT_PROJECT_VERSION": "1",
             "MARKETING_VERSION": "1.0.1",
             "CODE_SIGN_STYLE": "Automatic",
             "DEVELOPMENT_TEAM": "MAU8HFALP8", // 개인 개발 계정 ✅ 공개 상관 없는 값
@@ -85,6 +85,7 @@ let target = Target.target(
                 "INFOPLIST_KEY_CFBundleName": "Rim Dev",
                 "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon-Dev",
                 "BASE_URL": "$(BASE_URL_DEV)",
+                "ENABLE_USER_SCRIPT_SANDBOXING": "NO"
                 ],
                 xcconfig: .relativeToRoot("Secrets.xcconfig")
             ),
@@ -92,17 +93,22 @@ let target = Target.target(
                 name: "Release",
                 settings: [
                 "PRODUCT_BUNDLE_IDENTIFIER": "com.page.rim",
+                "CODE_SIGN_STYLE": "Manual",
+                "DEVELOPMENT_TEAM": "MAU8HFALP8",
+                "CODE_SIGN_IDENTITY": "Apple Distribution",
+                "PROVISIONING_PROFILE_SPECIFIER": "match AppStore com.page.rim",
                 "INFOPLIST_KEY_CFBundleDisplayName": "Rim",
                 "INFOPLIST_KEY_CFBundleName": "Rim",
                 "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
-                "BASE_URL": "$(BASE_URL_PROD)"
+                "BASE_URL": "$(BASE_URL_PROD)",
+                "ENABLE_USER_SCRIPT_SANDBOXING": "NO",
+                "SKIP_INSTALL": "NO"
                 ],
                 xcconfig: .relativeToRoot("Secrets.xcconfig")
             )
         ]
     )
 )
-
 
 let project = Project(
     name: "Rim",
@@ -111,7 +117,6 @@ let project = Project(
         .remote(url: "https://github.com/firebase/firebase-ios-sdk", requirement: .exact("11.13.0")),
         .remote(url: "https://github.com/google/GoogleSignIn-iOS", requirement: .exact("8.0.0")),
         .remote(url: "https://github.com/nh7a/Geohash.git", requirement: .exact("1.0.0")),
-        .local(path: "../RimMacro")
     ],
     targets: [
         target,

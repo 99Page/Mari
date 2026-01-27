@@ -73,6 +73,16 @@ Tuist/.build
 node_modules/
 *.logSecrets.xcconfig
 
-Secrets.xcconfig
 GoogleService-Info.plist
 GoogleService-Info-dev.plist
+
+# Fastlane output
+fastlane/test_output
+fastlane/report.xml
+fastlane/screenshots
+fastlane/README.md
+
+# Build Artifacts (여기가 중요!)
+*.ipa
+*.dSYM.zip
+*.app
