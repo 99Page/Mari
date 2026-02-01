@@ -3,7 +3,7 @@ import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import { fetchPostById } from '@/posts/handlers/v2/fetchPostById';
 import { db } from "../utils/firebase";
-import { ErrorResponse, errors } from '../resopnse/errorResponse';
+import { ErrorResponse, errors } from '../response/errorResponse';
 
 const REGION = "asia-northeast3";
 // 5분 내 중복 조회 방지용 (선택)

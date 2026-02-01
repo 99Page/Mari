@@ -25,12 +25,16 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     private var activeMarkers: [String: NMFMarker] = [:]
     
     private let locationManager = CLLocationManager()
-    private var isUserLocationInitialzed = false
+    private var isUserLocationInitialized = false
     
     private let progressView = UIActivityIndicatorView(style: .medium)
     
     private let cameraButton = UIButton()
     private let currentLocationButton = UIButton()
+    private lazy var cachedLockedIcon: UIImage = {
+        let size = CGSize(width: 94, height: 86)
+        return resizedImage(UIImage(systemName: "lock.circle")!, size: size)
+    }()
     
     init(store: StoreOf<MapFeature>) {
         @UIBindable var binding = store
@@ -64,6 +68,12 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         }
     }
     
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        currentLocationButton.layer.cornerRadius = currentLocationButton.frame.height / 2
+        cameraButton.layer.cornerRadius = cameraButton.frame.height / 2
+    }
+    
     private func updateView() {
         observe { [weak self] in
             guard let self else { return }
@@ -93,7 +103,9 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
             }
             
             if let existingMarker = activeMarkers[post.id] {
-                existingMarker.iconImage = NMFOverlayImage(image: iconImage)
+                if existingMarker.iconImage.image != iconImage {
+                    existingMarker.iconImage = NMFOverlayImage(image: iconImage)
+                }
             } else {
                 let marker = makeNewMarker(post)
                 marker.mapView = mapView
@@ -107,7 +119,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         let markerSize = CGSize(width: 94, height: 86)
         
         if store.blockedUserIds.contains(post.creatorID) {
-            iconImage = resizedImage(UIImage(systemName: "lock.circle")!, size: markerSize)
+            iconImage = cachedLockedIcon
         } else {
             iconImage = post.image ?? UIImage(resource: .placeholder)
         }
@@ -127,9 +139,10 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     }
     
     private func removeMarkers() {
-        for (id, marker) in activeMarkers {
-            guard store.posts[id: id] == nil else { continue }
-            marker.mapView = nil
+        let idsToRemove = activeMarkers.keys.filter { store.posts[id: $0] == nil }
+        
+        for id in idsToRemove {
+            activeMarkers[id]?.mapView = nil
             activeMarkers.removeValue(forKey: id)
         }
     }
@@ -188,7 +201,6 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     private func applySharedButtonStyle(to button: UIButton, iconName: String) {
         // 1. 배경 및 테두리 (흰색 배경, 파란색 테두리)
         button.backgroundColor = .white
-        button.layer.cornerRadius = 20 // 40x40 크기의 절반 (완전 원형)
         button.layer.borderWidth = 1.5
         button.layer.borderColor = UIColor.systemBlue.cgColor
         
@@ -223,9 +235,6 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
             self?.send(.cameraButtonTapped)
         }, for: .touchUpInside)
     }
-    
-    
-    
     
     private func addOverlay() {
         locationManager.delegate = self
@@ -273,9 +282,9 @@ extension MapViewController: CLLocationManagerDelegate {
         let coord = NMGLatLng(lat: location.coordinate.latitude,
                               lng: location.coordinate.longitude)
         
-        if !isUserLocationInitialzed {
+        if !isUserLocationInitialized {
             mapView.moveCamera(NMFCameraUpdate(scrollTo: coord))
-            isUserLocationInitialzed = true
+            isUserLocationInitialized = true
         }
         
         mapView.locationOverlay.location = coord

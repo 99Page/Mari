@@ -36,7 +36,7 @@ describe('QuadKey', () => {
     });
   });
 
-   describe('Hashing with Precision 18', () => {
+  describe('Hashing with Precision 18', () => {
     // 광화문 좌표
     const sinrimHome = {
       lat: 37.4837641826256, 
@@ -197,56 +197,24 @@ describe('QuadKey', () => {
   });
 
   describe('Real World Coordinate Test (3x5 Grid)', () => {
-  
-  test('Should include target post within 3x5 neighbors at Zoom Level 19', () => {
-    const centerLat = 37.4837613372925;   
-    const centerLng = 126.93192889557515;
-    
-    const targetLat = 37.482295;          
-    const targetLng = 126.93186;
+    test('Should include target post within 3x5 neighbors at Zoom Level 19', () => {
+      const centerLat = 37.4837613372925;   
+      const centerLng = 126.93192889557515;
+      
+      const targetLat = 37.482295;          
+      const targetLng = 126.93186;
 
-    const TEST_LEVEL = 19; 
+      const TEST_LEVEL = 19; 
 
-    const centerKey = QuadKey.fromGeo(centerLat, centerLng, TEST_LEVEL);
-    const targetKeyString = QuadKey.fromGeo(targetLat, targetLng, TEST_LEVEL).toString();
+      const centerKey = QuadKey.fromGeo(centerLat, centerLng, TEST_LEVEL);
+      const targetKeyString = QuadKey.fromGeo(targetLat, targetLng, TEST_LEVEL).toString();
 
-    const neighbors = centerKey.neighbors(1, 3); 
-    const searchArea = [centerKey.toString(), ...neighbors];
+      const neighbors = centerKey.neighbors(1, 3); 
+      const searchArea = [centerKey.toString(), ...neighbors];
 
-    const isIncluded = searchArea.includes(targetKeyString);
+      const isIncluded = searchArea.includes(targetKeyString);
 
-    expect(isIncluded).toBe(true);
-  });
-
-   test('Should include target post within 3x5 neighbors at Zoom Level 19', () => {
-    const quadKey = QuadKey.fromString('1321103201220213223');
-    // 가로 1칸(좌우), 세로 3칸(위아래) -> 가로폭 3, 세로폭 7
-    const neighbors = quadKey.neighbors(1, 3); 
-    
-    // ▼▼▼ 로그 출력용 코드 ▼▼▼
-    console.log(`=== Center: ${quadKey.toString()} ===`);
-    
-    let gridString = "";
-    // neighbors는 보통 좌상단부터 순서대로 나옵니다.
-    // 가로 범위가 1이면(좌1+본인+우1) = 한 줄에 3개씩입니다.
-    const width = 3; 
-
-    neighbors.forEach((key, index) => {
-        // 내 위치(Center)는 별표 표시
-        const mark = key === quadKey.toString() ? "★" : " ";
-        gridString += `${mark}${key}  `;
-
-        // 3개 찍을 때마다 줄바꿈
-        if ((index + 1) % width === 0) {
-            gridString += "\n";
-        }
+      expect(isIncluded).toBe(true);
     });
-
-    console.log(gridString);
-    // ▲▲▲ 로그 출력용 코드 끝 ▲▲▲
-
-    // 테스트가 통과해야 로그가 보이는 경우도 있으니 일단 true로 둠
-    expect(true).toBe(true);
   });
-});
 });

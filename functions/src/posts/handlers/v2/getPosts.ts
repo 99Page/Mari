@@ -5,8 +5,8 @@ import { fetchPostById } from "@/posts/handlers/v2/fetchPostById";
 import { db, adminInstance as admin } from "@/utils/firebase";
 import { convertToPostDetail, PostDetail } from "@/posts/models/postDetail";
 import { PostSummary } from "@/posts/models/postSummary";
-import { ErrorResponse } from "@/resopnse/errorResponse";
-import type { SuccessResponse } from "@/resopnse/successResponse";
+import { ErrorResponse } from "@/response/errorResponse";
+import type { SuccessResponse } from "@/response/successResponse";
 
 const REGION = "asia-northeast3";
 

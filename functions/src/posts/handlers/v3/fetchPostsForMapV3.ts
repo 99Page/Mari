@@ -4,7 +4,7 @@ import { db, adminInstance as admin } from "@/utils/firebase";
 import { QuadKey } from "@/utils/QuadKey";
 import { convertToPostDetailV3, PostDetailV3 } from "@/posts/models/postDetail"; // 모델은 V3(수정본) 재사용
 import { PostSummary } from "@/posts/models/postSummary";
-import { ErrorResponse } from "@/resopnse/errorResponse";
+import { ErrorResponse } from "@/response/errorResponse";
 
 export const fetchPostsForMapV3 = async (req: Request, res: Response) => {
   const lat = parseFloat(req.query.latitude as string);

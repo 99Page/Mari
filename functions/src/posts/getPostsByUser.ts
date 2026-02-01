@@ -2,8 +2,8 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { PostSummary } from "./models/postSummary"
 import { db, adminInstance as admin } from "../utils/firebase";
-import { ErrorResponse, errors } from "../resopnse/errorResponse";
-import type { SuccessResponse } from "../resopnse/successResponse";
+import { ErrorResponse, errors } from "../response/errorResponse";
+import type { SuccessResponse } from "../response/successResponse";
 
 const FETCH_BY_USER_FAILED: ErrorResponse = {
   code: "fetch-by-user-failed",

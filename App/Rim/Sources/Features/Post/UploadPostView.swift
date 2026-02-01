@@ -142,8 +142,6 @@ struct UploadPostFeature {
             case .uploadPost:
                 guard !state.title.isEmpty else { return .send(.showMissingTitleAlert) }
                 guard let imageURL = state.imageURL else { return .none }
-                guard let uid = state.uid else { return .none }
-                
                 
                 return .run { [state] send in
                     let request = PostRequest.Create(
@@ -151,7 +149,6 @@ struct UploadPostFeature {
                         content: state.descriptionText,
                         latitude: state.photoLocation.lat,
                         longitude: state.photoLocation.lng,
-                        creatorID: uid,
                         imageUrl: imageURL
                     )
                     

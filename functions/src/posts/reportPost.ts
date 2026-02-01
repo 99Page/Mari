@@ -1,8 +1,8 @@
 import { verifyAuthAndGetUid } from '../auth/verifyToken';
 import { onRequest } from "firebase-functions/v2/https";
-import { errors } from "../resopnse/errorResponse"
+import { errors } from "../response/errorResponse"
 import { db, adminInstance as admin } from "../utils/firebase";
-import type { SuccessResponse } from '../resopnse/successResponse';
+import type { SuccessResponse } from '../response/successResponse';
 
 
 const REGION = "asia-northeast3";

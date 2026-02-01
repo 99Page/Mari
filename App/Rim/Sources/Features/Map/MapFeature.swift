@@ -57,9 +57,9 @@ struct MapFeature {
             
             let limitMB: Double = 40
             
-            var currentTotalSize = self.posts.reduce(0) { total, post in
-                return total + (post.image?.memorySizeInMB ?? 0)
-            }
+            var currentTotalSize = self.posts.lazy
+                .compactMap { $0.image?.memorySizeInMB }
+                .reduce(0, +)
             
             if currentTotalSize <= limitMB { return }
             

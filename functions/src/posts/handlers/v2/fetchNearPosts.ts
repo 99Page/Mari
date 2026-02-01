@@ -1,9 +1,9 @@
 import { onRequest } from "firebase-functions/v2/https";
 import Geohash from "latlon-geohash";
 import { db, adminInstance as admin } from "@/utils/firebase";
-import { ErrorResponse, Errors } from "@/resopnse/errorResponse";
+import { ErrorResponse, Errors } from "@/response/errorResponse";
 import { region } from "@/utils/firebase";
-import type { SuccessResponse } from "@/resopnse/successResponse";
+import type { SuccessResponse } from "@/response/successResponse";
 import { verifyAuthAndGetUid } from "@/auth/verifyToken";
 import { PostDetail, convertToPostDetail } from "@/posts/models/postDetail";
 
