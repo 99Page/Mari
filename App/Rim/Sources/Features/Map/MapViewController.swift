@@ -214,6 +214,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         let zoomLevel = mapView.zoomLevel
         let centerPosition = mapView.cameraPosition
         send(.cameraDidMove(centerPosition: centerPosition.target, bounds: mapView.coveringBounds))
+        Logger.debug("\(mapView.zoomLevel)")
     }
     
     private func showLocationPermissionAlert() {

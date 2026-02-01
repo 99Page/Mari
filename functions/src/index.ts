@@ -11,15 +11,15 @@ import { onRequest } from "firebase-functions/v2/https";
 import app from "@/app"; 
 
 export { deletePost } from './posts/deletePost';
-export { getPostById } from './posts/handlers/fetchPostById'
+export { getPostById } from './posts/handlers/v2/fetchPostById'
 export { increasePostViewCount } from './posts/increasePostViewCount'
 export { getPostsByUser } from './posts/getPostsByUser'
-export { getPosts } from '@/posts/handlers/getPosts'
-export { createPost } from './posts/handlers/createPost'
+export { getPosts } from '@/posts/handlers/v2/getPosts'
+export { createPost } from './posts/handlers/v2/createPost'
 export { scheduleAggregateLast6HoursRanking } from './posts/aggregateRanking'
 export { testAggregateLast6HoursRanking } from './posts/aggregateRanking'
 export { reportPost } from "./posts/reportPost"
-export { nearPostsV1 } from "@/posts/handlers/fetchNearPosts"
+export { nearPostsV1 } from "@/posts/handlers/v2/fetchNearPosts"
 
 export { debugFirestorePath } from './debug/debugFirstorePath'
 

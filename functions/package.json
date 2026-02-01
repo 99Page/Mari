@@ -8,13 +8,17 @@
     "build": "tsc && tsc-alias",
     "watch": "tsc -w",
     "serve:functions": "npm run build && firebase emulators:start --only functions",
-    "deploy:functions": "npm run build && firebase deploy --only functions"
+    "deploy:functions": "npm run build && firebase deploy --only functions",
+    "test": "jest"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
     "@types/latlon-geohash": "^2.0.4",
     "@types/ngeohash": "^0.6.8",
     "@types/node": "^20.0.0",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
     "tsc-alias": "^1.8.10",
     "typescript": "^5.3.3"
   },

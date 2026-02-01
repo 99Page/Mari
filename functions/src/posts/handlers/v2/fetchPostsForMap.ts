@@ -1,7 +1,7 @@
 import { Request, Response } from "express"; 
 import * as logger from "firebase-functions/logger";
 import Geohash from "latlon-geohash";
-import { fetchPostById } from "@/posts/handlers/fetchPostById";
+import { fetchPostById } from "@/posts/handlers/v2/fetchPostById";
 import { db, adminInstance as admin } from "@/utils/firebase";
 import { convertToPostDetail, PostDetail } from "@/posts/models/postDetail";
 import { PostSummary } from "@/posts/models/postSummary";

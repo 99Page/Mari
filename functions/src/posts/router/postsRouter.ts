@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { createPost } from "@/posts/handlers/createPost"
-import { fetchPostsForMap } from "../handlers/fetchPostsForMap";
+import { createPost } from "@/posts/handlers/v2/createPost"
+import { fetchPostsForMap } from "../handlers/v2/fetchPostsForMap";
 
 
 const v2Router = Router();
