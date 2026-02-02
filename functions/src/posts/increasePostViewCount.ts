@@ -1,7 +1,7 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
-import { fetchPostById } from './handlers/fetchPostById';
+import { fetchPostById } from '@/posts/handlers/v2/fetchPostById';
 import { db } from "../utils/firebase";
 import { ErrorResponse, errors } from '../resopnse/errorResponse';
 

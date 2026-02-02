@@ -10,59 +10,118 @@
  * - 20~22: 건물/집 한 채 단위 
  */
 
-export const toBase4 = (lat: number, lon: number, precision: number): string => {
-  // Web Mercator의 위도 제한 
-  const MIN_LAT = -85.05112878;
-  const MAX_LAT = 85.05112878;
-  const MIN_LON = -180;
-  const MAX_LON = 180;
+export class QuadKey {
+  public readonly tileX: number;
+  public readonly tileY: number;
+  public readonly level: number;
 
-  const clippedLat = Math.max(MIN_LAT, Math.min(lat, MAX_LAT));
-  const clippedLon = Math.max(MIN_LON, Math.min(lon, MAX_LON));
-
-  // 3. [핵심] 투영 변환 (위도/경도 -> 0.0 ~ 1.0 사이의 정규 좌표값)
-  // 경도(x): -180~180을 0~1로 선형 변환
-  const x = (clippedLon + 180) / 360;
-
-  // 위도(y): Mercator 공식을 통해 0~1로 변환 (로그와 사인 함수 사용)
-  // 이 공식이 지도를 '정사각형'으로 펴주는 마법입니다.
-  const sinLat = Math.sin(clippedLat * Math.PI / 180);
-  const y = 0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI);
-
-  // 4. 정수 좌표로 변환 및 QuadKey 생성
-  // mapSize: 해당 정밀도에서의 전체 격자 개수 (예: precision 3이면 8x8 격자)
-  const mapSize = Math.pow(2, precision);
-  
-  // 현재 위치가 몇 번째 격자에 있는지 계산 (정수형 좌표)
-  // Math.floor를 써서 0부터 시작하는 인덱스로 만듭니다.
-  // 예: x가 0.7이고 mapSize가 8이면 -> 5.6 -> 5번째 칸
-  let pixelX = Math.floor(x * mapSize);
-  let pixelY = Math.floor(y * mapSize);
-
-  // 5. 비트 인터리빙 (Bit Interleaving)
-  // X와 Y 좌표의 비트를 하나씩 꺼내서 합칩니다.
-  let result = "";
-
-  for (let i = precision; i > 0; i--) {
-    let digit = 0;
-    
-    // 검사할 비트의 위치 마스크 (왼쪽부터 검사)
-    const mask = 1 << (i - 1);
-
-    // X 좌표의 해당 비트가 1이면? -> 오른쪽(East) -> 1 더함
-    if ((pixelX & mask) !== 0) {
-      digit += 1;
-    }
-
-    // Y 좌표의 해당 비트가 1이면? -> 아래쪽(South) -> 2 더함
-    // (Mercator 좌표계는 위에서 아래로 갈수록 Y가 커집니다)
-    if ((pixelY & mask) !== 0) {
-      digit += 2;
-    }
-
-    // 결과: 0(NW), 1(NE), 2(SW), 3(SE)
-    result += digit.toString();
+  // 생성자: 외부에서 직접 호출하기보다 static 메서드를 통해 생성하는 것을 권장
+  constructor(tileX: number, tileY: number, level: number) {
+    this.tileX = tileX;
+    this.tileY = tileY;
+    this.level = level;
   }
 
-  return result;
-};
+  // 1. [진입점] 위경도로 생성
+  static fromGeo(lat: number, lon: number, level: number): QuadKey {
+    const MIN_LAT = -85.05112878;
+    const MAX_LAT = 85.05112878;
+    const clippedLat = Math.max(MIN_LAT, Math.min(lat, MAX_LAT));
+    const clippedLon = Math.max(-180, Math.min(lon, 180));
+
+    const x = (clippedLon + 180) / 360;
+    const sinLat = Math.sin(clippedLat * Math.PI / 180);
+    const y = 0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI);
+
+    const mapSize = Math.pow(2, level);
+    const tileX = Math.floor(x * mapSize);
+    const tileY = Math.floor(y * mapSize);
+
+    return new QuadKey(tileX, tileY, level);
+  }
+
+  // 2. [진입점] 기존 QuadKey 문자열로 생성 (Decoding)
+  // "132" 문자열을 받아서 -> x=6, y=3 좌표로 복원하는 역연산
+  static fromString(quadKey: string): QuadKey {
+    let tileX = 0;
+    let tileY = 0;
+    const level = quadKey.length;
+
+    for (let i = 0; i < level; i++) {
+      // 비트 위치: level이 3이면 -> i=0일 때 mask는 100(2) 즉 4
+      const mask = 1 << (level - i - 1);
+      const char = quadKey[i];
+
+      // 문자열의 숫자에 따라 X, Y 좌표에 값을 더함
+      if (char === '1') {
+        tileX |= mask;
+      } else if (char === '2') {
+        tileY |= mask;
+      } else if (char === '3') {
+        tileX |= mask;
+        tileY |= mask;
+      }
+    }
+
+    return new QuadKey(tileX, tileY, level);
+  }
+
+  // 3. [핵심] 이웃 찾기 (체이닝 지원)
+  // 값을 변경한 '새로운 QuadKey'를 반환 (Immutability)
+  neighbor(dir: Direction): QuadKey {
+    let dx = 0;
+    let dy = 0;
+
+    switch (dir) {
+      case Direction.N:  dy = -1; break;
+      case Direction.S:  dy = 1;  break;
+      case Direction.W:  dx = -1; break;
+      case Direction.E:  dx = 1;  break;
+      case Direction.NW: dx = -1; dy = -1; break;
+      case Direction.NE: dx = 1;  dy = -1; break;
+      case Direction.SW: dx = -1; dy = 1;  break;
+      case Direction.SE: dx = 1;  dy = 1;  break;
+    }
+
+    // 지도 경계(Map Boundary) 체크 (세계지도를 벗어나면 순환하거나 에러 처리)
+    // 여기서는 단순히 계산만 하고, 경계 처리는 필요 시 추가 (보통 모듈로 연산 사용)
+    // const maxIndex = Math.pow(2, this.level) - 1;
+    
+    // Wrapping (지구는 둥그니까 오른쪽 끝으로 가면 왼쪽 끝이 나옴 - 경도만)
+    // 위도(Y)는 보통 -1이 되면 존재하지 않는 영역이지만 여기선 단순 Clamp 처리 예시
+    let newX = this.tileX + dx;
+    let newY = this.tileY + dy;
+
+    // (선택사항) 범위 밖으로 나가면 반대편으로? 아니면 막기?
+    // 여기서는 안전하게 0 ~ maxIndex 범위 내로 제한(Clamp)하거나 
+    // newX = (newX + mapSize) % mapSize; // 순환 로직
+    
+    return new QuadKey(newX, newY, this.level);
+  }
+
+  // 4. 문자열로 반환 (Encoding)
+  toString(): string {
+    let result = "";
+    for (let i = this.level; i > 0; i--) {
+      let digit = 0;
+      const mask = 1 << (i - 1);
+
+      if ((this.tileX & mask) !== 0) digit += 1;
+      if ((this.tileY & mask) !== 0) digit += 2;
+
+      result += digit.toString();
+    }
+    return result;
+  }
+}
+
+export enum Direction {
+  N = "North",
+  S = "South",
+  W = "West",
+  E = "East",
+  NW = "NorthWest",
+  NE = "NorthEast",
+  SW = "SouthWest",
+  SE = "SouthEast"
+}

@@ -1,16 +1,15 @@
-import { Request, Response } from "express"; 
+import { Request, Response } from 'express';
+import * as admin from 'firebase-admin';
 import * as logger from "firebase-functions/logger";
-import Geohash from "latlon-geohash";
-import { db, adminInstance as admin } from "../../../utils/firebase";
-import { errors } from "../../../resopnse/errorResponse";
-import type { ErrorResponse } from "../../../resopnse/errorResponse";
-import { PostDetail } from "../../models/postDetail";
-import { hasBannedWord } from "@/utils/bannedWords";
-
+import { errors } from '@/resopnse/errorResponse';
+import { QuadKey } from '@/utils/geo'; // 아까 만든 QuadKey 클래스 경로
+import { PostDetailV3 } from '@/posts/models/postDetail'; // 아까 정의한 인터페이스 경로
+import { hasBannedWord } from '@/utils/bannedWords'
+import { db } from '@/utils/firebase';
 
 export const createPostV3 = async (req: Request, res: Response) => {
   try {
-    // 클라이언트에서 전달된 Firebase 인증 토큰을 확인
+    // 1. 인증 토큰 확인
     const authHeader = req.headers.authorization;
     const idToken = authHeader?.startsWith("Bearer ") ? authHeader.split("Bearer ")[1] : null;
 
@@ -27,26 +26,18 @@ export const createPostV3 = async (req: Request, res: Response) => {
       return;
     }
 
-    // 요청 본문에서 필요한 필드 추출 및 유효성 검사
+    // 2. 유효성 검사 (Body & Field)
     const body = req.body;
 
     if (!body || typeof body !== "object") {
-      const errorResponse: ErrorResponse = {
-        code: "INVALID_BODY",
-        message: "Invalid request body"
-      };
-      res.status(400).json(errorResponse);
+      res.status(400).json({ code: "INVALID_BODY", message: "Invalid request body" });
       return;
     }
 
     const { title, content, latitude, longitude, creatorID, imageUrl } = body;
 
     if (!title || latitude == null || longitude == null || !creatorID || !imageUrl) {
-      const errorResponse: ErrorResponse = {
-        code: "MISSING_REQUIRED_FIELDS",
-        message: "Missing required fields"
-      };
-      res.status(400).json(errorResponse);
+      res.status(400).json({ code: "MISSING_REQUIRED_FIELDS", message: "Missing required fields" });
       return;
     }
 
@@ -54,14 +45,11 @@ export const createPostV3 = async (req: Request, res: Response) => {
       typeof latitude !== "number" || isNaN(latitude) ||
       typeof longitude !== "number" || isNaN(longitude)
     ) {
-      const errorResponse: ErrorResponse = {
-        code: "INVALID_COORDINATES", 
-        message: "Invalid latitude or longitude"
-      };
-      res.status(400).json(errorResponse);
+      res.status(400).json({ code: "INVALID_COORDINATES", message: "Invalid latitude or longitude" });
       return;
     }
 
+    // 3. 금칙어 검사
     const bannedInTitle = hasBannedWord(title);
     const bannedInContent = hasBannedWord(content);
     const allBannedWords = [...bannedInTitle, ...bannedInContent];
@@ -71,22 +59,16 @@ export const createPostV3 = async (req: Request, res: Response) => {
       return;
     }
 
-    // GeoHash는 위치 기반 검색 최적화를 위해 사용됨
-    // precision 값이 작을수록 더 넓은 범위를 커버하고, 클수록 정밀도가 높아짐
-    // 예) precision 1 → 약 수천 km / precision 10 → 약 1m 단위의 위치 구분 가능
-    // precision 1~10까지의 다양한 정밀도로 인코딩된 값들을 생성하여 저장
-    let geohashFields: Record<string, string> = {};
-    const GEOHASH_ENCODING_ERROR: ErrorResponse = {
-      code: "GEOHASH_ENCODING_ERROR",
-      message: "GeoHash encoding error"
-    };
+    let quadKeyL22: string;
+    
     try {
-      for (let p = 1; p <= 10; p++) {
-        geohashFields[`geohash_${p}`] = Geohash.encode(latitude, longitude, p);
-      }
+      quadKeyL22 = QuadKey.fromGeo(latitude, longitude, 22).toString();
     } catch (e) {
-      logger.error("GeoHash encoding failed:", e);
-      res.status(500).json(GEOHASH_ENCODING_ERROR);
+      logger.error("QuadKey encoding failed:", e);
+      res.status(500).json({
+        code: "QUADKEY_ENCODING_ERROR",
+        message: "Failed to generate spatial index"
+      });
       return;
     }
 
@@ -94,7 +76,8 @@ export const createPostV3 = async (req: Request, res: Response) => {
     const createdAtTimestamp = admin.firestore.Timestamp.fromDate(now);
     const locationGeoPoint = new admin.firestore.GeoPoint(latitude, longitude);
 
-    // Firestore에 저장할 새로운 포스트 객체 구성
+    // 4. Firestore 저장 객체 구성
+    // geohashFields 스프레드 연산자(...) 제거됨
     const newPost = {
       title,
       content,
@@ -102,44 +85,38 @@ export const createPostV3 = async (req: Request, res: Response) => {
       creatorID,
       imageUrl,
       createdAt: createdAtTimestamp,
-      ...geohashFields
+      
+      // ★ 이거 하나만 저장합니다. (인덱싱 비용 절감)
+      quadKeyL22: quadKeyL22 
     };
 
-    // Firestore의 "posts" 컬렉션에 문서 추가
+    // 5. DB 저장
     const postRef = await db.collection("posts").add(newPost);
 
-    const resultData: PostDetail = {
+    // 6. 응답 생성 (PostDetailV3 타입)
+    const resultData: PostDetailV3 = {
       id: postRef.id,
       title,
       content,
       imageUrl,
-      location: locationGeoPoint,     // GeoPoint 타입
-      createdAt: createdAtTimestamp,  // Timestamp 타입
+      location: locationGeoPoint,
+      createdAt: createdAtTimestamp,
       creatorID,
-      geohash_1: geohashFields["geohash_1"],
-      geohash_2: geohashFields["geohash_2"],
-      geohash_3: geohashFields["geohash_3"],
-      geohash_4: geohashFields["geohash_4"],
-      geohash_5: geohashFields["geohash_5"],
-      geohash_6: geohashFields["geohash_6"],
-      geohash_7: geohashFields["geohash_7"],
-      geohash_8: geohashFields["geohash_8"],
-      geohash_9: geohashFields["geohash_9"],
-      geohash_10: geohashFields["geohash_10"],
+      quadKeyL22: quadKeyL22,
       isMine: true
     };
 
-  res.status(201).json({
-    status: "SUCCESS",
-    message: "Post created successfully",
-    result: resultData
-  });
+    res.status(201).json({
+      status: "SUCCESS",
+      message: "Post created successfully",
+      result: resultData
+    });
+
   } catch (error) {
     logger.error("Error creating post:", error);
-    const errorResponse: ErrorResponse = {
-      code: "FIRESTORE_WIRTE_FAILED",
+    res.status(500).json({
+      code: "FIRESTORE_WRITE_FAILED",
       message: "Failed to create post"
-    };
-    res.status(500).json(errorResponse);
+    });
   }
 };
