@@ -79,8 +79,8 @@ struct PostClient {
         
         var baseURLString: String {
             switch self {
-            case .fetchMapPosts, .createPost: v3URL
-            default: functionsURL
+            case .fetchMapPosts, .createPost: APIConfig.v3URL
+            default: APIConfig.functionsURL
             }
         }
         

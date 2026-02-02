@@ -63,7 +63,7 @@ struct AccountClient {
             return headers
         }
         
-        var baseURLString: String { functionsURL }
+        var baseURLString: String { APIConfig.functionsURL }
         
         var path: String {
             switch self {
