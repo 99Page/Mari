@@ -1,4 +1,4 @@
-import { QuadKey, Direction } from "@/utils/geo";
+import { QuadKey, Direction } from "@/utils/QuadKey";
 
 describe('QuadKey', () => {
 
@@ -161,6 +161,38 @@ describe('QuadKey', () => {
             .toString();
 
         expect(dest).toBe("33");
+    });
+  });
+
+  describe('Bulk Neighbors (neighbors method)', () => {
+    // Level 2 (4x4 Grid)
+    // [00][01][10][11] (y=0)
+    // [02][03][12][13] (y=1)
+    // [20][21][30][31] (y=2)
+    // [22][23][32][33] (y=3)
+
+    test('Center Node "03"', () => {
+      // (1, 1) 위치 -> 주변 8개 모두 유효 범위 내에 있음
+      const centerKey = "03"; 
+      const neighbors = QuadKey.fromString(centerKey).neighbors(1);
+
+      // 정렬하여 비교 (순서는 보장되지 않을 수 있으므로)
+      const expected = ["00", "01", "10", "02", "12", "20", "21", "30"].sort();
+      const result = neighbors.sort();
+
+      expect(result).toEqual(expected);
+      expect(result.length).toBe(8);
+    });
+
+    test('Corner Node "00"', () => {
+      const key = "00";
+      const neighbors = QuadKey.fromString(key).neighbors(1);
+      
+      const expected = ["01", "02", "03", "11", "13"].sort() // 지도는 연결되어 있으니 00-11, 00-13은 이웃
+      const result = neighbors.sort();
+
+      expect(result).toEqual(expected);
+      expect(result.length).toBe(5); 
     });
   });
 });

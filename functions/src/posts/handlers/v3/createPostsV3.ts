@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import * as admin from 'firebase-admin';
 import * as logger from "firebase-functions/logger";
 import { errors } from '@/resopnse/errorResponse';
-import { QuadKey } from '@/utils/geo'; // 아까 만든 QuadKey 클래스 경로
+import { QuadKey } from '@/utils/QuadKey'; // 아까 만든 QuadKey 클래스 경로
 import { PostDetailV3 } from '@/posts/models/postDetail'; // 아까 정의한 인터페이스 경로
 import { hasBannedWord } from '@/utils/bannedWords'
 import { db } from '@/utils/firebase';
