@@ -6,8 +6,6 @@ import { errors } from "../../../resopnse/errorResponse";
 import type { ErrorResponse } from "../../../resopnse/errorResponse";
 import { PostDetail } from "../../models/postDetail";
 import { hasBannedWord } from "@/utils/bannedWords";
-implements
-
 
 
 export const createPostV3 = async (req: Request, res: Response) => {

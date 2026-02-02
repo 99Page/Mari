@@ -211,10 +211,33 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     
     // 카메라 이동이 모두 끝났을 때 호출됩니다. -page 2025. 07. 01
     func mapViewCameraIdle(_ mapView: NMFMapView) {
-        let zoomLevel = mapView.zoomLevel
         let centerPosition = mapView.cameraPosition
         send(.cameraDidMove(centerPosition: centerPosition.target, bounds: mapView.coveringBounds))
-        Logger.debug("\(mapView.zoomLevel)")
+        Logger.debug("[Zoom level: \(mapView.zoomLevel)]")
+        
+        let bounds = mapView.coveringBounds
+        let southWest = bounds.southWest
+        let northEast = bounds.northEast
+
+        // 2. 좌표를 CLLocation 객체로 변환
+        let swLocation = CLLocation(latitude: southWest.lat, longitude: southWest.lng)
+        let neLocation = CLLocation(latitude: northEast.lat, longitude: northEast.lng)
+
+        // 3. 가로/세로 거리 계산
+
+        // [세로 길이] (남서쪽 <-> 북서쪽)
+        // 경도는 같게 두고, 위도만 변경해서 계산
+        let northWestLocation = CLLocation(latitude: northEast.lat, longitude: southWest.lng)
+        let heightInMeters = swLocation.distance(from: northWestLocation)
+
+        // [가로 길이] (남서쪽 <-> 남동쪽)
+        // 위도는 같게 두고, 경도만 변경해서 계산
+        let southEastLocation = CLLocation(latitude: southWest.lat, longitude: northEast.lng)
+        let widthInMeters = swLocation.distance(from: southEastLocation)
+
+        // 4. 로그 출력
+        Logger.debug("가로 길이: \(Int(widthInMeters))m")
+        Logger.debug("세로 길이: \(Int(heightInMeters))m")
     }
     
     private func showLocationPermissionAlert() {
