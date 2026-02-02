@@ -13,12 +13,9 @@ extension PostClient {
     enum Request {
         // MARK: MapPost
         struct GetMapPost: Encodable {
-            let type: String
             let latitude: Double
             let longitude: Double
-            let precision: Int
-            let hRadius: Int
-            let vRadius: Int
+            let zoom: Int
         }
         
         // MARK: CreatePost

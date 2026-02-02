@@ -35,99 +35,13 @@ struct MapFeature {
         var lastFetchPrecision: Int = 7
         
         var visibleBounds: NMGLatLngBounds?
-        var vRadius = 1
-        var hRadius = 1
+        var zoom = Double(17)
         
         var postsNeedingImages: [MapPostState] {
             return self.posts.filter { $0.image == nil }
         }
         
-        mutating func optimizeGeohashState(bounds: NMGLatLngBounds) {
-            let (screenWidth, screenHeight) = calculateScreenSizeInMeters(bounds: bounds)
-            
-            let maxRadiusLimit = 2
-            
-            self.precision = determineBestPrecision(
-                screenWidth: screenWidth,
-                screenHeight: screenHeight,
-                maxRadiusLimit: maxRadiusLimit
-            )
-            
-            updateRequestRadius(
-                screenWidth: screenWidth,
-                screenHeight: screenHeight
-            )
-        }
-        
         // MARK: - Helper Methods
-        
-        /// 화면 크기를 미터 단위로 계산
-        private func calculateScreenSizeInMeters(bounds: NMGLatLngBounds) -> (width: Double, height: Double) {
-            let southWest = bounds.southWest
-            let southEast = NMGLatLng(lat: bounds.southWest.lat, lng: bounds.northEast.lng)
-            let northWest = NMGLatLng(lat: bounds.northEast.lat, lng: bounds.southWest.lng)
-            
-            let width = southWest.distance(to: southEast)
-            let height = southWest.distance(to: northWest)
-            
-            return (width, height)
-        }
-        
-        /// 주어진 예산(Limit) 내에서 사용할 수 있는 가장 높은 Precision 반환
-        private func determineBestPrecision(screenWidth: Double, screenHeight: Double, maxRadiusLimit: Int) -> Geohash.Precision {
-            // 검사 순서: 가장 정밀한 것(P9) -> 가장 넓은 것(P1)
-            let precisions: [Geohash.Precision] = [
-                .twoHundredFourtyCentimeters,
-                .nineteenMeters,
-                .seventySixMeters,
-                .sixHundredTenMeters,
-                .twentyFourHundredMeters,
-                .twentyKilometers,
-                .seventyEightKilometers,
-                .sixHundredThirtyKilometers,
-                .twentyFiveHundredKilometers
-            ]
-            
-            let halfWidth = screenWidth / 2.0
-            let halfHeight = screenHeight / 2.0
-            
-            for precision in precisions {
-                let gridW = precision.gridWidthInMeters
-                let gridH = precision.gridHeightInMeters
-                
-                // 이 Precision일 때 필요한 칸 수 계산
-                let requiredH = Int(ceil(halfWidth / gridW))
-                let requiredV = Int(ceil(halfHeight / gridH))
-                
-                // 예산 범위 안에 들어오면 즉시 당첨 (가장 높은 정밀도부터 돌기 때문)
-                if requiredH <= maxRadiusLimit && requiredV <= maxRadiusLimit {
-                    return precision
-                }
-            }
-            
-            // 예산으로 커버 불가능한 거대 영역(지구 전체 뷰 등)인 경우 최후의 수단
-            return .twentyFiveHundredKilometers
-        }
-        
-        /// 현재 설정된 Precision을 기준으로 hRadius, vRadius를 업데이트
-        private mutating func updateRequestRadius(screenWidth: Double, screenHeight: Double) {
-            let gridW = self.precision.gridWidthInMeters
-            let gridH = self.precision.gridHeightInMeters
-            
-            let halfWidth = screenWidth / 2.0
-            let halfHeight = screenHeight / 2.0
-            
-            let requiredH = Int(ceil(halfWidth / gridW))
-            let requiredV = Int(ceil(halfHeight / gridH))
-            
-            // 최소 1칸은 보장 (화면 모서리 잘림 방지)
-            self.hRadius = max(1, requiredH)
-            self.vRadius = max(1, requiredV)
-            
-            // 로그 확인용 (필요시 주석 해제)
-            // print("✅ 최적화: P\(self.precision.rawValue), h:\(self.hRadius), v:\(self.vRadius)")
-        }
-        
         mutating func updatePosts(from newPosts: [MapPostDTO]) {
             guard let bounds = self.visibleBounds else { return }
             
@@ -256,7 +170,7 @@ struct MapFeature {
         enum View: BindableAction {
             case cameraButtonTapped
             case binding(BindingAction<State>)
-            case cameraDidMove(centerPosition: NMGLatLng, bounds: NMGLatLngBounds)
+            case cameraDidMove(centerPosition: NMGLatLng, bounds: NMGLatLngBounds, zoom: Double)
         }
         
         enum Alert: Equatable {
@@ -283,11 +197,10 @@ struct MapFeature {
                 state.camera = .init()
                 return .none
                 
-            case let .view(.cameraDidMove(cameraPosition, bounds)):
+            case let .view(.cameraDidMove(cameraPosition, bounds, zoom)):
                 state.mapCameraCenterPosition = cameraPosition
                 state.visibleBounds = bounds
-                state.optimizeGeohashState(bounds: bounds)
-                
+                state.zoom = zoom
                 return .send(.fetchPosts)
                 
             case .view(.binding):
@@ -385,16 +298,12 @@ struct MapFeature {
                     await send(.setLoadingIndicator(true))
                     
                     let request = PostRequest.GetMapPost(
-                        type: state.selectedFilter.rawValue,
                         latitude: state.mapCameraCenterPosition.lat,
                         longitude: state.mapCameraCenterPosition.lng,
-                        precision: state.precision.rawValue,
-                        hRadius: state.hRadius,
-                        vRadius: state.vRadius
+                        zoom: Int(state.zoom)
                     )
                     
                     let response = try await postClient.fetchMapPosts(request: request).result
-                    
                     await send(.setPosts(response))
                     await send(.dismissProgress)
                     await send(.setLoadingIndicator(false))

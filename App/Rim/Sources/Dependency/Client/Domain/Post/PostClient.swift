@@ -79,7 +79,7 @@ struct PostClient {
         
         var baseURLString: String {
             switch self {
-            case .fetchMapPosts, .createPost: v2URL
+            case .fetchMapPosts, .createPost: v3URL
             default: functionsURL
             }
         }
@@ -88,7 +88,7 @@ struct PostClient {
             switch self {
             case .createPost: "/posts"
             case let .fetchMapPosts(request):
-                "/posts/?latitude=\(request.latitude)&longitude=\(request.longitude)&precision=\(request.precision)&type=\(request.type)&hRadius=\(request.hRadius)&vRadius=\(request.vRadius)"
+                "/posts/?latitude=\(request.latitude)&longitude=\(request.longitude)&zoom=\(request.zoom)"
             case let .fetchPostByID(id): "/getPostById?id=\(id)"
             case let .incrementPostViewCount(postID):
                 "/increasePostViewCount/posts/\(postID)/views"
