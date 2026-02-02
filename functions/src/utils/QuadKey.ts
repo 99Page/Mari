@@ -34,23 +34,28 @@ export class QuadKey {
   }
 
   /**
-   * [수정됨] 현재 타일을 기준으로 주변 이웃 QuadKey 문자열들을 반환합니다.
-   * 이미 tileX, tileY를 가지고 있으므로 this.key 변환 과정이 필요 없습니다.
-   * @param range 범위 (1 = 3x3, 2 = 5x5...)
+   * 현재 타일을 기준으로 주변 이웃 QuadKey들을 반환합니다.
+   * @param rangeX 가로(좌우) 범위 (예: 1이면 좌1+우1+본인 = 가로 3칸)
+   * @param rangeY 세로(상하) 범위 (입력 없으면 rangeX와 동일한 정사각형)
    */
-  neighbors(range: number = 1): string[] {
-    // ★ 수정: this.key 대신 저장된 좌표를 바로 사용
+  neighbors(rangeX: number, rangeY?: number): string[] {
     const x = this.tileX;
     const y = this.tileY;
     const level = this.level;
     
+    // rangeY가 없으면 정사각형(rangeX)으로 처리
+    const rx = rangeX;
+    const ry = (rangeY !== undefined) ? rangeY : rangeX;
+
     const mapSize = 1 << level; // 2^level
     const maxXY = mapSize - 1;
 
     const neighborsList: string[] = [];
 
-    for (let dx = -range; dx <= range; dx++) {
-      for (let dy = -range; dy <= range; dy++) {
+    // 가로: -rx ~ +rx
+    for (let dx = -rx; dx <= rx; dx++) {
+      // 세로: -ry ~ +ry
+      for (let dy = -ry; dy <= ry; dy++) {
         
         // 중심(나 자신) 제외
         if (dx === 0 && dy === 0) continue;
@@ -65,12 +70,11 @@ export class QuadKey {
           nx = nx - mapSize;
         }
 
-        // 2. Y축(위도) 범위 체크 (범위 밖이면 무시)
+        // 2. Y축(위도) 범위 체크 (북극/남극 넘어가면 무시)
         if (ny < 0 || ny > maxXY) {
           continue;
         }
 
-        // 좌표 -> 문자열 변환 후 리스트 추가
         neighborsList.push(QuadKey.tileXYToQuadKey(nx, ny, level));
       }
     }

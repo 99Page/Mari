@@ -195,4 +195,41 @@ describe('QuadKey', () => {
       expect(result.length).toBe(5); 
     });
   });
+
+  describe('Real World Coordinate Test (3x5 Grid)', () => {
+  
+  test('Should include target post within 3x5 neighbors at Zoom Level 18', () => {
+    const centerLat = 37.4837613372925;   
+    const centerLng = 126.93192889557515;
+    
+    const targetLat = 37.482295;          
+    const targetLng = 126.93186;
+
+    const TEST_LEVEL = 18; 
+
+    const centerKey = QuadKey.fromGeo(centerLat, centerLng, TEST_LEVEL);
+    const targetKeyString = QuadKey.fromGeo(targetLat, targetLng, TEST_LEVEL).toString();
+
+    const neighbors = centerKey.neighbors(1, 2); 
+    const searchArea = [centerKey.toString(), ...neighbors];
+
+    const isIncluded = searchArea.includes(targetKeyString);
+
+    expect(isIncluded).toBe(true);
+  });
+  
+    test('Should include target post within 3x5 neighbors at Zoom Level 18', () => {
+    const centerLat = 37.4837613372925;   
+    const centerLng = 126.93192889557515;
+    const TEST_LEVEL = 20; 
+
+    const centerKey = QuadKey.fromGeo(centerLat, centerLng, TEST_LEVEL);
+    const centerString = centerKey.toString();
+
+    const neighbor = centerKey.neighbor(Direction.W).neighbor(Direction.W).toString(); 
+
+    expect(centerString).toBe("??");
+    expect(neighbor).toBe("");
+  });
+});
 });

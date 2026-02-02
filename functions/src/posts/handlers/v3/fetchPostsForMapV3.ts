@@ -11,7 +11,6 @@ export const fetchPostsForMapV3 = async (req: Request, res: Response) => {
   const lng = parseFloat(req.query.longitude as string);
   const zoom = parseInt(req.query.zoom as string, 10);
 
-  // 1. 유효성 검사
   if (isNaN(lat) || isNaN(lng)) {
     const errorResponse: ErrorResponse = {
       code: "invalid-location-query",
@@ -21,7 +20,6 @@ export const fetchPostsForMapV3 = async (req: Request, res: Response) => {
     return;
   }
 
-  // 줌 레벨 유효성 체크 (일반적인 지도 API 범위: 0 ~ 22)
   if (isNaN(zoom) || zoom < 0 || zoom > 23) {
     const errorResponse: ErrorResponse = {
       code: "invalid-zoom-query",
@@ -31,7 +29,6 @@ export const fetchPostsForMapV3 = async (req: Request, res: Response) => {
     return;
   }
 
-  // 2. User ID 추출
   let userID = "";
   try {
     const authHeader = req.headers.authorization || "";
@@ -48,16 +45,22 @@ export const fetchPostsForMapV3 = async (req: Request, res: Response) => {
     const targetPrecision = Math.min(zoom + 1, 22);
     const centerKey = QuadKey.fromGeo(lat, lng, targetPrecision);
 
-    // 4. 주변 타일(Neighbors) 포함 검색 키 생성 (3x3 Grid = 9개)
     const searchKeys = [
       centerKey.toString(),
-      ...centerKey.neighbors() 
+      ...centerKey.neighbors(1, 2)
     ];
 
-    // 5. DB 조회 실행
+
     const posts = await fetchPostsByQuadKeys(searchKeys, userID);
 
-    // 6. 응답 데이터 변환
+    logger.info('--- [DEBUG Map Query] ---', {
+      lat,
+      lng,
+      zoom,
+      centerKey: centerKey.toString(),
+      searchKeys: searchKeys
+    });
+    
     const postSummaries: PostSummary[] = posts.map(post => ({
       id: post.id,
       title: post.title,
@@ -72,7 +75,7 @@ export const fetchPostsForMapV3 = async (req: Request, res: Response) => {
       message: "Successfully fetched posts (V3)",
       result: {
         zoomLevel: zoom,
-        appliedPrecision: targetPrecision, // "Zoom + 1" 적용 결과
+        appliedPrecision: targetPrecision, 
         posts: postSummaries,
         postCount: posts.length
       }
@@ -98,7 +101,7 @@ async function fetchPostsByQuadKeys(keys: string[], userID: string) {
       .where("quadKeyL22", "<", keyPrefix + "\uf8ff")
       .orderBy("quadKeyL22")      
       .orderBy("createdAt", "desc") 
-      .limit(5)
+      .limit(1)
       .get();
 
     if (!snapshot.empty) {
