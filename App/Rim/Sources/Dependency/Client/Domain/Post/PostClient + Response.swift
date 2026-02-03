@@ -13,11 +13,13 @@ extension PostClient {
     enum Response {
         struct MapPosts: Decodable, Stub {
             static func stub() -> MapPosts {
-                MapPosts(posts: [.stub()], geohashBlocks: ["a", "b", "c"])
+                MapPosts(posts: [.stub()], zoomLevel: 17, appliedPrecision: 18, postCount: 1)
             }
             
             let posts: [MapPostDTO]
-            let geohashBlocks: [String]
+            let zoomLevel: Int
+            let appliedPrecision: Int
+            let postCount: Int
         }
 
     }

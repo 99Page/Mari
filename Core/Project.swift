@@ -42,7 +42,7 @@ let project = Project(
     organizationName: "Page",
     packages: [
         .remote(url: "https://github.com/SnapKit/SnapKit.git", requirement: .exact("5.7.1")),
-        .remote(url: "https://github.com/pointfreeco/swift-composable-architecture.git", requirement: .exact("1.20.1")),
+        .remote(url: "https://github.com/pointfreeco/swift-composable-architecture.git", requirement: .exact("1.23.1")),
         .local(path: "../RimMacro")
     ],
     targets: [target, testTarget]

@@ -48,3 +48,37 @@ export function convertToPostDetail(doc: admin.firestore.DocumentSnapshot, userI
     isMine: userID === data.creatorID
   };
 }
+
+export interface PostDetailV3 {
+  id: string;
+  title: string;
+  content: string;
+  imageUrl: string;
+  location: admin.firestore.GeoPoint;
+  quadKeys: string[];  // 1레벨부터 22레벨까지의 모든 쿼드키를 담은 배열
+  createdAt: admin.firestore.Timestamp;
+  creatorID: string;
+  isMine: boolean; 
+}
+
+/**
+ * Firestore DocumentSnapshot을 PostDetailV3 객체로 변환합니다.
+ */
+export function convertToPostDetailV3(
+  doc: admin.firestore.DocumentSnapshot, 
+  userID: string
+): PostDetailV3 {
+  const data = doc.data() || {};
+
+  return {
+    id: doc.id,
+    title: data.title || '',
+    content: data.content || '',
+    imageUrl: data.imageUrl || '',
+    location: data.location, 
+    quadKeys: data.quadKeys || [],
+    createdAt: data.createdAt,
+    creatorID: data.creatorID || '',
+    isMine: userID === data.creatorID
+  };
+}

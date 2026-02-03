@@ -55,6 +55,7 @@ let target = Target.target(
     resources: ["../Core/Resources/**"],
     entitlements: "SupportingFiles/Rim.entitlements",
     dependencies: [
+        .package(product: "ComposableArchitecture"),
         .package(product: "GoogleSignIn"),
         .package(product: "FirebaseAnalytics"),
         .package(product: "FirebaseAuth"),

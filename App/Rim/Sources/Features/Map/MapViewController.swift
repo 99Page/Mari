@@ -30,6 +30,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     private let progressView = UIActivityIndicatorView(style: .medium)
     
     private let cameraButton = UIButton()
+    private let currentLocationButton = UIButton()
     
     init(store: StoreOf<MapFeature>) {
         @UIBindable var binding = store
@@ -134,21 +135,30 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     }
     
     private func makeConstraint() {
-        
         view.addSubview(mapView)
         view.addSubview(cameraButton)
+        view.addSubview(currentLocationButton)
         view.addSubview(progressView)
         
         mapView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
         
+        // [수정] 가로 배치 구현
+        
+        // 1. 현재 위치 버튼 (오른쪽 기준점)
+        currentLocationButton.snp.makeConstraints { make in
+            make.bottom.equalTo(view.safeAreaLayoutGuide).inset(16) // 바닥에서 16 띄움
+            make.trailing.equalToSuperview().inset(16) // 오른쪽에서 16 띄움
+            make.width.height.equalTo(40) // 정원형 크기 지정
+        }
+        
         cameraButton.snp.makeConstraints { make in
-            make.bottom.equalToSuperview().inset(16)
-            make.trailing.equalToSuperview().inset(16)
+            make.centerY.equalTo(currentLocationButton)
+            make.trailing.equalTo(currentLocationButton.snp.leading).offset(-10)
             make.width.height.equalTo(40)
         }
-       
+        
         progressView.snp.makeConstraints { make in
             make.height.width.equalTo(20)
             make.bottom.equalToSuperview().inset(40)
@@ -162,36 +172,59 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         mapView.addCameraDelegate(delegate: self)
         mapView.zoomLevel = 17
         mapView.locationOverlay.hidden = false
-    
+        
         progressView.startAnimating()
         progressView.color = .gray
         
         setupCameraButton()
+        setupLocationButton()
+    }
+    
+    private func setupLocationButton() {
+        applySharedButtonStyle(to: currentLocationButton, iconName: "location")
+        currentLocationButton.addTarget(self, action: #selector(didTapCurrentLocationButton), for: .touchUpInside)
+    }
+    
+    private func applySharedButtonStyle(to button: UIButton, iconName: String) {
+        // 1. 배경 및 테두리 (흰색 배경, 파란색 테두리)
+        button.backgroundColor = .white
+        button.layer.cornerRadius = 20 // 40x40 크기의 절반 (완전 원형)
+        button.layer.borderWidth = 1.5
+        button.layer.borderColor = UIColor.systemBlue.cgColor
+        
+        // 2. 그림자
+        button.layer.shadowColor = UIColor.black.cgColor
+        button.layer.shadowOpacity = 0.15
+        button.layer.shadowOffset = CGSize(width: 0, height: 2)
+        button.layer.shadowRadius = 4
+        
+        // 3. 아이콘 (파란색)
+        // 버튼 크기(40)에 맞춰 아이콘 크기를 약간 조절했습니다.
+        let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .semibold)
+        button.setImage(UIImage(systemName: iconName, withConfiguration: config), for: .normal)
+        button.tintColor = .systemBlue
+    }
+    
+    
+    
+    @objc private func didTapCurrentLocationButton() {
+        guard let location = locationManager.location else { return }
+        let coord = NMGLatLng(lat: location.coordinate.latitude, lng: location.coordinate.longitude)
+        let cameraUpdate = NMFCameraUpdate(scrollTo: coord, zoomTo: mapView.zoomLevel)
+        cameraUpdate.animation = .easeIn
+        mapView.moveCamera(cameraUpdate)
     }
     
     private func setupCameraButton() {
-        let imageSize = CGFloat(20)
-        let inset = imageSize / 2
-        let symbolConfig = UIImage.SymbolConfiguration(pointSize: imageSize, weight: .bold, scale: .medium)
-        let image = UIImage(systemName: "camera.fill", withConfiguration: symbolConfig)
+        applySharedButtonStyle(to: cameraButton, iconName: "camera")
         
-        var config = UIButton.Configuration.filled()
-        config.image = image
-        config.baseBackgroundColor = .systemBlue
-        config.baseForegroundColor = .white
-        config.cornerStyle = .capsule
-        config.contentInsets = NSDirectionalEdgeInsets(top: inset, leading: inset, bottom: inset, trailing: inset)
-        
-        cameraButton.configuration = config
-        cameraButton.layer.shadowColor = UIColor.black.cgColor
-        cameraButton.layer.shadowOpacity = 0.3
-        cameraButton.layer.shadowOffset = CGSize(width: 0, height: 4)
-        cameraButton.layer.shadowRadius = 4
-        cameraButton.translatesAutoresizingMaskIntoConstraints = false
+        // 액션 추가
         cameraButton.addAction(UIAction { [weak self] _ in
             self?.send(.cameraButtonTapped)
         }, for: .touchUpInside)
     }
+    
+    
     
     
     private func addOverlay() {
@@ -211,9 +244,10 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     
     // 카메라 이동이 모두 끝났을 때 호출됩니다. -page 2025. 07. 01
     func mapViewCameraIdle(_ mapView: NMFMapView) {
-        let zoomLevel = mapView.zoomLevel
         let centerPosition = mapView.cameraPosition
-        send(.cameraDidMove(centerPosition: centerPosition.target, bounds: mapView.coveringBounds))
+        send(.cameraDidMove(centerPosition: centerPosition.target,
+                            bounds: mapView.coveringBounds,
+                            zoom: mapView.zoomLevel))
     }
     
     private func showLocationPermissionAlert() {
