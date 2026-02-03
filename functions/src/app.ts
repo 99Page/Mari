@@ -12,6 +12,6 @@ const app = express();
 app.use(express.json());
 
 app.use("/v2/posts/", v2PostsRouter); // markerUrl 추가
-app.use("/v3/posts", v3Router); // quadKey 변경
+app.use("/v3/posts/", v3Router); // quadKey 변경
 
 export default app;

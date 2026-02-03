@@ -55,8 +55,7 @@ export interface PostDetailV3 {
   content: string;
   imageUrl: string;
   location: admin.firestore.GeoPoint;
-  // [NEW] 공간 인덱싱의 핵심 (Level 22 Standard)
-  quadKeyL22: string; 
+  quadKeys: string[];  // 1레벨부터 22레벨까지의 모든 쿼드키를 담은 배열
   createdAt: admin.firestore.Timestamp;
   creatorID: string;
   isMine: boolean; 
@@ -64,8 +63,6 @@ export interface PostDetailV3 {
 
 /**
  * Firestore DocumentSnapshot을 PostDetailV3 객체로 변환합니다.
- * @param doc Firestore 문서 스냅샷
- * @param userID 요청한 유저의 ID (isMine 판별용)
  */
 export function convertToPostDetailV3(
   doc: admin.firestore.DocumentSnapshot, 
@@ -79,7 +76,7 @@ export function convertToPostDetailV3(
     content: data.content || '',
     imageUrl: data.imageUrl || '',
     location: data.location, 
-    quadKeyL22: data.quadkeyL22 || '',
+    quadKeys: data.quadKeys || [],
     createdAt: data.createdAt,
     creatorID: data.creatorID || '',
     isMine: userID === data.creatorID

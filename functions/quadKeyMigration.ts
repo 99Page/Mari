@@ -1,19 +1,21 @@
 import * as admin from 'firebase-admin';
-import { QuadKey } from './src/utils/QuadKey';
+import { QuadKey } from './src/utils/QuadKey'; 
 
 const serviceAccount = require('./serviceAccountKey.json'); 
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+}
 
 const db = admin.firestore();
 
-async function migratePostsToQuadKey() {
-  console.log("🚀 마이그레이션 시작...");
+async function migratePostsToQuadKeyArray() {
+  console.log("🚀 마이그레이션(Array 방식 전환) 시작...");
 
-  const postsRef = db.collection('posts'); // 혹은 컬렉션 그룹이 필요하면 수정
-  const snapshot = await postsRef.get(); // 문서가 너무 많으면 stream() 권장
+  const postsRef = db.collection('posts'); 
+  const snapshot = await postsRef.get();
 
   if (snapshot.empty) {
     console.log("데이터가 없습니다.");
@@ -29,35 +31,54 @@ async function migratePostsToQuadKey() {
   snapshot.docs.forEach((doc) => {
     const data = doc.data();
 
-    // 1. 좌표 데이터 가져오기 (필드명 확인 필수: location 혹은 latitude/longitude)
+    // 1. 좌표 데이터 추출
     let lat: number | undefined;
     let lng: number | undefined;
 
-    if (data.location && data.location.latitude) {
-      // GeoPoint 타입인 경우
+    // GeoPoint 객체 우선 확인
+    if (data.location && typeof data.location.latitude === 'number') {
       lat = data.location.latitude;
       lng = data.location.longitude;
-    } else if (data.latitude && data.longitude) {
-      // 숫자 필드로 따로 저장된 경우
+    } 
+    // 평문 필드(latitude, longitude) 확인
+    else if (typeof data.latitude === 'number' && typeof data.longitude === 'number') {
       lat = data.latitude;
       lng = data.longitude;
     }
 
-
     if (lat !== undefined && lng !== undefined) {
-      const quadKey = QuadKey.fromGeo(lat, lng, 22).toString();
-      if (data.quadKeyL22 === quadKey) {
-        skipped++;
-        return;
-      }
+      try {
+        const fullQuadKey = QuadKey.fromGeo(lat, lng, 22).toString();
 
-      bulkWriter.update(doc.ref, { 
-        quadKeyL22: quadKey 
-      });
-      
-      count++;
+        const quadKeys: string[] = [];
+        for (let i = 1; i <= fullQuadKey.length; i++) {
+          quadKeys.push(fullQuadKey.substring(0, i));
+        }
+
+        const isAlreadyMigrated = 
+          data.quadKeys && 
+          data.quadKeys.length === quadKeys.length &&
+          data.quadKeys[quadKeys.length - 1] === fullQuadKey &&
+          data.quadKeyL22 === undefined &&     
+          data.quadKeyTimeL22 === undefined;   
+
+        if (isAlreadyMigrated) {
+          skipped++;
+          return;
+        }
+
+        bulkWriter.update(doc.ref, { 
+          quadKeys: quadKeys,
+          quadKeyL22: admin.firestore.FieldValue.delete(),     
+          quadKeyTimeL22: admin.firestore.FieldValue.delete()  
+        });
+        
+        count++;
+      } catch (e) {
+        console.error(`[ERROR] 문서 ID ${doc.id} 처리 중 오류:`, e);
+      }
     } else {
-      console.warn(`[SKIP] 문서 ID ${doc.id}: 좌표 정보 없음`);
+      console.warn(`[SKIP] 문서 ID ${doc.id}: 필수 좌표 정보 부족`);
       skipped++;
     }
   });
@@ -65,7 +86,7 @@ async function migratePostsToQuadKey() {
   await bulkWriter.close();
   console.log(`✅ 마이그레이션 완료!`);
   console.log(`- 업데이트됨: ${count}`);
-  console.log(`- 스킵됨: ${skipped}`);
+  console.log(`- 스킵됨(이미 완료): ${skipped}`);
 }
 
-migratePostsToQuadKey().catch(console.error);
+migratePostsToQuadKeyArray().catch(console.error);

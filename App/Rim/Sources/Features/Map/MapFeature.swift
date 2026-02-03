@@ -303,7 +303,6 @@ struct MapFeature {
                         zoom: Int(state.zoom)
                     )
                     
-                    Logger.debug("\(request)")
                     let response = try await postClient.fetchMapPosts(request: request).result
                     await send(.setPosts(response))
                     await send(.dismissProgress)

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createPostV3 } from "@/posts/handlers/v3/createPostsV3"
+import { createPostV3 } from "@/posts/handlers/v3/createPostV3"
 import { fetchPostsForMapV3 } from "@/posts/handlers/v3/fetchPostsForMapV3";
 
 
