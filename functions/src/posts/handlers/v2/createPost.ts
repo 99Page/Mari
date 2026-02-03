@@ -2,8 +2,8 @@ import { Request, Response } from "express";
 import * as logger from "firebase-functions/logger";
 import Geohash from "latlon-geohash";
 import { db, adminInstance as admin } from "../../../utils/firebase";
-import { errors } from "../../../resopnse/errorResponse";
-import type { ErrorResponse } from "../../../resopnse/errorResponse";
+import { errors } from "../../../response/errorResponse";
+import type { ErrorResponse } from "../../../response/errorResponse";
 import { PostDetail } from "../../models/postDetail";
 import { hasBannedWord } from "@/utils/bannedWords";
 

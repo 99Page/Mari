@@ -2,7 +2,7 @@ import type { Request } from "firebase-functions/v2/https";
 import { Response } from "express"
 import * as admin from "firebase-admin";
 import { logger } from "firebase-functions";
-import { errors } from "../resopnse/errorResponse";
+import { errors } from "../response/errorResponse";
 
 // 인증 토큰 검증 유틸
 // - 성공: 검증된 idToken 문자열 반환

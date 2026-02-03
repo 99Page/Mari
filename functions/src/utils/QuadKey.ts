@@ -11,6 +11,9 @@ export class QuadKey {
 
   // 1. [진입점] 위경도로 생성
   static fromGeo(lat: number, lon: number, level: number): QuadKey {
+    if (level < 1 || level > 23) {
+     throw new Error("Invalid level. Level must be between 1 and 23.");
+    }
     const MIN_LAT = -85.05112878;
     const MAX_LAT = 85.05112878;
     const clippedLat = Math.max(MIN_LAT, Math.min(lat, MAX_LAT));

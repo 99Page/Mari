@@ -1,7 +1,7 @@
 import { onRequest } from "firebase-functions/v2/https";
 import { db, region } from "../utils/firebase";
-import { errors } from "../resopnse/errorResponse";
-import { SuccessResponse } from "../resopnse/successResponse";
+import { errors } from "../response/errorResponse";
+import { SuccessResponse } from "../response/successResponse";
 import { verifyAuthAndGetUid } from "../auth/verifyToken";
 
 export const unblocksUser = onRequest({ region }, async (req, res) => {

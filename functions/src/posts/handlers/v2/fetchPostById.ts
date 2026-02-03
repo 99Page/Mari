@@ -1,8 +1,8 @@
-import type { SuccessResponse } from "@/resopnse/successResponse";
+import type { SuccessResponse } from "@/response/successResponse";
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { db, adminInstance as admin } from "@/utils/firebase";
-import { ErrorResponse, errors } from "@/resopnse/errorResponse";
+import { ErrorResponse, errors } from "@/response/errorResponse";
 import { PostDetail, convertToPostDetail } from "@/posts/models/postDetail"
 
 const REGION = "asia-northeast3";

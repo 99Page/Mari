@@ -24,7 +24,6 @@ extension PostClient {
             let content: String
             let latitude: Double
             let longitude: Double
-            let creatorID: String
             let imageUrl: String
         }
 

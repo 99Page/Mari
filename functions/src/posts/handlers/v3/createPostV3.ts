@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import * as admin from 'firebase-admin';
 import * as logger from "firebase-functions/logger";
-import { errors } from '@/resopnse/errorResponse';
+import { errors } from '@/response/errorResponse';
 import { QuadKey } from '@/utils/QuadKey';
 import { PostDetailV3 } from '@/posts/models/postDetail';
 import { hasBannedWord } from '@/utils/bannedWords'
@@ -17,8 +17,11 @@ export const createPostV3 = async (req: Request, res: Response) => {
       return;
     }
 
+    let userID: string;
+
     try {
-      await admin.auth().verifyIdToken(idToken);
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      userID = decodedToken.uid; 
     } catch (error) {
       logger.error("Token verification failed:", error);
       res.status(401).json(errors.UNAUTHORIZED);
@@ -31,9 +34,9 @@ export const createPostV3 = async (req: Request, res: Response) => {
       return;
     }
 
-    const { title, content, latitude, longitude, creatorID, imageUrl } = body;
+    const { title, content, latitude, longitude, imageUrl } = body;
 
-    if (!title || latitude == null || longitude == null || !creatorID || !imageUrl) {
+    if (!title || latitude == null || longitude == null || !imageUrl) {
       res.status(400).json({ code: "MISSING_REQUIRED_FIELDS", message: "Missing required fields" });
       return;
     }
@@ -47,7 +50,7 @@ export const createPostV3 = async (req: Request, res: Response) => {
     }
 
     const bannedInTitle = hasBannedWord(title);
-    const bannedInContent = hasBannedWord(content);
+    const bannedInContent = content ? hasBannedWord(content) : []; // content가 없을 경우 대비
     const allBannedWords = [...bannedInTitle, ...bannedInContent];
 
     if (allBannedWords.length > 0) {
@@ -65,7 +68,6 @@ export const createPostV3 = async (req: Request, res: Response) => {
       for (let i = 1; i <= fullQuadKey.length; i++) {
         quadKeys.push(fullQuadKey.substring(0, i));
       }
-
     } catch (e) {
       logger.error("QuadKey encoding failed:", e);
       res.status(500).json({
@@ -79,12 +81,12 @@ export const createPostV3 = async (req: Request, res: Response) => {
 
     const newPost = {
       title,
-      content,
+      content: content || "", 
       location: locationGeoPoint,
-      creatorID,
+      creatorID: userID,      
       imageUrl,
       createdAt: createdAtTimestamp,
-      quadKeys: quadKeys
+      quadKeys: quadKeys      
     };
 
     const postRef = await db.collection("posts").add(newPost);
@@ -92,11 +94,11 @@ export const createPostV3 = async (req: Request, res: Response) => {
     const resultData: PostDetailV3 = {
       id: postRef.id,
       title,
-      content,
+      content: content || "",
       imageUrl,
       location: locationGeoPoint,
       createdAt: createdAtTimestamp,
-      creatorID,
+      creatorID: userID,
       quadKeys: quadKeys,
       isMine: true
     };
