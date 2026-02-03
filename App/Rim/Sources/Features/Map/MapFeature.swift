@@ -335,35 +335,3 @@ struct MapFeature {
         .ifLet(\.$camera, action: \.camera) { CameraFeature() }
     }
 }
-
-extension Geohash.Precision {
-    var gridWidthInMeters: Double {
-        switch self {
-        case .twentyFiveHundredKilometers: return 5_000_000
-        case .sixHundredThirtyKilometers:  return 1_250_000
-        case .seventyEightKilometers:      return 156_000
-        case .twentyKilometers:            return 39_000
-        case .twentyFourHundredMeters:     return 4_900
-        case .sixHundredTenMeters:         return 1_200
-        case .seventySixMeters:            return 152
-        case .nineteenMeters:              return 38
-        case .twoHundredFourtyCentimeters: return 4.8
-        default: return 0
-        }
-    }
-    
-    var gridHeightInMeters: Double {
-        switch self {
-        case .twentyFiveHundredKilometers: return 5_000_000   // Level 1: 정사각형
-        case .sixHundredThirtyKilometers:  return 625_000     // Level 2: 직사각형 (가로의 절반)
-        case .seventyEightKilometers:      return 156_000     // Level 3: 정사각형
-        case .twentyKilometers:            return 19_500      // Level 4: 직사각형 (가로의 절반)
-        case .twentyFourHundredMeters:     return 4_900       // Level 5: 정사각형
-        case .sixHundredTenMeters:         return 600         // Level 6: 직사각형 (가로의 절반)
-        case .seventySixMeters:            return 152         // Level 7: 정사각형
-        case .nineteenMeters:              return 19          // Level 8: 직사각형 (가로의 절반)
-        case .twoHundredFourtyCentimeters: return 4.8         // Level 9: 정사각형
-        default: return 0
-        }
-    }
-}
