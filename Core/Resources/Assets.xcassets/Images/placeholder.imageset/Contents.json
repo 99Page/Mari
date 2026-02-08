@@ -1,11 +1,12 @@
 {
   "images" : [
     {
+      "filename" : "mapDefaultPlaceholder 1.svg",
       "idiom" : "universal",
       "scale" : "1x"
     },
     {
-      "filename" : "placeholder.svg",
+      "filename" : "mapDefaultPlaceholder.svg",
       "idiom" : "universal",
       "scale" : "2x"
     },

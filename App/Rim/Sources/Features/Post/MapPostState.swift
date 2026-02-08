@@ -17,7 +17,6 @@ struct MapPostState: Equatable, Identifiable, Hashable {
     let title: String
     let location: CLLocation
     let creatorID: String
-    var image: UIImage?
     let zIndex: Int
     let fetchedPrecision: Geohash.Precision
     

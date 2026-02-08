@@ -20,7 +20,8 @@ let target = Target.target(
     dependencies: [
         .package(product: "SnapKit"),
         .package(product: "ComposableArchitecture"),
-        .package(product: "RimMacro")
+        .package(product: "RimMacro"),
+        .package(product: "Kingfisher")
     ]
 )
 
@@ -43,6 +44,7 @@ let project = Project(
     packages: [
         .remote(url: "https://github.com/SnapKit/SnapKit.git", requirement: .exact("5.7.1")),
         .remote(url: "https://github.com/pointfreeco/swift-composable-architecture.git", requirement: .exact("1.23.1")),
+        .remote(url: "https://github.com/onevcat/Kingfisher.git", requirement: .exact("8.6.2")),
         .local(path: "../RimMacro")
     ],
     targets: [target, testTarget]

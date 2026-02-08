@@ -12,9 +12,13 @@ import CoreLocation
 import Core
 import ComposableArchitecture
 import SwiftUI
+import Kingfisher
 
 @ViewAction(for: MapFeature.self)
 class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
+    
+    @Dependency(\.viewImageGenerator) var viewImageGenerator
+    
     @UIBindable var store: StoreOf<MapFeature>
     
     private lazy var mapView: NMFMapView = {
@@ -30,11 +34,24 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
     private let progressView = UIActivityIndicatorView(style: .medium)
     
     private let cameraButton = UIButton()
+    
     private let currentLocationButton = UIButton()
+    
     private lazy var cachedLockedIcon: UIImage = {
         let size = CGSize(width: 94, height: 86)
         return resizedImage(UIImage(systemName: "lock.circle")!, size: size)
     }()
+    
+    @MainActor
+    private var placeholderIcon: UIImage {        
+        let markerView = ImageMarkerView(
+            image: Image(.placeholder),
+            title: "",
+            contentMode: .fit
+        )
+        
+        return viewImageGenerator.generate(markerView) ?? UIImage()
+    }
     
     init(store: StoreOf<MapFeature>) {
         @UIBindable var binding = store
@@ -93,6 +110,10 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
         observe { [weak self] in
             guard let self else { return }
             updateMarkers()
+        }
+        
+        observe { [weak self] in
+            guard let self else { return }
             updateProgressView()
         }
     }
@@ -108,18 +129,10 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
     
     private func syncMarkers() {
         for post in store.posts {
-            let iconImage: UIImage
-            let markerSize = CGSize(width: 94, height: 86)
-            
-            if store.blockedUserIds.contains(post.creatorID) {
-                iconImage = resizedImage(UIImage(systemName: "lock.circle")!, size: markerSize)
-            } else {
-                iconImage = post.image ?? UIImage(resource: .placeholder)
-            }
-            
             if let existingMarker = activeMarkers[post.id] {
-                if existingMarker.iconImage.image != iconImage {
-                    existingMarker.iconImage = NMFOverlayImage(image: iconImage)
+                let cachedUrl = existingMarker.userInfo["url"] as? String
+                if cachedUrl != post.imageURL {
+                    updateMarkerImage(for: post, on: existingMarker)
                 }
             } else {
                 let marker = makeNewMarker(post)
@@ -136,7 +149,7 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
         if store.blockedUserIds.contains(post.creatorID) {
             iconImage = cachedLockedIcon
         } else {
-            iconImage = post.image ?? UIImage(resource: .placeholder)
+            iconImage = placeholderIcon
         }
         
         
@@ -149,8 +162,67 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
         marker.zIndex = post.zIndex
         marker.anchor = CGPoint(x: 0.5, y: 1)
         marker.iconImage = NMFOverlayImage(image: iconImage)
+        marker.userInfo = ["url": post.imageURL]
         
+        updateMarkerImage(for: post, on: marker)
         return marker
+    }
+    
+    private func updateMarkerImage(for post: MapPostState, on marker: NMFMarker) {
+        if store.blockedUserIds.contains(post.creatorID) {
+            marker.iconImage = NMFOverlayImage(image: cachedLockedIcon)
+        } else {
+            Task {
+                let loadedImage = await loadMarkerImage(for: post)
+                await MainActor.run {
+                    marker.iconImage = NMFOverlayImage(image: loadedImage)
+                }
+            }
+        }
+    }
+    
+    func loadMarkerImage(for post: MapPostState) async -> UIImage {
+        
+        let rawUrlString = post.imageURL
+        let markerCacheKey = rawUrlString.isEmpty ? "empty_post_marker" : rawUrlString + "_processed_marker"
+        
+        let cache = KingfisherManager.shared.cache
+        if let result = try? await cache.retrieveImage(forKey: markerCacheKey),
+           let cachedMarker = result.image {
+            return cachedMarker
+        }
+        
+        var sourceImage: UIImage?
+        var contentMode: SwiftUI.ContentMode
+        
+        if let url = URL(string: rawUrlString) {
+            do {
+                let result = try await KingfisherManager.shared.retrieveImage(with: url)
+                sourceImage = result.image
+                contentMode = .fill // 📸 사진은 꽉 채우기
+            } catch {
+                sourceImage = nil // 실패 시 아래에서 플레이스홀더 처리
+                contentMode = .fit
+            }
+        } else {
+            sourceImage = nil
+            contentMode = .fit
+        }
+        
+        let finalImageToRender = sourceImage ?? UIImage(resource: .placeholder)
+        if sourceImage == nil { contentMode = .fit }
+        
+        let generatedMarker = await MainActor.run {
+            let markerView = ImageMarkerView(
+                image: Image(uiImage: finalImageToRender),
+                title: post.title,
+                contentMode: contentMode
+            )
+            return viewImageGenerator.generate(markerView)
+        } ?? UIImage()
+        
+        try? await cache.store(generatedMarker, forKey: markerCacheKey, toDisk: false)
+        return generatedMarker
     }
     
     private func removeMarkers() {
@@ -172,13 +244,10 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
             make.edges.equalToSuperview()
         }
         
-        // [수정] 가로 배치 구현
-        
-        // 1. 현재 위치 버튼 (오른쪽 기준점)
         currentLocationButton.snp.makeConstraints { make in
-            make.bottom.equalTo(view.safeAreaLayoutGuide).inset(16) // 바닥에서 16 띄움
-            make.trailing.equalToSuperview().inset(16) // 오른쪽에서 16 띄움
-            make.width.height.equalTo(40) // 정원형 크기 지정
+            make.bottom.equalTo(view.safeAreaLayoutGuide).inset(16)
+            make.trailing.equalToSuperview().inset(16)
+            make.width.height.equalTo(40) 
         }
         
         cameraButton.snp.makeConstraints { make in

@@ -35,14 +35,17 @@ struct MapFeature {
         var isProgressPresented = false
         
         var selectedFilter = Filter.latest
-        var lastFetchPrecision: Int = 7
         
+        var lastFetchZoom = Double(17)
         var visibleBounds: NMGLatLngBounds?
         var zoom = Double(17)
         
-        var postsNeedingImages: [MapPostState] {
-            return self.posts.filter { $0.image == nil }
-        }
+        // 마커가 너무 많은 경우, 지도에 제대로 표시되지 않습니다.
+        // 네이버 지도에서 공식적으로 어느 기점으로 그런 현상이 나타나는지 공개된 것은 없으며
+        // 대략적으로 마커 마커에 사용한 이미지가 40MB를 넘으면 이런 상황이 발생하는 것으로 보입니다.
+        // 하지만 이미지의 크기를 세는 것보단, 전체 개수를 제한하는 식으로 마커의 개수를 제한합니다.
+        // 축소시킨 이미지의 경우 1MB를 넘지 않습니다.
+        private let maxPostCount = 40
         
         // MARK: - Helper Methods
         mutating func updatePosts(from newPosts: [MapPostDTO]) {
@@ -57,65 +60,38 @@ struct MapFeature {
         }
         
         private mutating func cleanPosts() {
+            if posts.count < maxPostCount { return }
             
-            let limitMB: Double = 40
-            
-            var currentTotalSize = self.posts.lazy
-                .compactMap { $0.image?.memorySizeInMB }
-                .reduce(0, +)
-            
-            if currentTotalSize <= limitMB { return }
-            
-            performDistanceCleanup(limitMB: limitMB, currentTotalSize: &currentTotalSize)
-            performPrecisionCleanup(limitMB: limitMB, currentTotalSize: &currentTotalSize)
+            performDistanceCleanup()
+            performPrecisionCleanup()
         }
         
-        private mutating func performPrecisionCleanup(
-            limitMB: Double,
-            currentTotalSize: inout Double,
-        ) {
-            guard currentTotalSize > limitMB else { return }
-            
+        private mutating func performPrecisionCleanup() {
             var idsToRemove: [String] = []
-            
             let currentPrecision = precision
             
             for post in self.posts {
-                if currentTotalSize <= limitMB { break }
+                if posts.count < maxPostCount { break }
                 
                 if post.fetchedPrecision != currentPrecision {
-                    currentTotalSize -= post.image?.memorySizeInMB ?? 0
                     idsToRemove.append(post.id)
                 }
             }
-            for id in idsToRemove {
-                self.posts.remove(id: id)
+            
+            posts.removeAll { post in
+                idsToRemove.contains(post.id)
             }
         }
         
-        private mutating func performDistanceCleanup(
-            limitMB: Double,
-            currentTotalSize: inout Double,
-        ) {
+        private mutating func performDistanceCleanup() {
             guard let bounds = visibleBounds else { return }
-            
-            var idsToRemove: [String] = []
             
             let center = self.mapCameraCenterPosition
             let visibleRadius = center.distance(to: bounds.southWest)
             let threshold = visibleRadius * 2.0 // 화면 반경의 2배
             
-            for post in self.posts {
-                if currentTotalSize <= limitMB { break }
-                
-                if center.distance(to: post.nmLocation) > threshold {
-                    currentTotalSize -= post.image?.memorySizeInMB ?? 0
-                    idsToRemove.append(post.id)
-                }
-            }
-            
-            for id in idsToRemove {
-                posts.remove(id: id)
+            posts.removeAll { post in
+                center.distance(to: post.nmLocation) > threshold
             }
         }
         
@@ -127,15 +103,7 @@ struct MapFeature {
                 if center.distance(to: dtoLocation) > threshold { continue }
                 
                 if var existingPost = self.posts[id: dto.id] {
-                    let oldImage = existingPost.image
-                    let oldImageURL = existingPost.imageURL
-                    
                     existingPost = MapPostState(dto: dto, fetchedPrecision: currentPrecision)
-                    
-                    if oldImageURL == dto.imageUrl {
-                        existingPost.image = oldImage
-                    }
-                    
                     self.posts.updateOrAppend(existingPost)
                     
                 } else {
@@ -167,7 +135,6 @@ struct MapFeature {
         case setPosts(PostResponse.MapPosts)
         case showFetchFailAlert
         case dismissProgress
-        case setImage(postID: String, image: UIImage)
         case showFailedToGetPhotoLocationAlert
         case setLoadingIndicator(Bool)
         
@@ -182,10 +149,8 @@ struct MapFeature {
         }
     }
     
-    @Dependency(\.imageClient) var imageClient
     @Dependency(\.postClient) var postClient
     @Dependency(\.locationManager) var locationManager
-    @Dependency(\.viewImageGenerator) var viewImageGenerator
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
@@ -277,35 +242,6 @@ struct MapFeature {
                 
             case let .setPosts(response):
                 state.updatePosts(from: response.posts)
-                
-                let postsNeedingImage = state.postsNeedingImages
-                
-                return .run { send in
-                    await withTaskGroup(of: Void.self) { group in
-                        for post in postsNeedingImage {
-                            group.addTask {
-                                do {
-                                    let request = ImageClient.Request.Load(originalUrl: post.imageURL, size: .small)
-                                    let image = try await imageClient.loadImage(request: request)
-                                        
-                                    let markerImage: UIImage? = await MainActor.run {
-                                        let markerView = ImageMarkerView(image: Image(uiImage: image), title: post.title)
-                                        return viewImageGenerator.generate(markerView)
-                                    }
-                                    
-                                    guard let finalImage = markerImage else { return }
-                                    await send(.setImage(postID: post.id, image: finalImage))
-                                } catch {
-                                    Logger.error("이미지 로드 실패")
-                                }
-                            }
-                        }
-                    }
-                }
-                .cancellable(id: EffectID.cancelImageLoad, cancelInFlight: true)
-                
-            case let .setImage(postID, image):
-                state.posts[id: postID]?.image = image
                 return .none
                 
             case .showFetchFailAlert:
@@ -323,7 +259,6 @@ struct MapFeature {
                 return .none
                 
             case .fetchPosts:
-                
                 return .run { [center = state.mapCameraCenterPosition, zoom = state.zoom] send in
                     await send(.setLoadingIndicator(true))
                     
@@ -342,8 +277,7 @@ struct MapFeature {
                     await send(.dismissProgress)
                     await send(.setLoadingIndicator(false))
                 }
-                    .debounce(id: EffectID.fetchPosts, for: .seconds(1), scheduler: DispatchQueue.main)
-                    .cancellable(id: EffectID.fetchPosts, cancelInFlight: true)
+                    .debounce(id: EffectID.fetchPosts, for: .seconds(0.5), scheduler: DispatchQueue.main)
                 
             case let .removePost(id):
                 state.posts.remove(id: id)
