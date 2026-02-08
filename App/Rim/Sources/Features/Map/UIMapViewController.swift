@@ -43,9 +43,7 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
     }()
     
     @MainActor
-    private var placeholderIcon: UIImage {
-        @Dependency(\.viewImageGenerator) var viewImageGenerator
-        
+    private var placeholderIcon: UIImage {        
         let markerView = ImageMarkerView(
             image: Image(.placeholder),
             title: "",
@@ -131,10 +129,11 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
     
     private func syncMarkers() {
         for post in store.posts {
-            let markerSize = CGSize(width: 94, height: 86)
-            
             if let existingMarker = activeMarkers[post.id] {
-                updateMarkerImage(for: post, on: existingMarker)
+                let cachedUrl = existingMarker.userInfo["url"] as? String
+                if cachedUrl != post.imageURL {
+                    updateMarkerImage(for: post, on: existingMarker)
+                }
             } else {
                 let marker = makeNewMarker(post)
                 marker.mapView = mapView
@@ -163,6 +162,7 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
         marker.zIndex = post.zIndex
         marker.anchor = CGPoint(x: 0.5, y: 1)
         marker.iconImage = NMFOverlayImage(image: iconImage)
+        marker.userInfo = ["url": post.imageURL]
         
         updateMarkerImage(for: post, on: marker)
         return marker

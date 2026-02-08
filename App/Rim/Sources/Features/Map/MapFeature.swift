@@ -35,8 +35,8 @@ struct MapFeature {
         var isProgressPresented = false
         
         var selectedFilter = Filter.latest
-        var lastFetchPrecision: Int = 7
         
+        var lastFetchZoom = Double(17)
         var visibleBounds: NMGLatLngBounds?
         var zoom = Double(17)
         
@@ -77,30 +77,21 @@ struct MapFeature {
                     idsToRemove.append(post.id)
                 }
             }
-            for id in idsToRemove {
-                self.posts.remove(id: id)
+            
+            posts.removeAll { post in
+                idsToRemove.contains(post.id)
             }
         }
         
         private mutating func performDistanceCleanup() {
             guard let bounds = visibleBounds else { return }
             
-            var idsToRemove: [String] = []
-            
             let center = self.mapCameraCenterPosition
             let visibleRadius = center.distance(to: bounds.southWest)
             let threshold = visibleRadius * 2.0 // 화면 반경의 2배
             
-            for post in self.posts {
-                if posts.count <= maxPostCount { break }
-                
-                if center.distance(to: post.nmLocation) > threshold {
-                    idsToRemove.append(post.id)
-                }
-            }
-            
-            for id in idsToRemove {
-                posts.remove(id: id)
+            posts.removeAll { post in
+                center.distance(to: post.nmLocation) > threshold
             }
         }
         
@@ -158,10 +149,8 @@ struct MapFeature {
         }
     }
     
-    @Dependency(\.imageClient) var imageClient
     @Dependency(\.postClient) var postClient
     @Dependency(\.locationManager) var locationManager
-    @Dependency(\.viewImageGenerator) var viewImageGenerator
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
@@ -270,7 +259,6 @@ struct MapFeature {
                 return .none
                 
             case .fetchPosts:
-                
                 return .run { [center = state.mapCameraCenterPosition, zoom = state.zoom] send in
                     await send(.setLoadingIndicator(true))
                     
@@ -289,8 +277,7 @@ struct MapFeature {
                     await send(.dismissProgress)
                     await send(.setLoadingIndicator(false))
                 }
-                    .debounce(id: EffectID.fetchPosts, for: .seconds(1), scheduler: DispatchQueue.main)
-                    .cancellable(id: EffectID.fetchPosts, cancelInFlight: true)
+                    .debounce(id: EffectID.fetchPosts, for: .seconds(0.5), scheduler: DispatchQueue.main)
                 
             case let .removePost(id):
                 state.posts.remove(id: id)
