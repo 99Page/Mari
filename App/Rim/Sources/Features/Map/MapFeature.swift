@@ -31,7 +31,7 @@ struct MapFeature {
         var mapCameraCenterPosition = NMGLatLng(lat: 0, lng: 0)
         var photoLocation: NMGLatLng?
         
-        var didPhotoBooked = false
+        var hasPendingPhotoCapture = false
         var isProgressPresented = false
         
         var selectedFilter = Filter.latest
@@ -198,7 +198,7 @@ struct MapFeature {
         Reduce<State, Action> { state, action in
             switch action {
             case .view(.cameraButtonTapped):
-                state.didPhotoBooked = true
+                state.hasPendingPhotoCapture = true
                 
                 if state.isLoggedIn {
                     state.camera = .init()
@@ -239,15 +239,15 @@ struct MapFeature {
             case let .logIn(.presented(.delegate(delegateAction))):
                 switch delegateAction {
                 case .logInSucceeded:
-                    if state.didPhotoBooked {
-                        state.didPhotoBooked = false
+                    if state.hasPendingPhotoCapture {
+                        state.hasPendingPhotoCapture = false
                         state.camera = .init()
                     }
                     return .none
                     
                 case .logInFailed:
-                    if state.didPhotoBooked {
-                        state.didPhotoBooked = false
+                    if state.hasPendingPhotoCapture {
+                        state.hasPendingPhotoCapture = false
                     }
                     return .none
                 }
@@ -324,13 +324,13 @@ struct MapFeature {
                 
             case .fetchPosts:
                 
-                return .run { [state] send in
+                return .run { [center = state.mapCameraCenterPosition, zoom = state.zoom] send in
                     await send(.setLoadingIndicator(true))
                     
                     let request = PostRequest.GetMapPost(
-                        latitude: state.mapCameraCenterPosition.lat,
-                        longitude: state.mapCameraCenterPosition.lng,
-                        zoom: Int(state.zoom)
+                        latitude: center.lat,
+                        longitude: center.lng,
+                        zoom: Int(zoom)
                     )
                     
                     let response = try await postClient.fetchMapPosts(request: request).result
@@ -342,7 +342,8 @@ struct MapFeature {
                     await send(.dismissProgress)
                     await send(.setLoadingIndicator(false))
                 }
-                    .debounce(id: EffectID.fetchPosts, for: .seconds(1), scheduler: RunLoop.main)
+                    .debounce(id: EffectID.fetchPosts, for: .seconds(1), scheduler: DispatchQueue.main)
+                    .cancellable(id: EffectID.fetchPosts, cancelInFlight: true)
                 
             case let .removePost(id):
                 state.posts.remove(id: id)

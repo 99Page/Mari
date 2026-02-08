@@ -182,7 +182,6 @@ struct RootFeature {
                 return .none
             }
         }
-        ._printChanges()
     }
 }
 
@@ -205,8 +204,8 @@ class RootViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        updateView()
         setupView()
+        updateView()
         send(.viewDidLoad)
         
         present(item: $store.scope(state: \.alert, action: \.alert)) { store in
@@ -270,22 +269,20 @@ class RootViewController: UIViewController {
     }
     
     func transition<T: UIViewController>(to new: T, animated: Bool = true) {
-        guard !isRootViewController(ofType: T.self) else { return }
-        
-        if let current {
-            // 현재 child 제거
+        if let current = current {
             current.willMove(toParent: nil)
             current.view.removeFromSuperview()
             current.removeFromParent()
         }
-
-        // 새로운 child 추가
+        
         addChild(new)
         view.addSubview(new.view)
-        new.view.frame = view.bounds
-        new.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        new.didMove(toParent: self)
         
+        new.view.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
+        }
+        
+        new.didMove(toParent: self)
         self.current = new
     }
     

@@ -78,10 +78,10 @@ struct LogInFeature {
         
         Reduce<State, Action> { state, action in
             switch action {
-            case let .view(.appleSignInSucceeded(identitiyToken)):
+            case let .view(.appleSignInSucceeded(identityToken)):
                 state.isProgressPresented = true
                 return .run { [nonce = state.originNonce] send in
-                    let signInResult = try await accountClient.signInUsingApple(token: identitiyToken, nonce: nonce)
+                    let signInResult = try await accountClient.signInUsingApple(token: identityToken, nonce: nonce)
                     await send(.firebaseSignInSucceeded(signInResult))
                 } catch: { error, send in
                     await send(.view(.signInFailed))
