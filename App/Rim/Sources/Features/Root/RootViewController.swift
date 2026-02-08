@@ -182,6 +182,7 @@ struct RootFeature {
                 return .none
             }
         }
+        ._printChanges()
     }
 }
 
@@ -190,7 +191,6 @@ class RootViewController: UIViewController {
     
     @UIBindable var store: StoreOf<RootFeature>
     private var current: UIViewController?
-    
     private var previousDestinationID: Int?
     
     init(store: StoreOf<RootFeature>) {

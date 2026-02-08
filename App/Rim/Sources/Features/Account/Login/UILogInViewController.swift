@@ -191,29 +191,42 @@ class UILogInViewController: UIViewController {
     }
     
     private func makeConstraint() {
-        view.addSubview(logInLabel)
-        view.addSubview(logInStackView)
+        let containerView = UIView()
+        view.addSubview(containerView)
+        
+        containerView.addSubview(logInLabel)
+        containerView.addSubview(logInStackView)
         
         logInStackView.addArrangedSubview(appleLogInButton)
         logInStackView.addArrangedSubview(googleLogInButton)
         
+        containerView.snp.makeConstraints { make in
+            make.center.equalToSuperview()
+            make.leading.trailing.equalToSuperview().inset(20)
+            
+            // 전체 화면에서는 중앙에 위치하게 하면서
+            // 시트 환경에서는 상하 높이를 더함
+            make.top.equalToSuperview().offset(40).priority(.low)
+            make.bottom.equalToSuperview().offset(-40).priority(.low)
+            
+            make.top.greaterThanOrEqualToSuperview().offset(40)
+            make.bottom.lessThanOrEqualToSuperview().offset(-40)
+        }
+        
         logInLabel.snp.makeConstraints { make in
-            make.top.equalToSuperview().offset(30)
-            make.centerX.equalToSuperview()
+            make.top.centerX.equalToSuperview()
         }
         
         logInStackView.snp.makeConstraints { make in
-            make.centerX.equalToSuperview()
             make.top.equalTo(logInLabel.snp.bottom).offset(16)
-            make.bottom.equalToSuperview().offset(-32)
+            make.centerX.equalToSuperview()
+            make.bottom.equalToSuperview() // ✅ 컨테이너의 바닥을 결정
         }
         
-        appleLogInButton.snp.makeConstraints { make in
-            make.width.height.equalTo(44)
-        }
-        
-        googleLogInButton.snp.makeConstraints { make in
-            make.width.height.equalTo(44)
+        [appleLogInButton, googleLogInButton].forEach { button in
+            button.snp.makeConstraints { make in
+                make.width.height.equalTo(44)
+            }
         }
     }
     

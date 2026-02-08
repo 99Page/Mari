@@ -18,10 +18,13 @@ struct UserAccountFeature {
     struct State: Equatable {
         @Presents var alert: AlertState<Action.Alert>?
         @Shared(.uid) var uid
+        @Shared(.isLoggedIn) var isLoggedIn = false
         var isProgressViewPresented = false
+        var logIn = LogInFeature.State(message: "로그인 후 서비스를 이용해주세요")
     }
     
     enum Action: ViewAction {
+        case logIn(LogInFeature.Action)
         case view(View)
         case delegate(Delegate)
         case alert(PresentationAction<Alert>)
@@ -50,8 +53,23 @@ struct UserAccountFeature {
     @Dependency(\.accountClient) var accountClient
     
     var body: some ReducerOf<Self> {
+        Scope(state: \.logIn, action: \.logIn) {
+            LogInFeature()
+        }
+        
         Reduce<State, Action> { state, action in
             switch action {
+                
+            case let .logIn(.delegate(delegateAction)):
+                switch delegateAction {
+                case .logInFailed:
+                    return .none
+                case .logInSucceeded:
+                    return .none
+                }
+            case .logIn:
+                return .none
+                
             case .view(.logoutButtonTapped):
                 return .run { send in
                     await send(.delegate(.logout))
@@ -107,7 +125,6 @@ struct UserAccountFeature {
             }
         }
         .ifLet(\.$alert, action: \.alert)
-        ._printChanges()
     }
 }
 
@@ -117,6 +134,7 @@ final class UserAccountViewController: UIViewController {
     @UIBindable var store: StoreOf<UserAccountFeature>
     
     private let tableView = UITableView()
+    private let uiLoginViewController: UILogInViewController
     
     private enum Section: Int, CaseIterable {
         case post
@@ -132,6 +150,8 @@ final class UserAccountViewController: UIViewController {
     
     init(store: StoreOf<UserAccountFeature>) {
         self.store = store
+        let loginStore = store.scope(state: \.logIn, action: \.logIn)
+        self.uiLoginViewController = UILogInViewController(store: loginStore)
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -143,6 +163,7 @@ final class UserAccountViewController: UIViewController {
         super.viewDidLoad()
         makeConstraint()
         setupView()
+        updateView()
         
         present(item: $store.scope(state: \.alert, action: \.alert)) { store in
             UIAlertController(store: store)
@@ -150,6 +171,15 @@ final class UserAccountViewController: UIViewController {
         
         present(isPresented: $store.isProgressViewPresented) {
             ProgressViewController()
+        }
+    }
+    
+    private func updateView() {
+        observe { [weak self] in
+            guard let self else { return }
+            
+            tableView.isHidden = !store.isLoggedIn
+            uiLoginViewController.view.isHidden = store.isLoggedIn
         }
     }
     
@@ -164,10 +194,18 @@ final class UserAccountViewController: UIViewController {
     }
     
     private func makeConstraint() {
+        addChild(uiLoginViewController)
+        uiLoginViewController.didMove(toParent: self)
+        
         view.addSubview(tableView)
+        view.addSubview(uiLoginViewController.view)
         
         tableView.snp.makeConstraints {
             $0.edges.equalToSuperview()
+        }
+        
+        uiLoginViewController.view.snp.makeConstraints { make in
+            make.edges.equalToSuperview()
         }
     }
 }
