@@ -14,3 +14,9 @@ extension SharedReaderKey where Self == AppStorageKey<String?> {
       appStorage("uid")
   }
 }
+
+extension SharedReaderKey where Self == AppStorageKey<Bool> {
+    static var isLoggedIn: Self {
+        appStorage("isLoggedIn")
+    }
+}

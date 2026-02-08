@@ -132,6 +132,8 @@ final class CameraViewController: UIViewController {
     private let captureButton = CaptureButton()
     private let flashButton: RimImageView
     
+    private let sessionQueue = DispatchQueue(label: "com.page.rim.sessionQueue")
+    
     init(store: StoreOf<CameraFeature>) {
         @UIBindable var binding = store
         self.store = store
@@ -269,24 +271,30 @@ final class CameraViewController: UIViewController {
         captureSession.beginConfiguration()
         captureSession.sessionPreset = .photo
         
-        // Input
         guard let device = AVCaptureDevice.default(for: .video),
               let input = try? AVCaptureDeviceInput(device: device),
               captureSession.canAddInput(input)
         else { return }
+        
         captureSession.addInput(input)
         
-        // Output
         if captureSession.canAddOutput(photoOutput) {
             captureSession.addOutput(photoOutput)
         }
         
         captureSession.commitConfiguration()
         
-        Task(priority: .background) {
-            captureSession.startRunning()
+        startSession()
+    }
+    
+    private func startSession() {
+        // Apple은 카메라 설정 및 세션 실행을 위해 별도의 전용 시리얼 큐를 사용하는 것을 권장합니다.
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            if !self.captureSession.isRunning {
+                self.captureSession.startRunning()
+            }
         }
-
     }
     
     @objc private func capturePhoto() {

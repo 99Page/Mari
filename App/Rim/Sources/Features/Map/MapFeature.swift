@@ -19,16 +19,19 @@ struct MapFeature {
     @ObservableState
     struct State: Equatable {
         @Shared(.blockedUserIds) var blockedUserIds = Set()
+        @Shared(.isLoggedIn) var isLoggedIn = false
+        
         @Presents var alert: AlertState<Action.Alert>?
         @Presents var uploadPost: UploadPostNavigationStack.State?
         @Presents var camera: CameraFeature.State?
+        @Presents var logIn: LogInFeature.State?
         
         var precision: Geohash.Precision = .seventySixMeters
-        
         var posts = IdentifiedArrayOf<MapPostState>()
         var mapCameraCenterPosition = NMGLatLng(lat: 0, lng: 0)
         var photoLocation: NMGLatLng?
         
+        var didPhotoBooked = false
         var isProgressPresented = false
         
         var selectedFilter = Filter.latest
@@ -157,6 +160,7 @@ struct MapFeature {
         case alert(PresentationAction<Alert>)
         case uploadPost(PresentationAction<UploadPostNavigationStack.Action>)
         case camera(PresentationAction<CameraFeature.Action>)
+        case logIn(PresentationAction<LogInFeature.Action>)
         case view(View)
         case removePost(id: String)
         case fetchPosts
@@ -194,7 +198,14 @@ struct MapFeature {
         Reduce<State, Action> { state, action in
             switch action {
             case .view(.cameraButtonTapped):
-                state.camera = .init()
+                state.didPhotoBooked = true
+                
+                if state.isLoggedIn {
+                    state.camera = .init()
+                } else {
+                    state.logIn = .init(message: "로그인하면 게시글을 올릴 수 있어요")
+                }
+                
                 return .none
                 
             case let .view(.cameraDidMove(cameraPosition, bounds, zoom)):
@@ -223,6 +234,25 @@ struct MapFeature {
                 } else {
                     state.photoLocation = nil
                 }
+                return .none
+                
+            case let .logIn(.presented(.delegate(delegateAction))):
+                switch delegateAction {
+                case .logInSucceeded:
+                    if state.didPhotoBooked {
+                        state.didPhotoBooked = false
+                        state.camera = .init()
+                    }
+                    return .none
+                    
+                case .logInFailed:
+                    if state.didPhotoBooked {
+                        state.didPhotoBooked = false
+                    }
+                    return .none
+                }
+                
+            case .logIn:
                 return .none
                 
             case .camera:
@@ -333,5 +363,6 @@ struct MapFeature {
         .ifLet(\.$alert, action: \.alert)
         .ifLet(\.$uploadPost, action: \.uploadPost) { UploadPostNavigationStack() }
         .ifLet(\.$camera, action: \.camera) { CameraFeature() }
+        .ifLet(\.$logIn, action: \.logIn) { LogInFeature() }
     }
 }

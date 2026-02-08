@@ -34,7 +34,7 @@ struct SplashFeature {
         @CasePathable
         enum Delegate {
             case showTab
-            case showSignIn
+            case authenticated
         }
     }
     
@@ -48,7 +48,7 @@ struct SplashFeature {
             case .view(.viewDidLoad):
                 let isLoggedIn = accountClient.isLoggedIn()
                 return .run { send in
-                    isLoggedIn ? await send(.refreshIdToken) : await send(.delegate(.showSignIn))
+                    isLoggedIn ? await send(.refreshIdToken) : await send(.delegate(.authenticated))
                 }
             case .view(.binding):
                 return .none
@@ -59,7 +59,7 @@ struct SplashFeature {
                     try await accountClient.refreshIdToken()
                     await send(.delegate(.showTab))
                 } catch: { error, send in
-                    await send(.delegate(.showSignIn))
+                    await send(.delegate(.authenticated))
                 }
             }
         }

@@ -15,12 +15,13 @@ struct RootFeature {
     @ObservableState
     struct State: Equatable {
         @Shared(.uid) var uid
+        @Shared(.isLoggedIn) var isLoggedIn = false
+        
         @Presents var alert: AlertState<AlertAction>?
         var destination: Destination.State = .splash(.init())
         
         var destinationID: Int {
             switch destination {
-            case .signIn: 0
             case .splash: 1
             case .tab: 2
             }
@@ -30,7 +31,6 @@ struct RootFeature {
     @Reducer
     enum Destination {
         case splash(SplashFeature)
-        case signIn(SignInFeature)
         case tab(TabFeature)
     }
     
@@ -68,7 +68,6 @@ struct RootFeature {
         // https://github.com/pointfreeco/swift-composable-architecture/discussions/1296#discussioncomment-3487107
         Scope(state: \.destination, action: \.destination) {
             EmptyReducer()
-                .ifLet(\.signIn, action: \.signIn) { SignInFeature() }
                 .ifLet(\.splash, action: \.splash) { SplashFeature() }
                 .ifLet(\.tab, action: \.tab) { TabFeature() }
         }
@@ -126,13 +125,6 @@ struct RootFeature {
                     return .none
                 }
                 
-            case .destination(.signIn(.delegate(.signInSucceeded))):
-                state.destination = .tab(.init())
-                return .none
-                
-            case .destination(.signIn(_)):
-                return .none
-                
             case .destination(.tab(.delegate(.signOut))):
                 return .send(.signOut)
                 
@@ -148,8 +140,8 @@ struct RootFeature {
             case .signOut:
                 do {
                     try accountClient.logout()
-                    state.destination = .signIn(.init())
                     state.$uid.withLock { $0 = nil }
+                    state.$isLoggedIn.withLock { $0 = false }
                 } catch {
                     Logger.error("키체인 에러", category: .auth)
                 }
@@ -163,11 +155,11 @@ struct RootFeature {
                     await send(.changeState(to: .tab(.init())))
                 }
                 
-            case .destination(.splash(.delegate(.showSignIn))):
+            case .destination(.splash(.delegate(.authenticated))):
                 return .run { send in
                     // 지연없이 바로 상태를 변경하면 observe { } 에서 제대로 관찰하지 못합니다. -page 2025. 06. 27
                     try await clock.sleep(for: .seconds(1))
-                    await send(.changeState(to: .signIn(.init())))
+                    await send(.changeState(to: .tab(.init())))
                 }
                 
             case let .changeState(value):
@@ -261,11 +253,6 @@ class RootViewController: UIViewController {
             // store의 모든 상태를 읽고 있기때문에, 아래 과정들은 반복 호출됩니다.
             // 현재 뷰컨트롤러와 비교하는 과정이 필요합니다. -page 2025. 06. 26
             switch store.state.destination {
-            case .signIn:
-                if let signInStore = store.scope(state: \.destination.signIn, action: \.destination.signIn) {
-                    let signInVC = SignInViewController(store: signInStore)
-                    transition(to: signInVC)
-                }
             case .tab:
                 if let tabStore = store.scope(state: \.destination.tab, action: \.destination.tab) {
                     let tabVC = RimTabViewController(store: tabStore)

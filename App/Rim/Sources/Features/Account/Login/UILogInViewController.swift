@@ -22,10 +22,13 @@ import Core
 ///
 /// [Firebase - Apple로 로그인](https://firebase.google.com/docs/auth/ios/apple?hl=ko)
 @Reducer
-struct SignInFeature {
+struct LogInFeature {
     @ObservableState
     struct State: Equatable {
         @Shared(.uid) var uid
+        @Shared(.isLoggedIn) var isLoggedIn = false
+        
+        let message: String
         
         // Firebase 인증에는 해시되지 않은 값 사용
         var originNonce = ""
@@ -44,14 +47,14 @@ struct SignInFeature {
     }
     
     enum Action: ViewAction {
-        case view(UIAction)
+        case view(View)
         case delegate(Delegate)
         case dismissProgressView
         case alert(PresentationAction<AlertAction>)
         case firebaseSignInSucceeded(SignInResult)
-        case saveUID(uid: String)
+        case authenticationSucceeded(uid: String)
         
-        enum UIAction: BindableAction {
+        enum View: BindableAction {
             case appleSignInSucceeded(identityToken: String)
             case signInFailed
             case googleCredentialCreated(credential: AuthCredential)
@@ -61,7 +64,8 @@ struct SignInFeature {
         
         @CasePathable
         enum Delegate {
-            case signInSucceeded
+            case logInSucceeded
+            case logInFailed
         }
     }
     
@@ -120,13 +124,14 @@ struct SignInFeature {
             case let .firebaseSignInSucceeded(signInResult):
                 return .run { send in
                     try keychain.save(value: signInResult.idToken, service: .firebase, account: .idToken)
-                    await send(.saveUID(uid: signInResult.uid))
+                    await send(.authenticationSucceeded(uid: signInResult.uid))
                     await send(.dismissProgressView)
-                    await send(.delegate(.signInSucceeded))
+                    await send(.delegate(.logInSucceeded))
                 }
                 
-            case let .saveUID(uid):
+            case let .authenticationSucceeded(uid):
                 state.$uid.withLock { $0 = uid }
+                state.$isLoggedIn.withLock { $0 = true }
                 return .none
             }
         }
@@ -134,24 +139,22 @@ struct SignInFeature {
     }
 }
 
-@ViewAction(for: SignInFeature.self)
-class SignInViewController: UIViewController {
+@ViewAction(for: LogInFeature.self)
+class UILogInViewController: UIViewController {
     
-    @UIBindable var store: StoreOf<SignInFeature>
+    @UIBindable var store: StoreOf<LogInFeature>
     
-    private let rimLogoImageView: RimImageView
-    private let signInLabel: RimLabel
-    private let appleSignInButton: RimImageView
-    private let googleSignInButton: RimImageView
-    private let signInStackView = UIStackView()
+    private let logInLabel: RimLabel
+    private let appleLogInButton: RimImageView
+    private let googleLogInButton: RimImageView
+    private let logInStackView = UIStackView()
     
-    init(store: StoreOf<SignInFeature>) {
+    init(store: StoreOf<LogInFeature>) {
         @UIBindable var binding = store
         self.store = store
-        self.appleSignInButton = RimImageView()
-        self.googleSignInButton = RimImageView()
-        self.signInLabel = RimLabel()
-        self.rimLogoImageView = RimImageView()
+        self.appleLogInButton = RimImageView()
+        self.googleLogInButton = RimImageView()
+        self.logInLabel = RimLabel()
         super.init(nibName: nil, bundle: nil)
     }
     
@@ -175,50 +178,41 @@ class SignInViewController: UIViewController {
     }
     
     private func updateView() {
-        signInLabel.text = .constant("로그인하기")
-        signInLabel.textColor = .constant(.gray)
-        signInLabel.typography = .constant(.hint)
-        signInLabel.updateView()
+        logInLabel.text = .constant(store.message)
+        logInLabel.textColor = .constant(.gray)
+        logInLabel.typography = .constant(.hint)
+        logInLabel.updateView()
         
-        rimLogoImageView.image = .constant(.resource(imageResource: .rimWithBackground))
-        rimLogoImageView.updateView()
+        appleLogInButton.image = .constant(.resource(imageResource: .appleCircleLogo))
+        appleLogInButton.updateView()
         
-        appleSignInButton.image = .constant(.resource(imageResource: .appleCircleLogo))
-        appleSignInButton.updateView()
-        
-        googleSignInButton.image = .constant(.resource(imageResource: .googleCircleLogo))
-        googleSignInButton.updateView()
+        googleLogInButton.image = .constant(.resource(imageResource: .googleCircleLogo))
+        googleLogInButton.updateView()
     }
     
     private func makeConstraint() {
-        view.addSubview(rimLogoImageView)
-        view.addSubview(signInLabel)
-        view.addSubview(signInStackView)
+        view.addSubview(logInLabel)
+        view.addSubview(logInStackView)
         
-        signInStackView.addArrangedSubview(appleSignInButton)
-        signInStackView.addArrangedSubview(googleSignInButton)
+        logInStackView.addArrangedSubview(appleLogInButton)
+        logInStackView.addArrangedSubview(googleLogInButton)
         
-        rimLogoImageView.snp.makeConstraints { make in
-            make.centerY.equalToSuperview()
-            make.centerX.equalToSuperview()
-            make.width.height.equalTo(128)
-        }
-        
-        signInLabel.snp.makeConstraints { make in
-            make.bottom.equalTo(signInStackView.snp.top).offset(-24)
+        logInLabel.snp.makeConstraints { make in
+            make.top.equalToSuperview().offset(30)
             make.centerX.equalToSuperview()
         }
         
-        signInStackView.snp.makeConstraints { make in
+        logInStackView.snp.makeConstraints { make in
             make.centerX.equalToSuperview()
-            make.bottom.equalTo(view.safeAreaLayoutGuide).inset(40)
+            make.top.equalTo(logInLabel.snp.bottom).offset(16)
+            make.bottom.equalToSuperview().offset(-32)
         }
         
-        appleSignInButton.snp.makeConstraints { make in
+        appleLogInButton.snp.makeConstraints { make in
             make.width.height.equalTo(44)
         }
         
-        googleSignInButton.snp.makeConstraints { make in
+        googleLogInButton.snp.makeConstraints { make in
             make.width.height.equalTo(44)
         }
     }
@@ -226,22 +220,22 @@ class SignInViewController: UIViewController {
     private func setupView() {
         view.backgroundColor = .systemBackground
         
-        signInStackView.axis = .horizontal
-        signInStackView.distribution = .fillEqually
-        signInStackView.spacing = 16
+        logInStackView.axis = .horizontal
+        logInStackView.distribution = .fillEqually
+        logInStackView.spacing = 16
 
-        appleSignInButton.addAction(.touchUpInside({ [weak self] in
+        appleLogInButton.addAction(.touchUpInside({ [weak self] in
             self?.handleAppleSignIn()
         }))
         
-        googleSignInButton.addAction(.touchUpInside({ [weak self] in
+        googleLogInButton.addAction(.touchUpInside({ [weak self] in
             self?.handleGoogleSignIn()
         }))
     }
 }
 
 // MARK: Sign In with Apple
-extension SignInViewController: ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
+extension UILogInViewController: ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
         return self.view.window!
     }
@@ -286,45 +280,53 @@ extension SignInViewController: ASAuthorizationControllerDelegate, ASAuthorizati
 }
 
 // MARK: Sign In with Google
-extension SignInViewController {
+extension UILogInViewController {
     func handleGoogleSignIn() {
         // https://firebase.google.com/docs/auth/ios/google-signin?hl=ko&_gl=1*1lymcp3*_up*MQ..*_ga*OTE5NTA4MzAxLjE3NTA5ODMyNzE.*_ga_CW55HF8NVT*czE3NTA5ODMyNzEkbzEkZzAkdDE3NTA5ODMyNzEkajYwJGwwJGgw#implement_google_sign-in
         guard let clientID = FirebaseApp.app()?.options.clientID else { return }
         
-        // Create Google Sign In configuration object.
         let config = GIDConfiguration(clientID: clientID)
         GIDSignIn.sharedInstance.configuration = config
         
-        store.isProgressPresented = true
-        
-        // Start the sign in flow!
         GIDSignIn.sharedInstance.signIn(withPresenting: self) { [weak self] result, error in
             
-            guard error == nil else {
-                self?.send(.signInFailed)
-                return
-            }
+            guard let self else { return }
+            
+            handleGoogleSignInError(error)
             
             guard let user = result?.user,
                   let idToken = user.idToken?.tokenString else {
-                self?.store.isProgressPresented = false
+                send(.signInFailed)
                 return
             }
             
-            let credential = GoogleAuthProvider.credential(withIDToken: idToken,
-                                                           accessToken: user.accessToken.tokenString)
+            let credential = GoogleAuthProvider.credential(
+                withIDToken: idToken,
+                accessToken: user.accessToken.tokenString
+            )
             
-            self?.send(.googleCredentialCreated(credential: credential))
+            send(.googleCredentialCreated(credential: credential))
         }
+    }
+    
+    private func handleGoogleSignInError(_ error: Error?) {
+        guard let error = error as NSError? else { return }
+        
+        if error.domain == kGIDSignInErrorDomain &&
+            error.code == GIDSignInError.canceled.rawValue { // 사용자에 의한 취소
+            return
+        }
+        
+        send(.signInFailed)
     }
 }
 
 #Preview {
-    let store = Store(initialState: SignInFeature.State()) {
-        SignInFeature()
+    let store = Store(initialState: LogInFeature.State(message: "로그인하기")) {
+        LogInFeature()
     }
     
     ViewControllerPreview {
-        SignInViewController(store: store)
+        UILogInViewController(store: store)
     }
 }
