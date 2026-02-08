@@ -138,7 +138,11 @@ struct TabFeature {
                     let response = try await userRelationClient.fetchBlockedUserIds()
                     await send(.setBlockedUserIds(response.result.blockedUserIds))
                 } catch: { error, send in
-                    await send(.showFailToFetchBlockedUsersAlert)
+                    if let response = error as? ErrorResponse,
+                       response.code == .invalidAuthHeader {
+                    } else {
+                        await send(.delegate(.signOut))
+                    }
                 }
                 
             case let .setBlockedUserIds(ids):

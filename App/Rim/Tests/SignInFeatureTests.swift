@@ -13,8 +13,8 @@ import ComposableArchitecture
 struct SignInFeatureTests {
 
     @Test func saveUID_AfterAppleSignIn() async throws {
-        let store = TestStore(initialState: SignInFeature.State()) {
-            SignInFeature()
+        let store = TestStore(initialState: LogInFeature.State()) {
+            LogInFeature()
         } withDependencies: {
             $0.accountClient.signInUsingApple = { _, _ in
                 SignInResult(uid: "uid", idToken: "idToken")

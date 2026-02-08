@@ -19,16 +19,19 @@ struct MapFeature {
     @ObservableState
     struct State: Equatable {
         @Shared(.blockedUserIds) var blockedUserIds = Set()
+        @Shared(.isLoggedIn) var isLoggedIn = false
+        
         @Presents var alert: AlertState<Action.Alert>?
         @Presents var uploadPost: UploadPostNavigationStack.State?
         @Presents var camera: CameraFeature.State?
+        @Presents var logIn: LogInFeature.State?
         
         var precision: Geohash.Precision = .seventySixMeters
-        
         var posts = IdentifiedArrayOf<MapPostState>()
         var mapCameraCenterPosition = NMGLatLng(lat: 0, lng: 0)
         var photoLocation: NMGLatLng?
         
+        var hasPendingPhotoCapture = false
         var isProgressPresented = false
         
         var selectedFilter = Filter.latest
@@ -157,6 +160,7 @@ struct MapFeature {
         case alert(PresentationAction<Alert>)
         case uploadPost(PresentationAction<UploadPostNavigationStack.Action>)
         case camera(PresentationAction<CameraFeature.Action>)
+        case logIn(PresentationAction<LogInFeature.Action>)
         case view(View)
         case removePost(id: String)
         case fetchPosts
@@ -194,7 +198,14 @@ struct MapFeature {
         Reduce<State, Action> { state, action in
             switch action {
             case .view(.cameraButtonTapped):
-                state.camera = .init()
+                state.hasPendingPhotoCapture = true
+                
+                if state.isLoggedIn {
+                    state.camera = .init()
+                } else {
+                    state.logIn = .init(message: "로그인하면 게시글을 올릴 수 있어요")
+                }
+                
                 return .none
                 
             case let .view(.cameraDidMove(cameraPosition, bounds, zoom)):
@@ -223,6 +234,25 @@ struct MapFeature {
                 } else {
                     state.photoLocation = nil
                 }
+                return .none
+                
+            case let .logIn(.presented(.delegate(delegateAction))):
+                switch delegateAction {
+                case .logInSucceeded:
+                    if state.hasPendingPhotoCapture {
+                        state.hasPendingPhotoCapture = false
+                        state.camera = .init()
+                    }
+                    return .none
+                    
+                case .logInFailed:
+                    if state.hasPendingPhotoCapture {
+                        state.hasPendingPhotoCapture = false
+                    }
+                    return .none
+                }
+                
+            case .logIn:
                 return .none
                 
             case .camera:
@@ -294,13 +324,13 @@ struct MapFeature {
                 
             case .fetchPosts:
                 
-                return .run { [state] send in
+                return .run { [center = state.mapCameraCenterPosition, zoom = state.zoom] send in
                     await send(.setLoadingIndicator(true))
                     
                     let request = PostRequest.GetMapPost(
-                        latitude: state.mapCameraCenterPosition.lat,
-                        longitude: state.mapCameraCenterPosition.lng,
-                        zoom: Int(state.zoom)
+                        latitude: center.lat,
+                        longitude: center.lng,
+                        zoom: Int(zoom)
                     )
                     
                     let response = try await postClient.fetchMapPosts(request: request).result
@@ -312,7 +342,8 @@ struct MapFeature {
                     await send(.dismissProgress)
                     await send(.setLoadingIndicator(false))
                 }
-                    .debounce(id: EffectID.fetchPosts, for: .seconds(1), scheduler: RunLoop.main)
+                    .debounce(id: EffectID.fetchPosts, for: .seconds(1), scheduler: DispatchQueue.main)
+                    .cancellable(id: EffectID.fetchPosts, cancelInFlight: true)
                 
             case let .removePost(id):
                 state.posts.remove(id: id)
@@ -333,5 +364,6 @@ struct MapFeature {
         .ifLet(\.$alert, action: \.alert)
         .ifLet(\.$uploadPost, action: \.uploadPost) { UploadPostNavigationStack() }
         .ifLet(\.$camera, action: \.camera) { CameraFeature() }
+        .ifLet(\.$logIn, action: \.logIn) { LogInFeature() }
     }
 }

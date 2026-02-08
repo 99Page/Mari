@@ -14,7 +14,7 @@ import ComposableArchitecture
 import SwiftUI
 
 @ViewAction(for: MapFeature.self)
-class MapViewController: UIViewController, NMFMapViewCameraDelegate {
+class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
     @UIBindable var store: StoreOf<MapFeature>
     
     private lazy var mapView: NMFMapView = {
@@ -65,6 +65,21 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
         
         present(item: $store.scope(state: \.camera, action: \.camera)) { store in
             CameraViewController(store: store)
+        }
+        
+        present(item: $store.scope(state: \.logIn, action: \.logIn)) { store in
+            let viewController = UILogInViewController(store: store)
+            
+            if let sheet = viewController.sheetPresentationController {
+                sheet.detents = [
+                    .custom { context in
+                        return viewController.view.systemLayoutSizeFitting(UIView.layoutFittingCompressedSize).height
+                    }
+                ]
+                sheet.prefersGrabberVisible = true
+            }
+            
+            return viewController
         }
     }
     
@@ -275,7 +290,7 @@ class MapViewController: UIViewController, NMFMapViewCameraDelegate {
     }
 }
 
-extension MapViewController: CLLocationManagerDelegate {
+extension UIMapViewController: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         
@@ -295,11 +310,11 @@ extension MapViewController: CLLocationManagerDelegate {
     }
 }
 
-extension MapViewController: UINavigationControllerDelegate {
+extension UIMapViewController: UINavigationControllerDelegate {
     
 }
 
-private extension MapViewController {
+private extension UIMapViewController {
     func resizedImage(_ image: UIImage, size: CGSize) -> UIImage {
         let renderer = UIGraphicsImageRenderer(size: size)
         return renderer.image { _ in
@@ -314,7 +329,7 @@ private extension MapViewController {
     }
     
     ViewControllerPreview {
-        MapViewController(store: store)
+        UIMapViewController(store: store)
     }
     .ignoresSafeArea()
 }

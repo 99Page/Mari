@@ -17,8 +17,6 @@ struct PostClient {
     
     var fetchMapPosts: (_ request: Request.GetMapPost) async throws -> APIResponse<Response.MapPosts>
     
-    var fetchNearPosts: () async throws -> APIResponse<FetchNearPostsResponse>
-    
     var fetchPostByID: (_ id: String) async throws -> APIResponse<PostDetailDTO>
     
     var incrementPostViewCount: (_ postID: String) async throws -> APIResponse<EmptyResult>
@@ -109,8 +107,6 @@ extension PostClient: DependencyKey {
             try await Client.request(target: PostAPI.createPost(request: request))
         } fetchMapPosts: { request in
             try await Client.request(target: PostAPI.fetchMapPosts(request: request))
-        } fetchNearPosts: {
-            throw ErrorResponse(code: "", message: "")
         } fetchPostByID: { id in
             try await Client.request(target: PostAPI.fetchPostByID(id: id))
         } incrementPostViewCount: { postID in
@@ -128,8 +124,6 @@ extension PostClient: DependencyKey {
         PostClient { _ in
                 .stub()
         } fetchMapPosts: { request in
-                .stub()
-        } fetchNearPosts: {
                 .stub()
         } fetchPostByID: { _ in
                 .stub()

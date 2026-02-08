@@ -32,10 +32,16 @@ extension Array: Stub where Element: Stub {
 }
 
 struct ErrorResponse: Decodable, Error, LocalizedError, CustomStringConvertible {
-    let code: String
+    let code: Code
     let message: String
 
     var description: String { "code: \(code), message: \(message)" }
 
     var errorDescription: String? { description }
+    
+    enum Code: String, Decodable, Error, CustomStringConvertible, LocalizedError {
+        case invalidAuthHeader = "invalid-auth-header"
+        
+        var description: String { self.rawValue }
+    }
 }

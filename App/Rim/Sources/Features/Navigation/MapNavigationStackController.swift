@@ -70,7 +70,7 @@ class MapNavigationStackController: NavigationStackController {
         @UIBindable var store = store
         
         self.init(path: $store.scope(state: \.path, action: \.path)) {
-            MapViewController(store: store.scope(state: \.root, action: \.root))
+            UIMapViewController(store: store.scope(state: \.root, action: \.root))
         } destination: { store in
             switch store.case {
             case let .postDetail(store):
