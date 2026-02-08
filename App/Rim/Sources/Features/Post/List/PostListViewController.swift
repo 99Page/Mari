@@ -19,6 +19,7 @@ struct PostListFeature {
     struct State: Equatable {
         @Shared(.blockedUserIds) var blockedUserIds = Set()
         @Presents var postMenu: PostMenuFeature.State?
+        @Presents var alert: AlertState<Action.Alert>?
         
         let topPostId: String
         var posts = IdentifiedArrayOf<PostCell>()
@@ -37,6 +38,14 @@ struct PostListFeature {
         case addPostCell([PostDetailDTO])
         case postMenu(PresentationAction<PostMenuFeature.Action>)
         case fetchTopPost
+        case showFetchFailAlert
+        case reportError(context: String, message: String, code: String?)
+        case alert(PresentationAction<Alert>)
+        
+        @CasePathable
+        enum Alert {
+            case dismiss
+        }
         
         enum View: BindableAction {
             case binding(BindingAction<State>)
@@ -47,6 +56,7 @@ struct PostListFeature {
     }
     
     @Dependency(\.postClient) var postClient
+    @Dependency(\.errorReportClient) var errorReportClient
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
@@ -82,11 +92,35 @@ struct PostListFeature {
                     let response = try await postClient.fetchPostByID(id: id)
                     await send(.addPostCell([response.result]))
                 } catch: { error, send in
-                    
+                    await send(.reportError(context: "PostList.fetchTopPost", message: String(describing: error), code: nil))
+                    await send(.showFetchFailAlert)
+                }
+                
+            case .showFetchFailAlert:
+                state.alert = AlertState {
+                    TextState("게시글을 불러오지 못했어요")
+                } actions: {
+                    ButtonState(role: .cancel, action: .alert(.presented(.dismiss))) {
+                        TextState("확인")
+                    }
+                }
+                return .none
+                
+            case .alert(.presented(.dismiss)):
+                state.alert = nil
+                return .none
+                
+            case .alert(_):
+                return .none
+                
+            case let .reportError(context, message, code):
+                return .run { _ in
+                    try? await errorReportClient.reportError(context, message, code)
                 }
             }
         }
         .ifLet(\.$postMenu, action: \.postMenu) { PostMenuFeature() }
+        .ifLet(\.$alert, action: \.alert)
     }
 }
 
@@ -114,6 +148,9 @@ class PostListViewController: UIViewController {
         
         present(item: $store.scope(state: \.postMenu, action: \.postMenu)) { store in
             PostMenuViewController(store: store)
+        }
+        present(item: $store.scope(state: \.alert, action: \.alert)) { store in
+            UIAlertController(store: store)
         }
     }
     

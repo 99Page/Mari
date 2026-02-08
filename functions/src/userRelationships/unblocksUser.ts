@@ -3,6 +3,7 @@ import { db, region } from "../utils/firebase";
 import { errors } from "../response/errorResponse";
 import { SuccessResponse } from "../response/successResponse";
 import { verifyAuthAndGetUid } from "../auth/verifyToken";
+import { logErrorToFirestore } from "../utils/errorLogger";
 
 export const unblocksUser = onRequest({ region }, async (req, res) => {
   try {
@@ -45,6 +46,7 @@ export const unblocksUser = onRequest({ region }, async (req, res) => {
     res.status(200).json(successResponse);
     return;
   } catch (error) {
+    await logErrorToFirestore(error, { handler: "unblocksUser", req });
     res.status(500).json(errors.INTERNAL_ERROR);
     return;
   }

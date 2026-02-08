@@ -5,6 +5,7 @@ import { QuadKey } from "@/utils/QuadKey";
 import { convertToPostDetailV3, PostDetailV3 } from "@/posts/models/postDetail"; // 모델은 V3(수정본) 재사용
 import { PostSummary } from "@/posts/models/postSummary";
 import { ErrorResponse } from "@/response/errorResponse";
+import { logErrorToFirestore } from "@/utils/errorLogger";
 
 export const fetchPostsForMapV3 = async (req: Request, res: Response) => {
   const lat = parseFloat(req.query.latitude as string);
@@ -82,6 +83,7 @@ export const fetchPostsForMapV3 = async (req: Request, res: Response) => {
 
   } catch (error) {
     logger.error("Error fetching posts V4:", error);
+    await logErrorToFirestore(error, { handler: "fetchPostsForMapV3", userId: userID || undefined, req });
     res.status(500).json({
       code: "fetch-failed",
       message: "Failed to fetch posts"

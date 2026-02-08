@@ -1,8 +1,10 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
+import type { DocumentSnapshot } from "firebase-admin/firestore";
 import { db, adminInstance as admin } from "../utils/firebase";
 import { ErrorResponse, errors } from "../response/errorResponse";
 import type { SuccessResponse } from "../response/successResponse";
+import { logErrorToFirestore } from "../utils/errorLogger";
 
 const REGION = "asia-northeast3";
 
@@ -28,6 +30,7 @@ export const deletePost = onRequest({ region: REGION }, async (req, res) => {
     uid = decoded.uid;
   } catch (error) {
     logger.error("Token verification failed:", error);
+    await logErrorToFirestore(error, { handler: "deletePost", req });
     res.status(401).json(errors.UNAUTHORIZED);
     return;
   }
@@ -43,7 +46,18 @@ export const deletePost = onRequest({ region: REGION }, async (req, res) => {
   }
 
   const postRef = db.collection("posts").doc(postId);
-  const snapshot = await postRef.get();
+  let snapshot: DocumentSnapshot;
+  try {
+    snapshot = await postRef.get();
+  } catch (error) {
+    logger.error("Error fetching post for delete:", error);
+    await logErrorToFirestore(error, { handler: "deletePost", userId: uid, req });
+    res.status(500).json({
+      code: "FIRESTORE_READ_FAILED",
+      message: "Failed to fetch post"
+    });
+    return;
+  }
 
   if (!snapshot.exists) {
     const errorResponse: ErrorResponse = {
@@ -77,6 +91,7 @@ export const deletePost = onRequest({ region: REGION }, async (req, res) => {
     res.status(200).json(successResponse);
   } catch (error) {
     logger.error("Error deleting post:", error);
+    await logErrorToFirestore(error, { handler: "deletePost", userId: uid, req });
     const errorResponse: ErrorResponse = {
       code: "FIRESTORE_DELETE_FAILED",
       message: "Failed to delete post"

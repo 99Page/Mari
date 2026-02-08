@@ -53,6 +53,7 @@ struct LogInFeature {
         case alert(PresentationAction<AlertAction>)
         case firebaseSignInSucceeded(SignInResult)
         case authenticationSucceeded(uid: String)
+        case reportError(context: String, message: String, code: String?)
         
         enum View: BindableAction {
             case appleSignInSucceeded(identityToken: String)
@@ -72,6 +73,7 @@ struct LogInFeature {
     @Dependency(\.accountClient) var accountClient
     @Dependency(\.nonceGenerator) var nonceGenerator
     @Dependency(\.keychain) var keychain
+    @Dependency(\.errorReportClient) var errorReportClient
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
@@ -93,9 +95,14 @@ struct LogInFeature {
                 return .none
                 
             case let .view(.googleCredentialCreated(credential)):
+                state.isProgressPresented = true
                 return .run { send in
                     let authData = try await accountClient.signInFirebase(credential: credential)
                     await send(.firebaseSignInSucceeded(authData))
+                } catch: { error, send in
+                    await send(.reportError(context: "LogIn.signInFirebase", message: String(describing: error), code: nil))
+                    await send(.dismissProgressView)
+                    await send(.view(.signInFailed))
                 }
                 
             case .view(.binding(_)):
@@ -120,6 +127,11 @@ struct LogInFeature {
                 
             case .alert(_):
                 return .none
+                
+            case let .reportError(context, message, code):
+                return .run { _ in
+                    try? await errorReportClient.reportError(context, message, code)
+                }
                 
             case let .firebaseSignInSucceeded(signInResult):
                 return .run { send in

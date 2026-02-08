@@ -3,7 +3,8 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { db, adminInstance as admin } from "@/utils/firebase";
 import { ErrorResponse, errors } from "@/response/errorResponse";
-import { PostDetail, convertToPostDetail } from "@/posts/models/postDetail"
+import { PostDetail, convertToPostDetail } from "@/posts/models/postDetail";
+import { logErrorToFirestore } from "@/utils/errorLogger";
 
 const REGION = "asia-northeast3";
 
@@ -49,8 +50,9 @@ export const getPostById = onRequest({ region: REGION }, async (req, res) => {
       result: post
     };
     res.status(200).json(successResponse);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error("Error fetching post by ID:", error);
+    await logErrorToFirestore(error, { handler: "getPostById", req });
     const errorResponse: ErrorResponse = {
       code: "POST_NOT_FOUND",
       message: "Failed to fetch post"

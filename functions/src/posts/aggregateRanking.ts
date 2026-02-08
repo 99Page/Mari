@@ -3,6 +3,7 @@ import * as logger from "firebase-functions/logger";
 import { db, adminInstance as admin } from "../utils/firebase";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { errors } from "../response/errorResponse";
+import { logErrorToFirestore } from "../utils/errorLogger";
 
 const REGION = "asia-northeast3";
 
@@ -111,6 +112,7 @@ export const testAggregateLast6HoursRanking = onRequest(
       await admin.auth().verifyIdToken(idToken);
     } catch (error) {
       logger.error("Token verification failed:", error);
+      await logErrorToFirestore(error, { handler: "testAggregateLast6HoursRanking", req });
       res.status(401).send(errors.UNAUTHORIZED);
       return;
     }
@@ -120,6 +122,7 @@ export const testAggregateLast6HoursRanking = onRequest(
       res.status(200).send("✅ 테스트용 랭킹 집계 완료");
     } catch (error) {
       logger.error("랭킹 집계 실패", error);
+      await logErrorToFirestore(error, { handler: "testAggregateLast6HoursRanking", req });
       res.status(500).send("❌ 랭킹 집계 실패");
     }
   }
