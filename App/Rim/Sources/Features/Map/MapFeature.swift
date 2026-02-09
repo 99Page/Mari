@@ -54,11 +54,8 @@ struct MapFeature {
             let visibleRadius = center.distance(to: bounds.southWest)
             let threshold = visibleRadius * 2.0
             
-            Logger.debug("current: \(posts.count)")
             mergePosts(newPosts: newPosts, center: center, threshold: threshold)
-            Logger.debug("after merge: \(posts.count)")
             cleanPosts()
-            Logger.debug("after clean: \(posts.count)")
         }
         
         private mutating func cleanPosts() {
