@@ -26,7 +26,6 @@ struct MapFeature {
         @Presents var camera: CameraFeature.State?
         @Presents var logIn: LogInFeature.State?
         
-        var precision: Geohash.Precision = .seventySixMeters
         var posts = IdentifiedArrayOf<MapPostState>()
         var mapCameraCenterPosition = NMGLatLng(lat: 0, lng: 0)
         var photoLocation: NMGLatLng?
@@ -45,7 +44,7 @@ struct MapFeature {
         // 대략적으로 마커 마커에 사용한 이미지가 40MB를 넘으면 이런 상황이 발생하는 것으로 보입니다.
         // 하지만 이미지의 크기를 세는 것보단, 전체 개수를 제한하는 식으로 마커의 개수를 제한합니다.
         // 축소시킨 이미지의 경우 1MB를 넘지 않습니다.
-        private let maxPostCount = 40
+        private let maxPostCount = 40 
         
         // MARK: - Helper Methods
         mutating func updatePosts(from newPosts: [MapPostDTO]) {
@@ -55,8 +54,11 @@ struct MapFeature {
             let visibleRadius = center.distance(to: bounds.southWest)
             let threshold = visibleRadius * 2.0
             
+            Logger.debug("current: \(posts.count)")
             mergePosts(newPosts: newPosts, center: center, threshold: threshold)
+            Logger.debug("after merge: \(posts.count)")
             cleanPosts()
+            Logger.debug("after clean: \(posts.count)")
         }
         
         private mutating func cleanPosts() {
@@ -68,16 +70,17 @@ struct MapFeature {
         
         private mutating func performPrecisionCleanup() {
             var idsToRemove: [String] = []
-            let currentPrecision = precision
             
             for post in self.posts {
                 if posts.count < maxPostCount { break }
                 
-                if post.fetchedPrecision != currentPrecision {
+                if post.fetchedZoom != Int(zoom) {
                     idsToRemove.append(post.id)
                 }
             }
             
+            // remove를 반복적으로 할 경우 O(n^2)
+            // 한번에 처리할 경우 O(n)으로 가능
             posts.removeAll { post in
                 idsToRemove.contains(post.id)
             }
@@ -86,28 +89,35 @@ struct MapFeature {
         private mutating func performDistanceCleanup() {
             guard let bounds = visibleBounds else { return }
             
+            
             let center = self.mapCameraCenterPosition
             let visibleRadius = center.distance(to: bounds.southWest)
-            let threshold = visibleRadius * 2.0 // 화면 반경의 2배
+            let threshold = visibleRadius * 2.0
             
-            posts.removeAll { post in
-                center.distance(to: post.nmLocation) > threshold
+            var idsToRemove: [String] = []
+            
+            for post in self.posts {
+                if (posts.count - idsToRemove.count) <= maxPostCount { break }
+                
+                if center.distance(to: post.nmLocation) > threshold {
+                    idsToRemove.append(post.id)
+                }
             }
+            
+            posts.removeAll { idsToRemove.contains($0.id) }
         }
         
         private mutating func mergePosts(newPosts: [MapPostDTO], center: NMGLatLng, threshold: Double) {
-            let currentPrecision = self.precision
-            
             for dto in newPosts {
                 let dtoLocation = NMGLatLng(lat: dto.location.latitude, lng: dto.location.longitude)
                 if center.distance(to: dtoLocation) > threshold { continue }
                 
                 if var existingPost = self.posts[id: dto.id] {
-                    existingPost = MapPostState(dto: dto, fetchedPrecision: currentPrecision)
+                    existingPost = MapPostState(dto: dto, fetchedZoom: Int(zoom))
                     self.posts.updateOrAppend(existingPost)
                     
                 } else {
-                    let newPost = MapPostState(dto: dto, fetchedPrecision: currentPrecision)
+                    let newPost = MapPostState(dto: dto, fetchedZoom: Int(zoom))
                     self.posts.append(newPost)
                 }
             }
@@ -299,6 +309,5 @@ struct MapFeature {
         .ifLet(\.$uploadPost, action: \.uploadPost) { UploadPostNavigationStack() }
         .ifLet(\.$camera, action: \.camera) { CameraFeature() }
         .ifLet(\.$logIn, action: \.logIn) { LogInFeature() }
-        ._printChanges()
     }
 }
