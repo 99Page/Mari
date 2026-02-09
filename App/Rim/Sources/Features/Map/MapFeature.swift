@@ -299,5 +299,6 @@ struct MapFeature {
         .ifLet(\.$uploadPost, action: \.uploadPost) { UploadPostNavigationStack() }
         .ifLet(\.$camera, action: \.camera) { CameraFeature() }
         .ifLet(\.$logIn, action: \.logIn) { LogInFeature() }
+        ._printChanges()
     }
 }
