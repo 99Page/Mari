@@ -6,6 +6,7 @@ import { db, adminInstance as admin } from "@/utils/firebase";
 import { convertToPostDetail, PostDetail } from "@/posts/models/postDetail";
 import { PostSummary } from "@/posts/models/postSummary";
 import { ErrorResponse } from "@/response/errorResponse";
+import { logErrorToFirestore } from "@/utils/errorLogger";
 
 
 export const fetchPostsForMap = async (req: Request, res: Response) => {
@@ -82,7 +83,7 @@ export const fetchPostsForMap = async (req: Request, res: Response) => {
       });
     } catch (error) {
       logger.error("Error fetching latest posts:", error);
-      // 최신 게시글 조회 실패 에러 상수
+      await logErrorToFirestore(error, { handler: "fetchPostsForMap", userId: userID || undefined, req });
       const FETCH_LATEST_FAILED: ErrorResponse = {
         code: "latest-fetch-failed",
         message: "Failed to fetch latest posts"
@@ -114,7 +115,7 @@ export const fetchPostsForMap = async (req: Request, res: Response) => {
       });
     } catch (error) {
       logger.error("Error fetching popular posts:", error);
-      // 인기 게시글 조회 실패 에러 상수
+      await logErrorToFirestore(error, { handler: "fetchPostsForMap", userId: userID || undefined, req });
       const FETCH_POPULAR_FAILED: ErrorResponse = {
         code: "popular-fetch-failed",
         message: "Failed to fetch popular posts"

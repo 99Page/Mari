@@ -4,6 +4,7 @@ import * as admin from "firebase-admin";
 import { fetchPostById } from '@/posts/handlers/v2/fetchPostById';
 import { db } from "../utils/firebase";
 import { ErrorResponse, errors } from '../response/errorResponse';
+import { logErrorToFirestore } from "../utils/errorLogger";
 
 const REGION = "asia-northeast3";
 // 5분 내 중복 조회 방지용 (선택)
@@ -38,6 +39,7 @@ export const increasePostViewCount = onRequest(
       decodedToken = await admin.auth().verifyIdToken(idToken);
     } catch (error) {
       logger.error("Token verification failed:", error);
+      await logErrorToFirestore(error, { handler: "increasePostViewCount", req });
       res.status(401).send(errors.UNAUTHORIZED);
       return;
     }

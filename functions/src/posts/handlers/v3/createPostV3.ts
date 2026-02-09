@@ -6,6 +6,7 @@ import { QuadKey } from '@/utils/QuadKey';
 import { PostDetailV3 } from '@/posts/models/postDetail';
 import { hasBannedWord } from '@/utils/bannedWords'
 import { db } from '@/utils/firebase';
+import { logErrorToFirestore } from '@/utils/errorLogger';
 
 export const createPostV3 = async (req: Request, res: Response) => {
   try {
@@ -24,6 +25,7 @@ export const createPostV3 = async (req: Request, res: Response) => {
       userID = decodedToken.uid; 
     } catch (error) {
       logger.error("Token verification failed:", error);
+      await logErrorToFirestore(error, { handler: "createPostV3", req });
       res.status(401).json(errors.UNAUTHORIZED);
       return;
     }
@@ -70,6 +72,7 @@ export const createPostV3 = async (req: Request, res: Response) => {
       }
     } catch (e) {
       logger.error("QuadKey encoding failed:", e);
+      await logErrorToFirestore(e, { handler: "createPostV3", userId: userID, req });
       res.status(500).json({
         code: "QUADKEY_ENCODING_ERROR",
         message: "Failed to generate spatial index"
@@ -111,6 +114,7 @@ export const createPostV3 = async (req: Request, res: Response) => {
 
   } catch (error) {
     logger.error("Error creating post:", error);
+    await logErrorToFirestore(error, { handler: "createPostV3", req });
     res.status(500).json({
       code: "FIRESTORE_WRITE_FAILED",
       message: "Failed to create post"

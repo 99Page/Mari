@@ -3,6 +3,7 @@ import { db, adminInstance as admin, region } from "../utils/firebase";
 import { errors } from "../response/errorResponse";
 import { SuccessResponse } from "../response/successResponse";
 import { verifyAuthAndGetUid } from "../auth/verifyToken";
+import { logErrorToFirestore } from "../utils/errorLogger";
 
 export const blocksUser = onRequest({ region }, async (req, res) => {
   try {
@@ -50,6 +51,7 @@ export const blocksUser = onRequest({ region }, async (req, res) => {
     res.status(200).json(successResponse);
     return;
   } catch (error) {
+    await logErrorToFirestore(error, { handler: "blocksUser", req });
     res.status(500).json(errors.INTERNAL_ERROR);
     return;
   }

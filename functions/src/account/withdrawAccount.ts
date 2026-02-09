@@ -3,6 +3,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import { ErrorResponse, errors } from "../response/errorResponse";
 import type { SuccessResponse } from "../response/successResponse";
+import { logErrorToFirestore } from "../utils/errorLogger";
 
 const REGION = "asia-northeast3";
 
@@ -31,6 +32,7 @@ export const withdrawAccount = onRequest({ region: REGION }, async (req, res) =>
     decodedToken = await admin.auth().verifyIdToken(idToken);
   } catch (error) {
     logger.error("❌ Token verification failed", error);
+    await logErrorToFirestore(error, { handler: "withdrawAccount", req });
     res.status(401).json(errors.UNAUTHORIZED);
     return;
   }
@@ -49,6 +51,7 @@ export const withdrawAccount = onRequest({ region: REGION }, async (req, res) =>
     res.status(200).json(WITHDRAW_SUCCESS);
   } catch (error) {
     logger.error("❌ 회원 탈퇴 실패", error);
+    await logErrorToFirestore(error, { handler: "withdrawAccount", userId: uid, req });
     res.status(500).json(WITHDRAW_FAILED);
   }
 });

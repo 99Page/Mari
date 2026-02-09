@@ -61,6 +61,7 @@ struct PostDetailFeature {
         case postMenu(PresentationAction<PostMenuFeature.Action>)
         case delegate(Delegate)
         case dismissProgress
+        case reportError(context: String, message: String, code: String?)
         
         @CasePathable
         enum UIAction: BindableAction {
@@ -86,6 +87,7 @@ struct PostDetailFeature {
     @Dependency(\.dismiss) var dismiss
     @Dependency(\.postClient) var postClient
     @Dependency(\.userRelationClient) var userRelationClient
+    @Dependency(\.errorReportClient) var errorReportClient
     
     var body: some ReducerOf<Self> {
         BindingReducer(action: \.view)
@@ -202,10 +204,12 @@ struct PostDetailFeature {
                     await send(.appendBlockedUserID(response.result.relationshipId))
                     await send(.dismissMenu)
                 } catch: { error, send in
+                    await send(.reportError(context: "PostDetail.blocksUser", message: String(describing: error), code: nil))
+                    await send(.dismissMenu)
                     if let response = error as? ErrorResponse {
-                        
+                        await send(.showAlert(title: response.message))
                     } else {
-                        
+                        await send(.showAlert(title: "사용자를 차단하지 못했어요"))
                     }
                 }
                 
@@ -215,11 +219,18 @@ struct PostDetailFeature {
                     await send(.removeBlockedUserID(response.result.relationshipId))
                     await send(.dismissMenu)
                 } catch: { error, send in
-                    
+                    await send(.reportError(context: "PostDetail.unblocksUser", message: String(describing: error), code: nil))
+                    await send(.dismissMenu)
+                    await send(.showAlert(title: "차단 해제에 실패했어요"))
                 }
                 
             case .postMenu(_):
                 return .none
+                
+            case let .reportError(context, message, code):
+                return .run { _ in
+                    try? await errorReportClient.reportError(context, message, code)
+                }
                 
             case let .appendBlockedUserID(id):
                 let _ = state.$blockedUserIds.withLock {

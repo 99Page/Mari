@@ -4,6 +4,7 @@ import { PostSummary } from "./models/postSummary"
 import { db, adminInstance as admin } from "../utils/firebase";
 import { ErrorResponse, errors } from "../response/errorResponse";
 import type { SuccessResponse } from "../response/successResponse";
+import { logErrorToFirestore } from "../utils/errorLogger";
 
 const FETCH_BY_USER_FAILED: ErrorResponse = {
   code: "fetch-by-user-failed",
@@ -30,6 +31,7 @@ export const getPostsByUser = onRequest({ region: REGION }, async (req, res) => 
     uid = decoded.uid;
   } catch (error) {
     logger.error("Token verification failed:", error);
+    await logErrorToFirestore(error, { handler: "getPostsByUser", req });
     res.status(401).json(errors.UNAUTHORIZED);
     return;
   }
@@ -85,6 +87,7 @@ export const getPostsByUser = onRequest({ region: REGION }, async (req, res) => 
    res.status(200).json(successResponse);
   } catch (error) {
     logger.error("Error fetching posts by user:", error);
+    await logErrorToFirestore(error, { handler: "getPostsByUser", userId: uid, req });
     res.status(500).json(FETCH_BY_USER_FAILED);
   }
 });

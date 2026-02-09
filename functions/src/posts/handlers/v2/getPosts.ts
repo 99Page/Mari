@@ -7,6 +7,7 @@ import { convertToPostDetail, PostDetail } from "@/posts/models/postDetail";
 import { PostSummary } from "@/posts/models/postSummary";
 import { ErrorResponse } from "@/response/errorResponse";
 import type { SuccessResponse } from "@/response/successResponse";
+import { logErrorToFirestore } from "@/utils/errorLogger";
 
 const REGION = "asia-northeast3";
 
@@ -86,7 +87,7 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
       });
     } catch (error) {
       logger.error("Error fetching latest posts:", error);
-      // 최신 게시글 조회 실패 에러 상수
+      await logErrorToFirestore(error, { handler: "getPosts", userId: userID || undefined, req });
       const FETCH_LATEST_FAILED: ErrorResponse = {
         code: "latest-fetch-failed",
         message: "Failed to fetch latest posts"
@@ -115,7 +116,7 @@ export const getPosts = onRequest({ region: REGION }, async (req, res) => {
       res.status(200).json(successResponse);
     } catch (error) {
       logger.error("Error fetching popular posts:", error);
-      // 인기 게시글 조회 실패 에러 상수
+      await logErrorToFirestore(error, { handler: "getPosts", userId: userID || undefined, req });
       const FETCH_POPULAR_FAILED: ErrorResponse = {
         code: "popular-fetch-failed",
         message: "Failed to fetch popular posts"

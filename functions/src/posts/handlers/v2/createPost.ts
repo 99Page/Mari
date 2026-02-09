@@ -6,6 +6,7 @@ import { errors } from "../../../response/errorResponse";
 import type { ErrorResponse } from "../../../response/errorResponse";
 import { PostDetail } from "../../models/postDetail";
 import { hasBannedWord } from "@/utils/bannedWords";
+import { logErrorToFirestore } from "@/utils/errorLogger";
 
 
 
@@ -24,6 +25,7 @@ export const createPost = async (req: Request, res: Response) => {
       await admin.auth().verifyIdToken(idToken);
     } catch (error) {
       logger.error("Token verification failed:", error);
+      await logErrorToFirestore(error, { handler: "createPost", req });
       res.status(401).json(errors.UNAUTHORIZED);
       return;
     }
@@ -87,6 +89,7 @@ export const createPost = async (req: Request, res: Response) => {
       }
     } catch (e) {
       logger.error("GeoHash encoding failed:", e);
+      await logErrorToFirestore(e, { handler: "createPost", userId: creatorID, req });
       res.status(500).json(GEOHASH_ENCODING_ERROR);
       return;
     }
@@ -137,6 +140,7 @@ export const createPost = async (req: Request, res: Response) => {
   });
   } catch (error) {
     logger.error("Error creating post:", error);
+    await logErrorToFirestore(error, { handler: "createPost", req });
     const errorResponse: ErrorResponse = {
       code: "FIRESTORE_WIRTE_FAILED",
       message: "Failed to create post"

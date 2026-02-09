@@ -15,7 +15,6 @@ struct MapNavigationStack {
     @Reducer
     enum Path {
         case postDetail(PostDetailFeature)
-        case postList(PostListFeature)
     }
     
     @ObservableState
@@ -75,8 +74,6 @@ class MapNavigationStackController: NavigationStackController {
             switch store.case {
             case let .postDetail(store):
                 PostDetailViewController(store: store)
-            case let .postList(store):
-                PostListViewController(store: store)
             }
         }
         

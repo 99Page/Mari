@@ -3,6 +3,7 @@ import { onRequest } from "firebase-functions/v2/https";
 import { errors } from "../response/errorResponse"
 import { db, adminInstance as admin } from "../utils/firebase";
 import type { SuccessResponse } from '../response/successResponse';
+import { logErrorToFirestore } from "../utils/errorLogger";
 
 
 const REGION = "asia-northeast3";
@@ -64,7 +65,8 @@ export const reportPost = onRequest({ region: REGION }, async (req, res) => {
       }
     }
     res.status(200).json(successResponse);
-  } catch {
+  } catch (error) {
+    await logErrorToFirestore(error, { handler: "reportPost", userId: uid, req });
     res.status(500).json(errors.REPORT_POST_FAILED);
   }
-})
+});

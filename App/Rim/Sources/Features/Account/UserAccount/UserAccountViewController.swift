@@ -30,6 +30,7 @@ struct UserAccountFeature {
         case alert(PresentationAction<Alert>)
         case showWithdrawalFailAlert
         case dismissProgressView
+        case reportError(context: String, message: String, code: String?)
         
         @CasePathable
         enum View: BindableAction {
@@ -51,6 +52,7 @@ struct UserAccountFeature {
     }
     
     @Dependency(\.accountClient) var accountClient
+    @Dependency(\.errorReportClient) var errorReportClient
     
     var body: some ReducerOf<Self> {
         Scope(state: \.logIn, action: \.logIn) {
@@ -104,8 +106,10 @@ struct UserAccountFeature {
                 return .run { send in
                     let _ = try await accountClient.withdraw()
                     await send(.delegate(.logout))
-                } catch: { _, send in
-                    
+                } catch: { error, send in
+                    await send(.reportError(context: "UserAccount.withdraw", message: String(describing: error), code: nil))
+                    await send(.dismissProgressView)
+                    await send(.showWithdrawalFailAlert)
                 }
                 
             case .alert(_):
@@ -122,6 +126,11 @@ struct UserAccountFeature {
             case .dismissProgressView:
                 state.isProgressViewPresented = false
                 return .none
+                
+            case let .reportError(context, message, code):
+                return .run { _ in
+                    try? await errorReportClient.reportError(context, message, code)
+                }
             }
         }
         .ifLet(\.$alert, action: \.alert)

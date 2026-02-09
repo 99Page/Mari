@@ -6,6 +6,7 @@ import { region } from "@/utils/firebase";
 import type { SuccessResponse } from "@/response/successResponse";
 import { verifyAuthAndGetUid } from "@/auth/verifyToken";
 import { PostDetail, convertToPostDetail } from "@/posts/models/postDetail";
+import { logErrorToFirestore } from "@/utils/errorLogger";
 
 export const nearPostsV1 = onRequest({ region: region }, async (req, res) => {
   const lat = parseFloat(req.query.latitude as string);
@@ -63,7 +64,8 @@ export const nearPostsV1 = onRequest({ region: region }, async (req, res) => {
    };
    res.status(200).json(successResponse);
 
-  } catch {
+  } catch (error) {
+    await logErrorToFirestore(error, { handler: "nearPostsV1", userId: uid, req });
     res.status(500).json(Errors.NEAR_POST_FETCH_FAILED);
   }
 });
