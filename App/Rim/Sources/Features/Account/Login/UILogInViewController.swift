@@ -36,8 +36,6 @@ struct LogInFeature {
         // 애플 인증에는 해시된 값 사용
         var hashedNonce = ""
         
-        var isProgressPresented = false
-        
         @Presents var alert: AlertState<AlertAction>?
     }
     
@@ -49,7 +47,6 @@ struct LogInFeature {
     enum Action: ViewAction {
         case view(View)
         case delegate(Delegate)
-        case dismissProgressView
         case alert(PresentationAction<AlertAction>)
         case firebaseSignInSucceeded(SignInResult)
         case authenticationSucceeded(uid: String)
@@ -81,7 +78,6 @@ struct LogInFeature {
         Reduce<State, Action> { state, action in
             switch action {
             case let .view(.appleSignInSucceeded(identityToken)):
-                state.isProgressPresented = true
                 return .run { [nonce = state.originNonce] send in
                     let signInResult = try await accountClient.signInUsingApple(token: identityToken, nonce: nonce)
                     await send(.firebaseSignInSucceeded(signInResult))
@@ -95,13 +91,11 @@ struct LogInFeature {
                 return .none
                 
             case let .view(.googleCredentialCreated(credential)):
-                state.isProgressPresented = true
                 return .run { send in
                     let authData = try await accountClient.signInFirebase(credential: credential)
                     await send(.firebaseSignInSucceeded(authData))
                 } catch: { error, send in
                     await send(.reportError(context: "LogIn.signInFirebase", message: String(describing: error), code: nil))
-                    await send(.dismissProgressView)
                     await send(.view(.signInFailed))
                 }
                 
@@ -121,10 +115,6 @@ struct LogInFeature {
             case .delegate:
                 return .none
                 
-            case .dismissProgressView:
-                state.isProgressPresented = false
-                return .none
-                
             case .alert(_):
                 return .none
                 
@@ -137,7 +127,6 @@ struct LogInFeature {
                 return .run { send in
                     try keychain.save(value: signInResult.idToken, service: .firebase, account: .idToken)
                     await send(.authenticationSucceeded(uid: signInResult.uid))
-                    await send(.dismissProgressView)
                     await send(.delegate(.logInSucceeded))
                 }
                 
@@ -179,10 +168,6 @@ class UILogInViewController: UIViewController {
         setupView()
         makeConstraint()
         updateView()
-        
-        present(isPresented: $store.isProgressPresented) {
-            ProgressViewController()
-        }
         
         present(item: $store.scope(state: \.alert, action: \.alert)) { store in
             UIAlertController(store: store)

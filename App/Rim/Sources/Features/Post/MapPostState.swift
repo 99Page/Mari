@@ -18,7 +18,7 @@ struct MapPostState: Equatable, Identifiable, Hashable {
     let location: CLLocation
     let creatorID: String
     let zIndex: Int
-    let fetchedPrecision: Geohash.Precision
+    let fetchedZoom: Int
     
     var nmLocation: NMGLatLng {
         NMGLatLng(lat: location.coordinate.latitude, lng: location.coordinate.longitude)
@@ -27,7 +27,7 @@ struct MapPostState: Equatable, Identifiable, Hashable {
     init(
         id: String, imageURL: String, title: String,
         coordinate: CLLocation, creatorID: String, zIndex: Int,
-        fetchedPrecision: Geohash.Precision
+        fetchedZoom: Int
     ) {
         self.id = id
         self.imageURL = imageURL
@@ -35,26 +35,26 @@ struct MapPostState: Equatable, Identifiable, Hashable {
         self.location = coordinate
         self.creatorID = creatorID
         self.zIndex = zIndex
-        self.fetchedPrecision = fetchedPrecision
+        self.fetchedZoom = fetchedZoom
     }
     
-    init(dto: PostDetailDTO, fetchedPrecision: Geohash.Precision) {
+    init(dto: PostDetailDTO, fetchedZoom: Int) {
         self.id = dto.id
         self.imageURL = dto.imageUrl
         self.title = dto.title
         self.creatorID = dto.creatorID
         self.location = CLLocation(latitude: dto.location.latitude, longitude: dto.location.longitude)
-        self.fetchedPrecision = fetchedPrecision
+        self.fetchedZoom = fetchedZoom
         self.zIndex = Int(dto.createdAt.date.timeIntervalSince1970)
     }
     
-    init(dto: MapPostDTO, fetchedPrecision: Geohash.Precision) {
+    init(dto: MapPostDTO, fetchedZoom: Int) {
         self.id = dto.id
         self.imageURL = dto.imageUrl
         self.title = dto.title
         self.creatorID = dto.creatorID
         self.location = CLLocation(latitude: dto.location.latitude, longitude: dto.location.longitude)
         self.zIndex =  Int(dto.createdAt.date.timeIntervalSince1970)
-        self.fetchedPrecision = fetchedPrecision
+        self.fetchedZoom = fetchedZoom
     }
 }
