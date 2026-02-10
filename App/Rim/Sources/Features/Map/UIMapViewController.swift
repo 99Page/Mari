@@ -37,6 +37,8 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
     
     private let currentLocationButton = UIButton()
     
+    private var selectedMarker: NMFMarker?
+    
     private lazy var cachedLockedIcon: UIImage = {
         let size = CGSize(width: 94, height: 86)
         return resizedImage(UIImage(systemName: "lock.circle")!, size: size)
@@ -166,6 +168,7 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
         
         marker.touchHandler = { [weak self] _ in
             guard let self else { return false } // 지도 탭 이벤트 허용
+            self.selectedMarker = marker
             traitCollection.push(state: MapNavigationStack.Path.State.postList(.init(imageURL: post.imageURL)))
             return true // 지도 탭 무시
         }
@@ -253,7 +256,7 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
         currentLocationButton.snp.makeConstraints { make in
             make.bottom.equalTo(view.safeAreaLayoutGuide).inset(16)
             make.trailing.equalToSuperview().inset(16)
-            make.width.height.equalTo(40) 
+            make.width.height.equalTo(40)
         }
         
         cameraButton.snp.makeConstraints { make in
@@ -385,8 +388,54 @@ extension UIMapViewController: CLLocationManagerDelegate {
     }
 }
 
-extension UIMapViewController: UINavigationControllerDelegate {
-    
+extension UIMapViewController: ExpandTransitionSourceDelegate {
+    func transitionSourceRect() -> CGRect? {
+        // A. 현재 선택된 포스트 ID 찾기 (store.posts를 순회하거나, 탭 핸들러에서 저장해둬야 함)
+        // 여기서는 가장 최근에 탭해서 이동하려는 마커를 찾아야 합니다.
+        // 편의상 '마지막으로 탭한 마커'를 추적하는 변수가 필요할 수 있습니다.
+        
+        // ⚠️ 중요: makeNewMarker의 touchHandler에서 'selectedPostID' 같은걸 State에 저장하거나
+        // 별도 변수에 저장해둬야 정확한 마커를 찾을 수 있습니다.
+        // 일단 예시로 "활성화된 마커 중 하나"를 찾는 로직을 넣겠습니다.
+        
+        // (실제 구현 시: 탭할 때 `self.selectedMarker = marker` 처럼 저장해두세요)
+        guard let selectedMarker = self.selectedMarker else { return nil }
+        
+        // B. 지도상 좌표(LatLng) -> 화면상 좌표(Point) 변환
+        let point = mapView.projection.point(from: selectedMarker.position)
+        
+        // C. 마커 크기만큼 CGRect 생성
+        let width: CGFloat = 94
+        let height: CGFloat = 86
+        
+        // point는 마커의 anchor(0.5, 1.0 - 하단 중앙) 기준이므로 보정 필요
+        return CGRect(
+            x: point.x - (width / 2),
+            y: point.y - height,
+            width: width,
+            height: height
+        )
+    }
+}
+
+extension UIMapViewController: TransitionHandler {
+    func transitionAnimator(
+        operation: UINavigationController.Operation,
+        from fromVC: UIViewController,
+        to toVC: UIViewController
+    ) -> UIViewControllerAnimatedTransitioning? {
+        
+        
+        if operation == .push && toVC is PostListViewController {
+            return ExpandAnimator(isPresenting: true)
+        }
+        
+        if operation == .pop && fromVC is PostListViewController {
+            return ExpandAnimator(isPresenting: false)
+        }
+        
+        return nil
+    }
 }
 
 private extension UIMapViewController {

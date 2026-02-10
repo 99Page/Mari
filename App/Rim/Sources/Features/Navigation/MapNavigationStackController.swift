@@ -8,6 +8,7 @@
 import Foundation
 import ComposableArchitecture
 import UIKit
+import Core
 import SwiftUI
 
 @Reducer
@@ -63,8 +64,10 @@ struct MapNavigationStack {
 
 extension MapNavigationStack.Path.State: Equatable { }
 
-class MapNavigationStackController: NavigationStackController {
+class MapNavigationStackController: NavigationStackController, UINavigationControllerDelegate, UIGestureRecognizerDelegate {
+    
     private var store: StoreOf<MapNavigationStack>!
+    private var swipeInteractionController: SwipeInteractionController?
     
     convenience init(store: StoreOf<MapNavigationStack>!) {
         @UIBindable var store = store
@@ -81,5 +84,69 @@ class MapNavigationStackController: NavigationStackController {
         }
         
         self.store = store
+        self.delegate = self
     }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        
+//        if let gesture = self.interactivePopGestureRecognizer {
+//            gesture.isEnabled = true
+//            gesture.delegate = self
+//        }
+    }
+    
+    public func navigationController(
+        _ navigationController: UINavigationController,
+        animationControllerFor operation: UINavigationController.Operation,
+        from fromVC: UIViewController,
+        to toVC: UIViewController
+    ) -> UIViewControllerAnimatedTransitioning? {
+        
+        if operation == .push {
+            self.swipeInteractionController = SwipeInteractionController(viewController: toVC)
+        }
+        
+        if let handler = fromVC as? TransitionHandler {
+            print("call!")
+            return handler.transitionAnimator(operation: operation, from: fromVC, to: toVC)
+        }
+        
+        if let handler = toVC as? TransitionHandler {
+            return handler.transitionAnimator(operation: operation, from: fromVC, to: toVC)
+        }
+        
+        return nil
+    }
+    
+    public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        return self.viewControllers.count > 1
+    }
+    
+    public func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+    ) -> Bool {
+        return true
+    }
+    
+    public func navigationController(
+        _ navigationController: UINavigationController,
+        interactionControllerFor animationController: UIViewControllerAnimatedTransitioning
+    ) -> UIViewControllerInteractiveTransitioning? {
+        
+        // 스와이프 진행 중일 때만 컨트롤러 반환
+        guard let controller = swipeInteractionController, controller.interactionInProgress else {
+            return nil
+        }
+        return controller
+    }
+}
+
+protocol TransitionHandler: UIViewController {
+    func transitionAnimator(
+        operation: UINavigationController.Operation,
+        from fromVC: UIViewController,
+        to toVC: UIViewController
+    ) -> UIViewControllerAnimatedTransitioning?
 }
