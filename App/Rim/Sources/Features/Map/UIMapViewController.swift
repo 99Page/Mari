@@ -164,6 +164,12 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
         marker.iconImage = NMFOverlayImage(image: iconImage)
         marker.userInfo = ["url": post.imageURL]
         
+        marker.touchHandler = { [weak self] _ in
+            guard let self else { return false } // 지도 탭 이벤트 허용
+            traitCollection.push(state: MapNavigationStack.Path.State.postList(.init(imageURL: post.imageURL)))
+            return true // 지도 탭 무시
+        }
+        
         updateMarkerImage(for: post, on: marker)
         return marker
     }

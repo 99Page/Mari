@@ -24,9 +24,11 @@ struct PostClient {
     // lastCreatedAt는 커서의 역할을 합니다 -page, 2025. 07. 15
     var fetchUserPosts: (_ lastCreatedAt: Date) async throws -> APIResponse<FetchUserPostsResponse>
     
-    var deletePost: (_ postID: String) async throws -> APIResponse<DeletePostResponse>
+    var deletePost: (_ postID: String) async throws -> APIResponse<Response.Delete>
     
     var report: (_ postID: String) async throws -> APIResponse<EmptyResult>
+    
+    var fetchListPosts: () async throws -> APIResponse<[PostDetailDTO]>
     
     enum PostAPI: APITarget {
         case createPost(request: PostRequest.Create)
@@ -36,6 +38,7 @@ struct PostClient {
         case fetchUserPosts(lastCreatedAt: Date)
         case deletePost(postID: String)
         case report(postID: String)
+        case fetchListPosts
         
         var method: HTTPMethod {
             switch self {
@@ -44,6 +47,7 @@ struct PostClient {
             case .createPost, .report, .incrementPostViewCount: .post
             case .fetchUserPosts: .get
             case .deletePost: .delete
+            case .fetchListPosts: .get
             }
         }
         
@@ -55,8 +59,8 @@ struct PostClient {
             case .incrementPostViewCount: nil
             case .fetchUserPosts: nil
             case .deletePost: nil
-            case let .report(postId):
-                ["postId": postId]
+            case let .report(postId): ["postId": postId]
+            case .fetchListPosts: nil
             }
         }
         
@@ -66,7 +70,7 @@ struct PostClient {
             @Dependency(\.keychain) var keychain
             
             switch self {
-            case .incrementPostViewCount, .createPost, .fetchUserPosts, .deletePost, .fetchPostByID, .report:
+            case .incrementPostViewCount, .createPost, .fetchUserPosts, .deletePost, .fetchPostByID, .report, .fetchListPosts:
                 let idToken = try? keychain.load(service: .firebase, account: .idToken)
                 headers["Authorization"] = "Bearer \(idToken ?? "")"
             case .fetchMapPosts:
@@ -96,6 +100,8 @@ struct PostClient {
                 "/deletePost?id=\(postID)"
             case .report:
                 "/reportPost"
+            case .fetchListPosts:
+                "/posts/list"
             }
         }
     }
@@ -117,6 +123,8 @@ extension PostClient: DependencyKey {
             try await Client.request(target: PostAPI.deletePost(postID: postID))
         } report: { postID in
             try await Client.request(target: PostAPI.report(postID: postID))
+        } fetchListPosts: {
+            APIResponse(status: "", message: "", result: .stub())
         }
     }
     
@@ -135,6 +143,8 @@ extension PostClient: DependencyKey {
                 .stub()
         } report: { _ in
                 .stub()
+        } fetchListPosts: {
+            .stub()
         }
     }
     

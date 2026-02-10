@@ -22,5 +22,14 @@ extension PostClient {
             let postCount: Int
         }
 
+        
+        struct Delete: Decodable, Stub {
+            let id: String
+            
+            static func stub() -> Self {
+                .init(id: "1")
+            }
+        }
+
     }
 }
