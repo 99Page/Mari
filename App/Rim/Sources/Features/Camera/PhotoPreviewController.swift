@@ -19,9 +19,11 @@ struct PhotoPreviewFeature {
         @Presents var alert: AlertState<Action.Alert>?
         
         var photoView: RimImageView.ImageType
+        var aspectRatio: CGFloat
         
-        init(capturedPhoto: UIImage) {
+        init(capturedPhoto: UIImage, aspectRatio: CGFloat) {
             self.photoView = .uiImage(uiImage: capturedPhoto)
+            self.aspectRatio = aspectRatio
         }
     }
     
@@ -169,9 +171,9 @@ class PhotoPreviewController: UIViewController {
         }
         
         imagePreviewView.snp.makeConstraints { make in
-            make.height.equalTo(view.snp.height).multipliedBy(0.7)
-            make.leading.trailing.equalToSuperview()
-            make.centerY.equalToSuperview()
+            make.leading.trailing.equalToSuperview() 
+            make.height.equalTo(imagePreviewView.snp.width).multipliedBy(store.aspectRatio)
+            make.centerY.equalToSuperview() // 화면 중앙 정렬
         }
         
         stackBackgroundView.snp.makeConstraints { make in
@@ -195,6 +197,8 @@ class PhotoPreviewController: UIViewController {
         bottomButtonStack.isLayoutMarginsRelativeArrangement = true
         bottomButtonStack.layoutMargins = UIEdgeInsets(top: 0, left: 24, bottom: 0, right: 24)
         
+        imagePreviewView.contentMode = .scaleAspectFit
+        
         retakeButton.addAction(.touchUpInside({ [weak self] in
             self?.send(.retakeButtonTapped)
         }), animation: .none)
@@ -206,7 +210,7 @@ class PhotoPreviewController: UIViewController {
 }
 
 #Preview {
-    let store = Store(initialState: PhotoPreviewFeature.State(capturedPhoto: UIImage(resource: .mustafa))) {
+    let store = Store(initialState: PhotoPreviewFeature.State(capturedPhoto: UIImage(resource: .mustafa), aspectRatio: 1.25)) {
         PhotoPreviewFeature()
     }
     

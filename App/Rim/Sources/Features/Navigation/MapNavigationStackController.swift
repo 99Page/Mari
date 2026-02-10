@@ -134,19 +134,9 @@ class MapNavigationStackController: NavigationStackController, UINavigationContr
         _ navigationController: UINavigationController,
         interactionControllerFor animationController: UIViewControllerAnimatedTransitioning
     ) -> UIViewControllerInteractiveTransitioning? {
-        
-        // 스와이프 진행 중일 때만 컨트롤러 반환
         guard let controller = swipeInteractionController, controller.interactionInProgress else {
             return nil
         }
         return controller
     }
-}
-
-protocol TransitionHandler: UIViewController {
-    func transitionAnimator(
-        operation: UINavigationController.Operation,
-        from fromVC: UIViewController,
-        to toVC: UIViewController
-    ) -> UIViewControllerAnimatedTransitioning?
 }
