@@ -35,6 +35,7 @@ struct PostListFeature {
         Reduce { state, action in
             switch action {
             case .view(.onAppear):
+                Logger.debug(state.imageURL)
                 state.posts = [
                     PostDetail(
                         id: uuid().uuidString,
@@ -87,6 +88,14 @@ final class PostListViewController: UIViewController {
     
     private let tableView: UITableView
     
+    private let heroImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+        imageView.backgroundColor = .secondarySystemBackground // 이미지가 없을 때 배경색
+        return imageView
+    }()
+    
     init(store: StoreOf<PostListFeature>) {
         @UIBindable var binding = store
         self.store = store
@@ -112,6 +121,12 @@ final class PostListViewController: UIViewController {
         setupView()
         makeConstraints()
         send(.onAppear)
+        Logger.debug("viewDidLoad")
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        heroImageView.removeFromSuperview()
     }
     
     private func setupView() {
@@ -125,18 +140,28 @@ final class PostListViewController: UIViewController {
         tableView.sectionFooterHeight = 0
         tableView.estimatedSectionHeaderHeight = .leastNonzeroMagnitude
         tableView.estimatedSectionFooterHeight = .leastNonzeroMagnitude
+        tableView.contentInsetAdjustmentBehavior = .never
         
         tableView.tableHeaderView = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: CGFloat.leastNonzeroMagnitude))
         tableView.tableFooterView = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: CGFloat.leastNonzeroMagnitude))
         
         tableView.register(PostCell.self, forCellReuseIdentifier: "PostCell")
+//        
+//        heroImageView.kf.setImage(with: URL(string: store.imageURL))
+//        heroImageView.alpha = 1
     }
     
     private func makeConstraints() {
         view.addSubview(tableView)
+        view.addSubview(heroImageView)
         
         tableView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
+        }
+        
+        heroImageView.snp.makeConstraints { make in
+            make.top.leading.trailing.equalToSuperview()
+            make.height.equalTo(heroImageView.snp.width).multipliedBy(1.25)
         }
     }
 }

@@ -87,15 +87,6 @@ class MapNavigationStackController: NavigationStackController, UINavigationContr
         self.delegate = self
     }
     
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        
-//        if let gesture = self.interactivePopGestureRecognizer {
-//            gesture.isEnabled = true
-//            gesture.delegate = self
-//        }
-    }
-    
     public func navigationController(
         _ navigationController: UINavigationController,
         animationControllerFor operation: UINavigationController.Operation,

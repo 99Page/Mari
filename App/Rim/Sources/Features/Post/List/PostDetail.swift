@@ -17,4 +17,15 @@ struct PostDetail: Identifiable, Equatable, Hashable, SectionProvidable {
     let creatorID: String
     let description: String
     let section = 0
+    
+    static func stub() -> Self {
+        PostDetail(
+            id: "",
+            imageURL: "",
+            title: "",
+            location: CLLocation(latitude: 0, longitude: 0),
+            creatorID: "",
+            description: ""
+        )
+    }
 }

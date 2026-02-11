@@ -15,7 +15,7 @@ final class PostCell: UITableViewCell {
     
     // MARK: - UI Components
     
-    private let postImageView: UIImageView = {
+    let postImageView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill // 가로 꽉 채우기
         iv.clipsToBounds = true
@@ -50,7 +50,7 @@ final class PostCell: UITableViewCell {
         postImageView.snp.makeConstraints { make in
             make.top.equalToSuperview()
             make.leading.trailing.equalToSuperview()
-            make.height.equalTo(postImageView.snp.width).multipliedBy(1.4)
+            make.height.equalTo(postImageView.snp.width).multipliedBy(1.25)
         }
         
         contentLabel.snp.makeConstraints { make in

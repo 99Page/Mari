@@ -22,7 +22,7 @@ final public  class ExpandAnimator: NSObject, UIViewControllerAnimatedTransition
     }
     
     public func transitionDuration(using transitionContext: UIViewControllerContextTransitioning?) -> TimeInterval {
-        return 0.6
+        return 1
     }
     
     public func animateTransition(using transitionContext: UIViewControllerContextTransitioning) {
@@ -48,40 +48,14 @@ final public  class ExpandAnimator: NSObject, UIViewControllerAnimatedTransition
         
         // 3. 애니메이션 준비
         if isPresenting {
-            // [Push: 지도 -> 리스트]
-            containerView.addSubview(toView)
-            
-            // A. 최종 화면 크기
-            let finalFrame = transitionContext.finalFrame(for: toVC)
-            toView.frame = finalFrame
-            toView.layoutIfNeeded() // 레이아웃을 미리 잡아서 내부 이미지 위치 확정
-            
-            // B. 변환 계산 (전체 화면을 마커 크기만큼 축소하려면 얼만큼 줄여야 하는가?)
-            let scaleX = sourceRect.width / finalFrame.width
-            let scaleY = sourceRect.height / finalFrame.height
-            
-            // C. 초기 상태 설정 (마커 위치로 축소 & 이동)
-            let transform = CGAffineTransform(scaleX: scaleX, y: scaleY)
-            toView.transform = transform
-            toView.center = CGPoint(x: sourceRect.midX, y: sourceRect.midY)
-            toView.layer.masksToBounds = true
-            toView.layer.cornerRadius = 20 // 마커처럼 둥글게 시작
-            
-            // D. 애니메이션 실행 (펴지기)
-            UIView.animate(withDuration: transitionDuration(using: transitionContext),
-                           delay: 0,
-                           usingSpringWithDamping: 0.75, // 튕기는 맛 추가
-                           initialSpringVelocity: 0,
-                           options: .curveEaseOut) {
-                
-                toView.transform = .identity // 원래 크기로 복귀
-                toView.center = CGPoint(x: finalFrame.midX, y: finalFrame.midY) // 원래 위치로 복귀
-                toView.layer.cornerRadius = 0 // 둥근 모서리 제거
-                
-            } completion: { _ in
-                transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
-            }
-            
+            animatePresentation(
+                using: transitionContext,
+                containerView: containerView,
+                toVC: toVC,
+                fromVC: fromVC,
+                toView: toView,
+                sourceRect: sourceRect
+            )
         } else {
             // [Pop: 리스트 -> 지도]
             // 반대로 리스트가 마커 위치로 작아지면서 사라짐
@@ -106,6 +80,84 @@ final public  class ExpandAnimator: NSObject, UIViewControllerAnimatedTransition
             } completion: { _ in
                 transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
             }
+        }
+    }
+    
+    private func animatePresentation(
+        using transitionContext: UIViewControllerContextTransitioning,
+        containerView: UIView,
+        toVC: UIViewController,
+        fromVC: UIViewController?,
+        toView: UIView,
+        sourceRect: CGRect
+    ) {
+        let finalFrame = transitionContext.finalFrame(for: toVC)
+        
+        // 1. 비율 정의 (W:H 기준)
+        let imageRatio: CGFloat = 5 / 4    // 1.25 (Portrait)
+        let targetMaskRatio: CGFloat = 7 / 9 // 0.77 (Landscape)
+        
+        // 2. 높이 계산
+        let imageHeight = finalFrame.width * imageRatio // 4:5 전체 이미지 높이
+        let maskHeight = finalFrame.width * targetMaskRatio // 9:7 마스크 높이
+        
+        // 3. [핵심] 중앙 정렬을 위한 마스크 Y 오프셋 계산
+        // 전체 이미지 높이에서 마스크 높이를 뺀 값의 절반만큼 아래로 내립니다.
+        // 이렇게 해야 위아래가 똑같은 비율로 잘립니다.
+        let maskTopOffset = (imageHeight - maskHeight) / 2
+        
+        // 4. toView 초기 설정
+        toView.frame = finalFrame
+        toView.clipsToBounds = false
+        containerView.addSubview(toView)
+        toView.layoutIfNeeded()
+        
+        // 5. 파란색 가이드 뷰 (이미지 중앙의 9:7 영역)
+        // y 위치를 maskTopOffset으로 설정하여 중앙에 배치합니다.
+        let blueOverlay = UIView(frame: CGRect(x: 0, y: maskTopOffset, width: finalFrame.width, height: maskHeight))
+        blueOverlay.backgroundColor = UIColor.blue
+        blueOverlay.layer.borderWidth = 2
+        blueOverlay.layer.borderColor = UIColor.blue.cgColor
+        toView.addSubview(blueOverlay)
+        toView.mask = blueOverlay
+        
+        // 6. 축소 비율(Scale) 계산
+        let scaleX = sourceRect.width / finalFrame.width
+        let scaleY = sourceRect.height / maskHeight
+        
+        // 7. Transform 적용
+        toView.transform = CGAffineTransform(scaleX: scaleX, y: scaleY)
+        
+        // 8. [중요] 좌표 보정 (중앙 정렬된 파란색 영역을 마커에 맞춤)
+        let maskCenterYInToView = maskTopOffset + (maskHeight / 2)
+        let scaledMaskCenterY = maskCenterYInToView * scaleY
+        
+        // 전체 뷰의 중심점(scaledFullHeight / 2)과 마스크 중심점의 차이만큼 이동
+        let scaledFullHeight = finalFrame.height * scaleY
+        let centerYOffset = (scaledFullHeight / 2) - scaledMaskCenterY
+        
+        toView.center = CGPoint(
+            x: sourceRect.midX,
+            y: sourceRect.midY + centerYOffset
+        )
+        
+        UIView.animate(withDuration: transitionDuration(using: transitionContext),
+                       delay: 0,
+                       usingSpringWithDamping: 0.8,
+                       initialSpringVelocity: 0,
+                       options: .curveEaseOut) {
+            
+            toView.transform = .identity
+            toView.center = CGPoint(x: finalFrame.midX, y: finalFrame.midY)
+            
+            blueOverlay.frame = CGRect(origin: .zero, size: finalFrame.size)
+            
+            toView.layer.cornerRadius = 0
+            toView.layoutIfNeeded()
+        } completion: { _ in
+            // 가이드 뷰 제거 및 전환 완료 보고
+            blueOverlay.removeFromSuperview()
+            transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
         }
     }
 }
