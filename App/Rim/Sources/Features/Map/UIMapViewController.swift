@@ -192,10 +192,11 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
     
     func loadMarkerImage(for post: MapPostState) async -> UIImage {
         
-        let rawUrlString = post.imageURL
+        let rawUrlString = post.thumbnailURL
         let markerCacheKey = rawUrlString.isEmpty ? "empty_post_marker" : rawUrlString + "_processed_marker"
         
         let cache = KingfisherManager.shared.cache
+        
         if let result = try? await cache.retrieveImage(forKey: markerCacheKey),
            let cachedMarker = result.image {
             return cachedMarker
@@ -292,19 +293,15 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
     }
     
     private func applySharedButtonStyle(to button: UIButton, iconName: String) {
-        // 1. 배경 및 테두리 (흰색 배경, 파란색 테두리)
         button.backgroundColor = .white
         button.layer.borderWidth = 1.5
         button.layer.borderColor = UIColor.systemBlue.cgColor
         
-        // 2. 그림자
         button.layer.shadowColor = UIColor.black.cgColor
         button.layer.shadowOpacity = 0.15
         button.layer.shadowOffset = CGSize(width: 0, height: 2)
         button.layer.shadowRadius = 4
         
-        // 3. 아이콘 (파란색)
-        // 버튼 크기(40)에 맞춰 아이콘 크기를 약간 조절했습니다.
         let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .semibold)
         button.setImage(UIImage(systemName: iconName, withConfiguration: config), for: .normal)
         button.tintColor = .systemBlue
@@ -390,25 +387,13 @@ extension UIMapViewController: CLLocationManagerDelegate {
 
 extension UIMapViewController: ExpandTransitionSourceDelegate {
     func transitionSourceRect() -> CGRect? {
-        // A. 현재 선택된 포스트 ID 찾기 (store.posts를 순회하거나, 탭 핸들러에서 저장해둬야 함)
-        // 여기서는 가장 최근에 탭해서 이동하려는 마커를 찾아야 합니다.
-        // 편의상 '마지막으로 탭한 마커'를 추적하는 변수가 필요할 수 있습니다.
-        
-        // ⚠️ 중요: makeNewMarker의 touchHandler에서 'selectedPostID' 같은걸 State에 저장하거나
-        // 별도 변수에 저장해둬야 정확한 마커를 찾을 수 있습니다.
-        // 일단 예시로 "활성화된 마커 중 하나"를 찾는 로직을 넣겠습니다.
-        
-        // (실제 구현 시: 탭할 때 `self.selectedMarker = marker` 처럼 저장해두세요)
         guard let selectedMarker = self.selectedMarker else { return nil }
         
-        // B. 지도상 좌표(LatLng) -> 화면상 좌표(Point) 변환
         let point = mapView.projection.point(from: selectedMarker.position)
         
-        // C. 마커 크기만큼 CGRect 생성
         let width: CGFloat = 94
         let height: CGFloat = 86
         
-        // point는 마커의 anchor(0.5, 1.0 - 하단 중앙) 기준이므로 보정 필요
         return CGRect(
             x: point.x - (width / 2),
             y: point.y - height,

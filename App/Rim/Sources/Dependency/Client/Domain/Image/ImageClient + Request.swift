@@ -14,18 +14,20 @@ extension ImageClient {
         // MARK: - Upload Request
         struct Upload {
             let image: UIImage
-            let path: String
+            let directoryPath: String
             let fileName: String
             let format: ImageUploadFormat
             
             enum ImageUploadFormat {
                 case jpeg(quality: CGFloat)
                 case png
+                case webp(quality: CGFloat)
                 
                 var contentType: String {
                     switch self {
                     case .jpeg: return "image/jpeg"
                     case .png: return "image/png"
+                    case .webp: return "image/webp"
                     }
                 }
                 
@@ -33,6 +35,7 @@ extension ImageClient {
                     switch self {
                     case .jpeg: return "jpg"
                     case .png: return "png"
+                    case .webp: return "webp"
                     }
                 }
             }
@@ -49,20 +52,29 @@ extension ImageClient {
             case small
             case large
             
+            private var aspectRatio: Double { 1.25 }
+            
             var width: Int? {
                 switch self {
-                case .original: nil
-                case .small: 240
-                case .large: 1080
+                case .original: return nil
+                case .small: return 240
+                case .large: return 540
                 }
             }
             
             var height: Int? {
                 switch self {
-                case .original: nil
-                case .small: 240
-                case .large: 1080
+                case .original: return nil
+                case .small:
+                    return Int(Double(240) * aspectRatio)
+                case .large:
+                    return Int(Double(1080) * aspectRatio)
                 }
+            }
+            
+            var size: CGSize? {
+                guard let w = width, let h = height else { return nil }
+                return CGSize(width: w, height: h)
             }
         }
     }

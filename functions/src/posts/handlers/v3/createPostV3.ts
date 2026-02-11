@@ -36,9 +36,9 @@ export const createPostV3 = async (req: Request, res: Response) => {
       return;
     }
 
-    const { title, content, latitude, longitude, imageUrl } = body;
+    const { id, title, content, latitude, longitude, imageUrl } = body;
 
-    if (!title || latitude == null || longitude == null || !imageUrl) {
+    if (!id || !title || latitude == null || longitude == null || !imageUrl) {
       res.status(400).json({ code: "MISSING_REQUIRED_FIELDS", message: "Missing required fields" });
       return;
     }
@@ -82,23 +82,41 @@ export const createPostV3 = async (req: Request, res: Response) => {
 
     const locationGeoPoint = new admin.firestore.GeoPoint(latitude, longitude);
 
+    let thumbnail240Url = "";
+    let thumbnail540Url = "";
+
+    if (imageUrl) {
+        const lastDotIndex = imageUrl.lastIndexOf(".");
+        if (lastDotIndex !== -1) {
+            const baseUrl = imageUrl.substring(0, lastDotIndex); // 확장자 제외 앞부분
+            const extension = imageUrl.substring(lastDotIndex);  // 확장자 (.jpg 등)
+            
+            thumbnail240Url = `${baseUrl}_240x300${extension}`;
+            thumbnail540Url = `${baseUrl}_540x675${extension}`;
+        }
+    }
+
     const newPost = {
       title,
       content: content || "", 
       location: locationGeoPoint,
       creatorID: userID,      
       imageUrl,
+      thumbnail240Url: thumbnail240Url, 
+      thumbnail540Url: thumbnail540Url,
       createdAt: createdAtTimestamp,
       quadKeys: quadKeys      
     };
 
-    const postRef = await db.collection("posts").add(newPost);
+    await db.collection("posts").doc(id).set(newPost);
 
     const resultData: PostDetailV3 = {
-      id: postRef.id,
+      id: id,
       title,
       content: content || "",
       imageUrl,
+      thumbnail240Url: thumbnail240Url,
+      thumbnail540Url: thumbnail540Url,
       location: locationGeoPoint,
       createdAt: createdAtTimestamp,
       creatorID: userID,

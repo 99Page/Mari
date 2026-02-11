@@ -36,6 +36,7 @@ struct UploadPostFeature {
         var isPendingPostUpload = false
         
         var title = ""
+        var postID: String?
         
         init(pickedImage: UIImage, photoLocation: NMGLatLng) {
             self.image = .uiImage(uiImage: pickedImage)
@@ -129,6 +130,8 @@ struct UploadPostFeature {
                 return .none
                 
             case .view(.onAppear):
+                let id = uuid().uuidString
+                state.postID = id
                 return .concatenate(
                     .send(.checkUID),
                     .send(.uploadImage)
@@ -140,11 +143,13 @@ struct UploadPostFeature {
                 return .send(.uploadPost)
                 
             case .uploadPost:
+                guard let postId = state.postID else { return .none }
                 guard !state.title.isEmpty else { return .send(.showMissingTitleAlert) }
                 guard let imageURL = state.imageURL else { return .none }
                 
                 return .run { [state] send in
                     let request = PostRequest.Create(
+                        id: postId,
                         title: state.title,
                         content: state.descriptionText,
                         latitude: state.photoLocation.lat,
@@ -164,6 +169,7 @@ struct UploadPostFeature {
                         await send(.dismissProgress)
                         await send(.delegate(.uploadSucceeded))
                     } else {
+                        await send(.dismissProgress)
                         await send(.showAlert(title: "알 수 없는 오류가 발생했습니다."))
                     }
                 }
@@ -178,16 +184,23 @@ struct UploadPostFeature {
                 return .none
                 
             case .uploadImage:
+                guard let postId = state.postID else { return .none }
+                guard let uid = state.uid else { return .none }
                 guard state.hasRetryLeft else { return .send(.showUploadFailAlert) }
                 guard case let .uiImage(uiImage) = state.image else { return .send(.showUploadFailAlert) }
                 state.uploadTryCount += 1
-                
+                let imageId = uuid().uuidString
                 return .run { send in
+                    
+                    let dateFormatter = DateFormatter()
+                    dateFormatter.dateFormat = "yyyyMMdd"
+                    let dateString = dateFormatter.string(from: Date())
+                    
                     let request = ImageClient.Request.Upload(
                         image: uiImage,
-                        path: "photo",
-                        fileName: uuid().uuidString,
-                        format: .png
+                        directoryPath: "posts/\(uid)",
+                        fileName: "\(postId)_\(dateString)_\(imageId)",
+                        format: .jpeg(quality: 0.8)
                     )
                     let response = try await imageClient.uploadImage(request: request)
                     await send(.setImageURL(url: response.imageURL))

@@ -31,7 +31,6 @@ extension ImageClient: DependencyKey {
         let imageFinder = ResizeImageFinder()
         
         return ImageClient { param in
-            // 지정된 fileName 경로에 이미지를 Firebase Storage에 저장합니다.
             let imageData: Data?
             
             switch param.format {
@@ -39,25 +38,32 @@ extension ImageClient: DependencyKey {
                 imageData = param.image.jpegData(compressionQuality: quality)
             case .png:
                 imageData = param.image.pngData()
+            case .webp(quality: let quality):
+                imageData = param.image.webpData(quality: quality)
             }
             
             guard let data = imageData else {
                 throw ClientError.unwrappingFailed
             }
             
+            let fileExtension = param.format.fileExtension
+            let fullPath = "\(param.directoryPath)/\(param.fileName).\(fileExtension)"
             let storageReference = Storage.storage().reference()
             
             // 경로와 확장자 조합 (예: "markers/myMarker.png")
-            let fullFileName = "\(param.fileName).\(param.format.fileExtension)"
-            let imageReference = storageReference.child("\(param.path)/\(fullFileName)")
+            let imageReference = storageReference.child(fullPath)
             
             let metadata = StorageMetadata()
             metadata.contentType = param.format.contentType
             
-            let _ = try await imageReference.putDataAsync(data, metadata: metadata)
-            let url = try await imageReference.downloadURL()
+            let bucketName = imageReference.bucket
+            let path = imageReference.fullPath
+            let encodedPath = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? path
             
-            return ImageResponse(imageURL: url.absoluteString)
+            let _ = try await imageReference.putDataAsync(data, metadata: metadata)
+            let url = "https://storage.googleapis.com/\(bucketName)/\(encodedPath)"
+            
+            return ImageResponse(imageURL: url)
         } loadImage: { request in
             let imageUrl = await imageFinder.findResizedURL(request: request)
             let image = try await memoryLoader.loadImage(fromKey: imageUrl)
@@ -76,6 +82,16 @@ extension ImageClient: DependencyKey {
     
     static var testValue: ImageClient {
         previewValue
+    }
+    
+    private static func generateDateUUIDName() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyyMMdd_HHmmss"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        let dateString = formatter.string(from: Date())
+        let shortUUID = UUID().uuidString.prefix(8)
+        
+        return "\(dateString)_\(shortUUID)"
     }
 }
 

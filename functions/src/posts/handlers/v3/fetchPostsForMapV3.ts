@@ -3,7 +3,7 @@ import * as logger from "firebase-functions/logger";
 import { db, adminInstance as admin } from "@/utils/firebase";
 import { QuadKey } from "@/utils/QuadKey";
 import { convertToPostDetailV3, PostDetailV3 } from "@/posts/models/postDetail"; // 모델은 V3(수정본) 재사용
-import { PostSummary } from "@/posts/models/postSummary";
+import { PostSummaryV3 } from "@/posts/models/postSummary";
 import { ErrorResponse } from "@/response/errorResponse";
 import { logErrorToFirestore } from "@/utils/errorLogger";
 
@@ -58,10 +58,12 @@ export const fetchPostsForMapV3 = async (req: Request, res: Response) => {
     const posts = await fetchPostsByQuadKeyArray(searchKeys, userID);
 
     // 5. 결과 가공
-    const postSummaries: PostSummary[] = posts.map(post => ({
+    const postSummaries: PostSummaryV3[] = posts.map(post => ({
       id: post.id,
       title: post.title,
       imageUrl: post.imageUrl,
+      thumbnail240Url: post.thumbnail240Url || "",
+      thumbnail540Url: post.thumbnail540Url || "",
       creatorID: post.creatorID,
       location: post.location,
       createdAt: post.createdAt

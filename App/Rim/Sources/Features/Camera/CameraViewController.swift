@@ -386,77 +386,13 @@ extension CameraViewController: AVCapturePhotoCaptureDelegate {
         guard let imageData = photo.fileDataRepresentation(),
               let rawImage = UIImage(data: imageData) else { return }
 
-        // 1. 이미지 물리적 회전 고정 (필수: 이걸 안 하면 가로/세로가 바뀌어서 잘림)
-        let fixedImage = rawImage.fixedOrientation()
-        
-        // 2. "좌우는 건드리지 말고 위아래만 잘라라"
-        let croppedImage = cropVerticalCenter(image: fixedImage, aspectRatio: self.aspectRatio)
-        
-        // 3. 결과 전달
-        store.photoPreview = .init(capturedPhoto: croppedImage, aspectRatio: aspectRatio)
+        // 애플 카메라의 비율은 3:4
+        // 서비스의 사진은 기본을 3:5
+        // 카메라의 사진을 비율에 맞게 조정
+        let croppedImage = rawImage.cropVerticalCenter(aspectRatio: aspectRatio)
+        let resizedImage = croppedImage.resize(toWidth: 1080)
+        store.photoPreview = .init(capturedPhoto: resizedImage, aspectRatio: aspectRatio)
         send(.photoCaptured)
-    }
-    
-    // 📸 [Final Logic] 너비 고정, 높이 크롭 (Zoom 현상 방지)
-    private func cropVerticalCenter(image: UIImage, aspectRatio: CGFloat) -> UIImage {
-        let originalWidth = image.size.width
-        let originalHeight = image.size.height
-        
-        // 1. 너비(Width)는 원본 100%를 무조건 사용 (좌우 자르기 금지)
-        let newWidth = originalWidth
-        
-        // 2. 목표 비율(4:5 = 1.25)에 맞춰 '새로운 높이' 계산
-        // 공식: 높이 = 너비 * 1.25
-        // 예: 3024 * 1.25 = 3780 (원본 4032보다 작으므로 잘라낼 수 있음)
-        let newHeight = floor(originalWidth * aspectRatio)
-        
-        // 3. 만약 계산된 높이가 원본보다 크다면? (즉, 원본이 너무 납작한 경우)
-        // 이럴 때는 어쩔 수 없이 높이를 맞추고 너비를 잘라야 하지만,
-        // 아이폰 세로 사진(3:4) -> 인스타 비율(4:5)에서는 무조건 newHeight가 더 작으므로 이 로직은 안전합니다.
-        
-        // 4. 위아래 잘라낼 여백 계산 (중앙 정렬)
-        let yOffset = floor((originalHeight - newHeight) / 2.0)
-        
-        // 5. 크롭 영역 설정 (x=0 이므로 좌우는 안 잘림)
-        let cropRect = CGRect(x: 0, y: yOffset, width: newWidth, height: newHeight)
-        
-        guard let cgImage = image.cgImage?.cropping(to: cropRect) else {
-            return image
-        }
-        
-        return UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
-    }
-}
-
-extension UIImage {
-    
-    /// 이미지의 회전 정보(Orientation)를 실제 픽셀 데이터에 반영합니다.
-    /// (CoreGraphics로 크롭하기 전에 반드시 호출해야 좌표가 맞습니다.)
-    func fixedOrientation() -> UIImage {
-        
-        // 1. 이미 방향이 '위쪽(Up)'인 경우, 수정할 필요 없음
-        if imageOrientation == .up {
-            return self
-        }
-        
-        // 2. 그래픽 컨텍스트 생성
-        // size: 이미지 크기
-        // false: 투명도 허용 (혹시 모를 투명 영역 보존)
-        // scale: 원본 스케일 유지 (Retina 디스플레이 대응)
-        UIGraphicsBeginImageContextWithOptions(size, false, scale)
-        
-        // 3. 이미지를 (0,0) 좌표에 그리기
-        // ⭐️ 핵심: draw 메서드는 imageOrientation을 자동으로 계산해서 정방향으로 그려줍니다.
-        draw(in: CGRect(origin: .zero, size: size))
-        
-        // 4. 그려진 이미지를 컨텍스트로부터 가져오기
-        // 이제 이 이미지는 imageOrientation이 .up 상태인 순수 정방향 이미지가 됩니다.
-        let normalizedImage = UIGraphicsGetImageFromCurrentImageContext()
-        
-        // 5. 컨텍스트 종료 (메모리 해제)
-        UIGraphicsEndImageContext()
-        
-        return normalizedImage ?? self
     }
 }
 

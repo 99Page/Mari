@@ -54,6 +54,8 @@ export interface PostDetailV3 {
   title: string;
   content: string;
   imageUrl: string;
+  thumbnail240Url: string;
+  thumbnail540Url: string;
   location: admin.firestore.GeoPoint;
   quadKeys: string[];  // 1레벨부터 22레벨까지의 모든 쿼드키를 담은 배열
   createdAt: admin.firestore.Timestamp;
@@ -75,6 +77,8 @@ export function convertToPostDetailV3(
     title: data.title || '',
     content: data.content || '',
     imageUrl: data.imageUrl || '',
+    thumbnail240Url: data.thumbnail240Url || '',
+    thumbnail540Url: data.thumbnail540Url || '',
     location: data.location, 
     quadKeys: data.quadKeys || [],
     createdAt: data.createdAt,

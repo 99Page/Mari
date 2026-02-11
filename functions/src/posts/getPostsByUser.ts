@@ -61,6 +61,8 @@ export const getPostsByUser = onRequest({ region: REGION }, async (req, res) => 
         id: doc.id,
         title: data.title,
         imageUrl: data.imageUrl,
+        thumbnail240Url: data.thumbnail240Url || "",
+        thumbnail540Url: data.thumbnail540Url || "",
         creatorID: data.creatorID,
         location: data.location,
         createdAt: data.createdAt

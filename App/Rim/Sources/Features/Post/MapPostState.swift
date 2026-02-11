@@ -14,6 +14,7 @@ import Geohash
 struct MapPostState: Equatable, Identifiable, Hashable {
     let id: String
     let imageURL: String
+    let thumbnailURL: String
     let title: String
     let location: CLLocation
     let creatorID: String
@@ -27,7 +28,7 @@ struct MapPostState: Equatable, Identifiable, Hashable {
     init(
         id: String, imageURL: String, title: String,
         coordinate: CLLocation, creatorID: String, zIndex: Int,
-        fetchedZoom: Int
+        fetchedZoom: Int, thumbnailURL: String
     ) {
         self.id = id
         self.imageURL = imageURL
@@ -36,6 +37,7 @@ struct MapPostState: Equatable, Identifiable, Hashable {
         self.creatorID = creatorID
         self.zIndex = zIndex
         self.fetchedZoom = fetchedZoom
+        self.thumbnailURL = thumbnailURL
     }
     
     init(dto: PostDetailDTO, fetchedZoom: Int) {
@@ -46,6 +48,7 @@ struct MapPostState: Equatable, Identifiable, Hashable {
         self.location = CLLocation(latitude: dto.location.latitude, longitude: dto.location.longitude)
         self.fetchedZoom = fetchedZoom
         self.zIndex = Int(dto.createdAt.date.timeIntervalSince1970)
+        self.thumbnailURL = dto.thumbnail240Url.isEmpty ? dto.imageUrl : dto.thumbnail240Url
     }
     
     init(dto: MapPostDTO, fetchedZoom: Int) {
@@ -56,5 +59,6 @@ struct MapPostState: Equatable, Identifiable, Hashable {
         self.location = CLLocation(latitude: dto.location.latitude, longitude: dto.location.longitude)
         self.zIndex =  Int(dto.createdAt.date.timeIntervalSince1970)
         self.fetchedZoom = fetchedZoom
+        self.thumbnailURL = dto.thumbnail240Url.isEmpty ? dto.imageUrl : dto.thumbnail240Url
     }
 }
