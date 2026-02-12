@@ -10,6 +10,11 @@ import UIKit
 
 public protocol ExpandTransitionSourceDelegate: AnyObject {
     func transitionSourceRect() -> CGRect?
+    func transitionInitialCornerRadius() -> CGFloat
+}
+
+public extension ExpandTransitionSourceDelegate {
+    func transitionInitialCornerRadius() -> CGFloat { 0 }
 }
 
 final public  class ExpandAnimator: NSObject, UIViewControllerAnimatedTransitioning {
@@ -22,7 +27,7 @@ final public  class ExpandAnimator: NSObject, UIViewControllerAnimatedTransition
     }
     
     public func transitionDuration(using transitionContext: UIViewControllerContextTransitioning?) -> TimeInterval {
-        return 1
+        return 0.6
     }
     
     public func animateTransition(using transitionContext: UIViewControllerContextTransitioning) {
@@ -54,7 +59,8 @@ final public  class ExpandAnimator: NSObject, UIViewControllerAnimatedTransition
                 toVC: toVC,
                 fromVC: fromVC,
                 toView: toView,
-                sourceRect: sourceRect
+                sourceRect: sourceRect,
+                sourceCornerRadius: sourceDelegate?.transitionInitialCornerRadius() ?? 0
             )
         } else {
             // [Pop: 리스트 -> 지도]
@@ -89,50 +95,42 @@ final public  class ExpandAnimator: NSObject, UIViewControllerAnimatedTransition
         toVC: UIViewController,
         fromVC: UIViewController?,
         toView: UIView,
-        sourceRect: CGRect
+        sourceRect: CGRect,
+        sourceCornerRadius: CGFloat
     ) {
         let finalFrame = transitionContext.finalFrame(for: toVC)
         
-        // 1. 비율 정의 (W:H 기준)
         let imageRatio: CGFloat = 5 / 4    // 1.25 (Portrait)
         let targetMaskRatio: CGFloat = 7 / 9 // 0.77 (Landscape)
         
-        // 2. 높이 계산
         let imageHeight = finalFrame.width * imageRatio // 4:5 전체 이미지 높이
         let maskHeight = finalFrame.width * targetMaskRatio // 9:7 마스크 높이
         
-        // 3. [핵심] 중앙 정렬을 위한 마스크 Y 오프셋 계산
-        // 전체 이미지 높이에서 마스크 높이를 뺀 값의 절반만큼 아래로 내립니다.
-        // 이렇게 해야 위아래가 똑같은 비율로 잘립니다.
+        let scaleX = sourceRect.width / finalFrame.width
+        let scaleY = sourceRect.height / maskHeight
+        
         let maskTopOffset = (imageHeight - maskHeight) / 2
         
-        // 4. toView 초기 설정
         toView.frame = finalFrame
         toView.clipsToBounds = false
         containerView.addSubview(toView)
         toView.layoutIfNeeded()
         
-        // 5. 파란색 가이드 뷰 (이미지 중앙의 9:7 영역)
-        // y 위치를 maskTopOffset으로 설정하여 중앙에 배치합니다.
-        let blueOverlay = UIView(frame: CGRect(x: 0, y: maskTopOffset, width: finalFrame.width, height: maskHeight))
-        blueOverlay.backgroundColor = UIColor.blue
-        blueOverlay.layer.borderWidth = 2
-        blueOverlay.layer.borderColor = UIColor.blue.cgColor
-        toView.addSubview(blueOverlay)
-        toView.mask = blueOverlay
+        let maskView = UIView(frame: CGRect(x: 0, y: maskTopOffset, width: finalFrame.width, height: maskHeight))
+        maskView.backgroundColor = UIColor.blue
+        maskView.layer.borderWidth = 2
+        maskView.layer.borderColor = UIColor.blue.cgColor
+        maskView.layer.cornerRadius = sourceCornerRadius / scaleX
+        maskView.layer.cornerCurve = .continuous
         
-        // 6. 축소 비율(Scale) 계산
-        let scaleX = sourceRect.width / finalFrame.width
-        let scaleY = sourceRect.height / maskHeight
+        toView.addSubview(maskView)
+        toView.mask = maskView
         
-        // 7. Transform 적용
         toView.transform = CGAffineTransform(scaleX: scaleX, y: scaleY)
         
-        // 8. [중요] 좌표 보정 (중앙 정렬된 파란색 영역을 마커에 맞춤)
         let maskCenterYInToView = maskTopOffset + (maskHeight / 2)
         let scaledMaskCenterY = maskCenterYInToView * scaleY
         
-        // 전체 뷰의 중심점(scaledFullHeight / 2)과 마스크 중심점의 차이만큼 이동
         let scaledFullHeight = finalFrame.height * scaleY
         let centerYOffset = (scaledFullHeight / 2) - scaledMaskCenterY
         
@@ -149,14 +147,14 @@ final public  class ExpandAnimator: NSObject, UIViewControllerAnimatedTransition
             
             toView.transform = .identity
             toView.center = CGPoint(x: finalFrame.midX, y: finalFrame.midY)
-            
-            blueOverlay.frame = CGRect(origin: .zero, size: finalFrame.size)
+
+            maskView.layer.cornerRadius = 0
+            maskView.frame = CGRect(origin: .zero, size: finalFrame.size)
             
             toView.layer.cornerRadius = 0
             toView.layoutIfNeeded()
         } completion: { _ in
-            // 가이드 뷰 제거 및 전환 완료 보고
-            blueOverlay.removeFromSuperview()
+            maskView.removeFromSuperview()
             transitionContext.completeTransition(!transitionContext.transitionWasCancelled)
         }
     }

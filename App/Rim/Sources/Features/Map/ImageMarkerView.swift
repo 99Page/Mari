@@ -13,13 +13,25 @@ struct ImageMarkerView: View {
     var title: String
     var contentMode: ContentMode
     
-    let tailHeight = CGFloat(10)
+    // MARK: - Layout Constants
+    enum Layout {
+        static let imageSize = CGSize(width: 90, height: 70)
+        static let tailSize = CGSize(width: 16, height: 10)
+        static let containerPadding: CGFloat = 4
+        static let tailOverlap: CGFloat = 1 // 꼬리와 몸통 사이 틈 제거용 겹침
+        
+        static let imageCornerRadius: CGFloat = 12
+        static let containerCornerRadius: CGFloat = 16
+        
+        static let fontSize: CGFloat = 13
+        static let textBottomPadding: CGFloat = 2.5
+        static let textHorizontalPadding: CGFloat = 4
+        
+        static var totalHeightOffset: CGFloat {
+            imageSize.height + (containerPadding * 2) + tailSize.height - tailOverlap
+        }
+    }
     
-    /// 이미지 마커 뷰를 생성합니다.
-    /// - Parameters:
-    ///   - contentMode: 이미지의 비율을 결정합니다.
-    ///     * `.fill`: 일반 사진용 (꽉 채우기)
-    ///     * `.fit`: 플레이스홀더/아이콘용 (전체 보이기)
     init(image: Image, title: String, contentMode: ContentMode = .fill) {
         self.image = image
         self.title = title
@@ -32,28 +44,29 @@ struct ImageMarkerView: View {
                 image
                     .resizable()
                     .aspectRatio(contentMode: contentMode)
-                    .frame(width: 90, height: 70)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .frame(width: Layout.imageSize.width, height: Layout.imageSize.height)
+                    .clipShape(RoundedRectangle(cornerRadius: Layout.imageCornerRadius))
                 
                 Text(title)
-                    .font(size: 13, font: .spoqa(.bold))
+                    .font(size: Layout.fontSize, font: .spoqa(.bold))
                     .foregroundColor(.white)
                     .lineLimit(1)
-                    .padding(.bottom, 2.5)
-                    .padding(.horizontal, 4)
+                    .padding(.bottom, Layout.textBottomPadding)
+                    .padding(.horizontal, Layout.textHorizontalPadding)
+                    // 텍스트 가독성을 위한 그림자
                     .shadow(color: .black.opacity(0.8), radius: 1, x: 1, y: 1)
                     .shadow(color: .black.opacity(0.8), radius: 1, x: -1, y: -1)
             }
-            .padding(4)
+            .padding(Layout.containerPadding) // 흰색 테두리 역할
             .background(Color.white)
-            .cornerRadius(16)
+            .cornerRadius(Layout.containerCornerRadius)
             
             Triangle()
                 .fill(Color.white)
-                .frame(width: 16, height: tailHeight)
-                .padding(.top, -1) // 틈새 제거
+                .frame(width: Layout.tailSize.width, height: Layout.tailSize.height)
+                .padding(.top, -Layout.tailOverlap)
         }
-        .compositingGroup()
+        .compositingGroup() // 그림자를 전체에 적용
         .shadow(color: Color.black.opacity(0.15), radius: 3, x: 0, y: 2)
     }
 }
@@ -65,4 +78,3 @@ struct ImageMarkerView: View {
 #Preview("placeholder") {
     ImageMarkerView(image: Image(.placeholder), title: "", contentMode: .fit)
 }
-

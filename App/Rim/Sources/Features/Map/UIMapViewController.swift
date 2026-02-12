@@ -21,6 +21,9 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
     
     @UIBindable var store: StoreOf<MapFeature>
     
+    private let markerWidth: CGFloat = 98
+    private let markerHeight: CGFloat = 86
+    
     private lazy var mapView: NMFMapView = {
         let mapView = NMFMapView(frame: view.bounds)
         return mapView
@@ -40,12 +43,12 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
     private var selectedMarker: NMFMarker?
     
     private lazy var cachedLockedIcon: UIImage = {
-        let size = CGSize(width: 94, height: 86)
+        let size = CGSize(width: markerWidth, height: markerHeight)
         return resizedImage(UIImage(systemName: "lock.circle")!, size: size)
     }()
     
     @MainActor
-    private var placeholderIcon: UIImage {        
+    private var placeholderIcon: UIImage {
         let markerView = ImageMarkerView(
             image: Image(.placeholder),
             title: "",
@@ -146,7 +149,7 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
     
     private func makeNewMarker(_ post: MapPostState) -> NMFMarker {
         let iconImage: UIImage
-        let markerSize = CGSize(width: 94, height: 86)
+        let markerSize = CGSize(width: markerWidth, height: markerHeight)
         
         if store.blockedUserIds.contains(post.creatorID) {
             iconImage = cachedLockedIcon
@@ -391,15 +394,21 @@ extension UIMapViewController: ExpandTransitionSourceDelegate {
         
         let point = mapView.projection.point(from: selectedMarker.position)
         
-        let width: CGFloat = 94
-        let height: CGFloat = 86
+        let width = ImageMarkerView.Layout.imageSize.width
+        let height = ImageMarkerView.Layout.imageSize.height
+
+        let imageTopOffset = ImageMarkerView.Layout.totalHeightOffset - ImageMarkerView.Layout.containerPadding
         
         return CGRect(
             x: point.x - (width / 2),
-            y: point.y - height,
+            y: point.y - imageTopOffset,
             width: width,
             height: height
         )
+    }
+    
+    func transitionInitialCornerRadius() -> CGFloat {
+        ImageMarkerView.Layout.imageCornerRadius
     }
 }
 

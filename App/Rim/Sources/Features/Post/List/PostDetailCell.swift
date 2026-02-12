@@ -63,6 +63,7 @@ final class PostCell: UITableViewCell {
     // MARK: - Configure
     
     func configure(with post: PostDetail) {
+        Logger.debug("confige \(post.title)")
         contentLabel.text = post.description
         setImage(post.imageURL)
     }
@@ -73,7 +74,7 @@ final class PostCell: UITableViewCell {
             with: URL(string: urlString),
             placeholder: nil,
             options: [
-                .transition(.fade(0.2)), // 부드러운 전환
+//                .transition(.fade(0.2)), // 부드러운 전환
                 .cacheOriginalImage
             ]
         )

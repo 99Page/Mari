@@ -159,10 +159,10 @@ final class PostListViewController: UIViewController {
             make.edges.equalToSuperview()
         }
         
-        heroImageView.snp.makeConstraints { make in
-            make.top.leading.trailing.equalToSuperview()
-            make.height.equalTo(heroImageView.snp.width).multipliedBy(1.25)
-        }
+//        heroImageView.snp.makeConstraints { make in
+//            make.top.leading.trailing.equalToSuperview()
+//            make.height.equalTo(heroImageView.snp.width).multipliedBy(1.25)
+//        }
     }
 }
 
