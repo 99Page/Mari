@@ -21,6 +21,17 @@ extension PostClient {
             let appliedPrecision: Int
             let postCount: Int
         }
+        
+        struct NearByPosts: Decodable, Stub {
+            let posts: [PostDetailDTO]
+            let count: Int
+            let nextCursor: String?
+            
+            static func stub() -> Self {
+                NearByPosts(posts: .stub(), count: 10, nextCursor: nil)
+            }
+        }
+        
 
         
         struct Delete: Decodable, Stub {

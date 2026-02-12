@@ -1,7 +1,23 @@
+import { Response } from "express";
+
 export type ErrorResponse = {
   code: string;
   message: string;
 };
+
+export interface AppError {
+  status: number;
+  code: string;
+  message: string;
+}
+
+export const ErrorCase = {
+  INVALID_LOCATION: {
+    status: 400,
+    code: "invalid-location-query",
+    message: "Missing or invalid 'latitude' or 'longitude'"
+  },
+} as const;
 
 export class Errors {
   static NEAR_POST_FETCH_FAILED: ErrorResponse = {
@@ -75,3 +91,10 @@ export const errors = {
     message: "차단하지 않은 사용자입니다.",
   },
 } as const;
+
+export const sendError = (res: Response, error: AppError) => {
+  return res.status(error.status).json({
+    code: error.code,
+    message: error.message
+  });
+};

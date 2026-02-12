@@ -17,6 +17,8 @@ struct PostClient {
     
     var fetchMapPosts: (_ request: Request.GetMapPost) async throws -> APIResponse<Response.MapPosts>
     
+    var fetchNearbyPosts: (_ request: PostRequest.GetNearbyPost) async throws -> APIResponse<Response.NearByPosts>
+    
     var fetchPostByID: (_ id: String) async throws -> APIResponse<PostDetailDTO>
     
     var incrementPostViewCount: (_ postID: String) async throws -> APIResponse<EmptyResult>
@@ -28,39 +30,38 @@ struct PostClient {
     
     var report: (_ postID: String) async throws -> APIResponse<EmptyResult>
     
-    var fetchListPosts: () async throws -> APIResponse<[PostDetailDTO]>
     
     enum PostAPI: APITarget {
         case createPost(request: PostRequest.Create)
         case fetchMapPosts(request: PostRequest.GetMapPost )
+        case fetchNearByPosts(request: PostRequest.GetNearbyPost)
         case fetchPostByID(id: String)
         case incrementPostViewCount(postID: String)
         case fetchUserPosts(lastCreatedAt: Date)
         case deletePost(postID: String)
         case report(postID: String)
-        case fetchListPosts
         
         var method: HTTPMethod {
             switch self {
             case .fetchMapPosts: .get
+            case .fetchNearByPosts: .get
             case .fetchPostByID: .get
             case .createPost, .report, .incrementPostViewCount: .post
             case .fetchUserPosts: .get
             case .deletePost: .delete
-            case .fetchListPosts: .get
             }
         }
         
         var body: (any Encodable)? {
             switch self {
             case .createPost(let request): request
+            case let .fetchNearByPosts(request): request
             case .fetchMapPosts: nil
             case .fetchPostByID: nil
             case .incrementPostViewCount: nil
             case .fetchUserPosts: nil
             case .deletePost: nil
             case let .report(postId): ["postId": postId]
-            case .fetchListPosts: nil
             }
         }
         
@@ -70,7 +71,8 @@ struct PostClient {
             @Dependency(\.keychain) var keychain
             
             switch self {
-            case .incrementPostViewCount, .createPost, .fetchUserPosts, .deletePost, .fetchPostByID, .report, .fetchListPosts:
+            case .incrementPostViewCount, .createPost, .fetchUserPosts,
+                    .deletePost, .fetchPostByID, .report, .fetchNearByPosts:
                 let idToken = try? keychain.load(service: .firebase, account: .idToken)
                 headers["Authorization"] = "Bearer \(idToken ?? "")"
             case .fetchMapPosts:
@@ -100,8 +102,8 @@ struct PostClient {
                 "/deletePost?id=\(postID)"
             case .report:
                 "/reportPost"
-            case .fetchListPosts:
-                "/posts/list"
+            case let .fetchNearByPosts(request):
+                "/posts/?latitude=\(request.latitude)&longitude=\(request.longitude)&cursor=\(request.cursor ?? "")"
             }
         }
     }
@@ -113,6 +115,8 @@ extension PostClient: DependencyKey {
             try await Client.request(target: PostAPI.createPost(request: request))
         } fetchMapPosts: { request in
             try await Client.request(target: PostAPI.fetchMapPosts(request: request))
+        } fetchNearbyPosts: { request in
+            try await Client.request(target: PostAPI.fetchNearByPosts(request: request))
         } fetchPostByID: { id in
             try await Client.request(target: PostAPI.fetchPostByID(id: id))
         } incrementPostViewCount: { postID in
@@ -123,8 +127,6 @@ extension PostClient: DependencyKey {
             try await Client.request(target: PostAPI.deletePost(postID: postID))
         } report: { postID in
             try await Client.request(target: PostAPI.report(postID: postID))
-        } fetchListPosts: {
-            APIResponse(status: "", message: "", result: .stub())
         }
     }
     
@@ -132,6 +134,8 @@ extension PostClient: DependencyKey {
         PostClient { _ in
                 .stub()
         } fetchMapPosts: { request in
+                .stub()
+        } fetchNearbyPosts: { request in
                 .stub()
         } fetchPostByID: { _ in
                 .stub()
@@ -143,8 +147,6 @@ extension PostClient: DependencyKey {
                 .stub()
         } report: { _ in
                 .stub()
-        } fetchListPosts: {
-            .stub()
         }
     }
     

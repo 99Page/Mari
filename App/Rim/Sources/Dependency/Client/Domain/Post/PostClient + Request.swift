@@ -28,5 +28,11 @@ extension PostClient {
             let imageUrl: String
         }
 
+        struct GetNearbyPost: Encodable {
+            let latitude: Double
+            let longitude: Double
+            let zoom: Int
+            let cursor: String?
+        }
     }
 }
