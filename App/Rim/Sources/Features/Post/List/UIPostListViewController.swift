@@ -14,11 +14,33 @@ import Core
 struct PostListFeature {
     @ObservableState
     struct State: Equatable {
-        var posts = IdentifiedArrayOf<PostDetail>()
-        let imageURL: String
+        var posts: IdentifiedArrayOf<PostDetail>
+        var zoom: Int
+        var cursor: String?
+        let selectedPost: MapPostState
+        
+        init(selectedPost: MapPostState, zoom: Int) {
+            @Dependency(\.uuid) var uuid
+            
+            self.selectedPost = selectedPost
+            
+            self.posts = [
+                PostDetail(
+                    id: uuid().uuidString,
+                    imageURL: selectedPost.imageURL.isEmpty ? selectedPost.thumbnailURL : selectedPost.imageURL,
+                    title: "",
+                    location: .init(latitude: 1, longitude: 1),
+                    creatorID: "",
+                    description: ""
+                )
+            ]
+            
+            self.zoom = zoom
+        }
     }
     
     enum Action: ViewAction {
+        case appendPosts([PostDetailDTO])
         case view(View)
         
         @CasePathable
@@ -30,54 +52,54 @@ struct PostListFeature {
     
     @Dependency(\.postClient) var postClient
     @Dependency(\.uuid) var uuid
+    @Dependency(\.locationManager) var locationManager
     
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
-            case .view(.onAppear):
-                Logger.debug(state.imageURL)
-                state.posts = [
-                    PostDetail(
-                        id: uuid().uuidString,
-                        imageURL: state.imageURL,
-                        title: "title",
-                        location: .init(latitude: 1, longitude: 1),
-                        creatorID: "",
-                        description: "따분한 나의 눈빛이, 무표정했던 얼굴이 널 보며 빛나고 있어, 널 담은 눈동자는 odd"
-                    ),
-                    
-                    PostDetail(
-                        id: uuid().uuidString,
-                        imageURL: MockImage(id: uuid(), seed: 3, width: 1000, height: 1400).urlString,
-                        title: "title",
-                        location: .init(latitude: 1, longitude: 1),
-                        creatorID: "",
-                        description: "따분한 나의 눈빛이, 무표정했던 얼굴이 널 보며 빛나고 있어, 널 담은 눈동자는 odd"
-                    ),
-                    
-                    PostDetail(
-                        id: uuid().uuidString,
-                        imageURL: MockImage(id: uuid(), seed: 5, width: 1000, height: 1400).urlString,
-                        title: "title",
-                        location: .init(latitude: 1, longitude: 1),
-                        creatorID: "",
-                        description: "따분한 나의 눈빛이, 무표정했던 얼굴이 널 보며 빛나고 있어, 널 담은 눈동자는 odd"
-                    ),
-                    
-                    PostDetail(
-                        id: uuid().uuidString,
-                        imageURL: MockImage(id: uuid(), seed: 1, width: 1000, height: 1400).urlString,
-                        title: "title",
-                        location: .init(latitude: 1, longitude: 1),
-                        creatorID: "",
-                        description: "따분한 나의 눈빛이, 무표정했던 얼굴이 널 보며 빛나고 있어, 널 담은 눈동자는 odd"
-                    )
-                ]
+            case let .appendPosts(array):
+                let posts = array.map { PostDetail(dto: $0) }
+                state.posts.append(contentsOf: posts)
                 return .none
+                
+            case .view(.onAppear):
+                let cursor = state.cursor
+                let zoom = state.zoom
+                
+                return .run { [location = state.selectedPost.location] send in
+                    let request = PostRequest.GetNearbyPost(
+                        latitude: location.coordinate.latitude,
+                        longitude: location.coordinate.longitude,
+                        zoom: zoom,
+                        cursor: cursor
+                    )
+                    
+                    let result = try await postClient.fetchNearbyPosts(request: request).result
+                    await send(.appendPosts(result.posts))
+                } catch: { error, send in
+                    if let decodingError = error as? DecodingError {
+                        switch decodingError {
+                        case .keyNotFound(let key, let context):
+                            print("🔍 [디코딩 에러] 찾는 키가 없음: '\(key.stringValue)'")
+                            print("   경로: \(context.codingPath.map { $0.stringValue })")
+                        case .valueNotFound(let type, let context):
+                            print("🔍 [디코딩 에러] 값이 null임 (타입: \(type))")
+                            print("   경로: \(context.codingPath.map { $0.stringValue })")
+                        case .typeMismatch(let type, let context):
+                            print("🔍 [디코딩 에러] 타입 불일치 (기대: \(type))")
+                            print("   경로: \(context.codingPath.map { $0.stringValue })")
+                        default:
+                            print("🔍 [디코딩 에러] 기타: \(error)")
+                        }
+                    } else {
+                        Logger.error("일반 에러: \(error.localizedDescription)")
+                    }
+                }
             case .view(.binding):
                 return .none
             }
         }
+        ._printChanges()
     }
 }
 
@@ -121,7 +143,6 @@ final class PostListViewController: UIViewController {
         setupView()
         makeConstraints()
         send(.onAppear)
-        Logger.debug("viewDidLoad")
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -146,9 +167,6 @@ final class PostListViewController: UIViewController {
         tableView.tableFooterView = UIView(frame: CGRect(x: 0, y: 0, width: 0, height: CGFloat.leastNonzeroMagnitude))
         
         tableView.register(PostCell.self, forCellReuseIdentifier: "PostCell")
-//        
-//        heroImageView.kf.setImage(with: URL(string: store.imageURL))
-//        heroImageView.alpha = 1
     }
     
     private func makeConstraints() {
@@ -158,16 +176,11 @@ final class PostListViewController: UIViewController {
         tableView.snp.makeConstraints { make in
             make.edges.equalToSuperview()
         }
-        
-//        heroImageView.snp.makeConstraints { make in
-//            make.top.leading.trailing.equalToSuperview()
-//            make.height.equalTo(heroImageView.snp.width).multipliedBy(1.25)
-//        }
     }
 }
 
 #Preview {
-    let store = Store(initialState: PostListFeature.State(imageURL: MockImage(width: 1000, height: 1400).urlString)) {
+    let store = Store(initialState: PostListFeature.State(selectedPost: .stub(), zoom: 17)) {
         PostListFeature()
     }
     

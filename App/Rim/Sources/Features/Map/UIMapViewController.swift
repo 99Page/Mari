@@ -172,7 +172,10 @@ class UIMapViewController: UIViewController, NMFMapViewCameraDelegate {
         marker.touchHandler = { [weak self] _ in
             guard let self else { return false } // 지도 탭 이벤트 허용
             self.selectedMarker = marker
-            traitCollection.push(state: MapNavigationStack.Path.State.postList(.init(imageURL: post.imageURL)))
+            
+            let postList = PostListFeature.State(selectedPost: post, zoom: Int(store.zoom))
+            let pathState = MapNavigationStack.Path.State.postList(postList)
+            traitCollection.push(state: pathState)
             return true // 지도 탭 무시
         }
         

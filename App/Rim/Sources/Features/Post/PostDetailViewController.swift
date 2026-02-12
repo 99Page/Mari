@@ -439,7 +439,7 @@ class PostDetailViewController: UIViewController {
     let store = Store(initialState: stackState) {
         MapNavigationStack()
     } withDependencies: {
-        let dto = PostDetailDTO(id: "", title: "", content: "", imageUrl: "", thumbnail240Url: "", thumbnailUrl540: "", location: .init(latitude: 0, longitude: 0), creatorID: "", isMine: false, createdAt: .init(seconds: 0, nanoseconds: 0))
+        let dto = PostDetailDTO(id: "", title: "", content: "", imageUrl: "", thumbnail240Url: "", thumbnail540url: "", location: .init(latitude: 0, longitude: 0), creatorID: "", isMine: false, createdAt: .init(seconds: 0, nanoseconds: 0))
         $0.postClient.fetchPostByID = { _ in APIResponse(status: "", message: "", result: dto) }
         $0.userRelationClient.blocksUser = { _ in .stub() }
     }

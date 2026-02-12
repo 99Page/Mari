@@ -55,7 +55,7 @@ struct PostClient {
         var body: (any Encodable)? {
             switch self {
             case .createPost(let request): request
-            case let .fetchNearByPosts(request): request
+            case .fetchNearByPosts: nil
             case .fetchMapPosts: nil
             case .fetchPostByID: nil
             case .incrementPostViewCount: nil
@@ -83,7 +83,7 @@ struct PostClient {
         
         var baseURLString: String {
             switch self {
-            case .fetchMapPosts, .createPost: APIConfig.v3URL
+            case .fetchMapPosts, .createPost, .fetchNearByPosts: APIConfig.v3URL
             default: APIConfig.functionsURL
             }
         }
@@ -103,7 +103,7 @@ struct PostClient {
             case .report:
                 "/reportPost"
             case let .fetchNearByPosts(request):
-                "/posts/?latitude=\(request.latitude)&longitude=\(request.longitude)&cursor=\(request.cursor ?? "")"
+                "/posts/nearby?latitude=\(request.latitude)&longitude=\(request.longitude)&cursor=\(request.cursor ?? "")&zoom=\(request.zoom)"
             }
         }
     }

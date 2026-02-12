@@ -1,8 +1,9 @@
 import { Request, Response } from "express";
+import { SuccessResponse } from "@/response/successResponse";
 import { db } from "@/utils/firebase";
 import { QuadKey } from "@/utils/QuadKey";
 import { convertToPostDetailV3 } from "@/posts/models/postDetail";
-import { PostSummaryV3 } from "@/posts/models/postSummary";
+import { PostDetailV3 } from "@/posts/models/postDetail";
 import { sendError, ErrorCase } from "@/response/errorResponse";
 import * as logger from "firebase-functions/logger";
 
@@ -16,15 +17,14 @@ export const fetchNearbyPostsV3 = async (req: Request, res: Response) => {
   const START_PRECISION = 21;
 
   if (isNaN(lat) || isNaN(lng) || isNaN(clientZoom)) {
-    return sendError(res, ErrorCase.INVALID_LOCATION)
-    res.status(400).json({ code: "invalid-query", message: "Invalid params" });
+    sendError(res, ErrorCase.INVALID_QUERY)
     return;
   }
 
   const userID = ""; 
 
   try {
-    const collectedPosts: PostSummaryV3[] = [];
+    const collectedPosts: PostDetailV3[] = [];
     let minZoom = clientZoom - 1;
     if (minZoom < 5) minZoom = 5;
 
@@ -57,16 +57,17 @@ export const fetchNearbyPostsV3 = async (req: Request, res: Response) => {
     collectedPosts.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
     const finalPosts = collectedPosts.slice(0, targetCount);
 
-    res.status(200).json({
+    const response: SuccessResponse = {
       status: "SUCCESS",
+      message: "Nearby posts fetched successfully", // message 필드 추가
       result: {
         posts: finalPosts,
         count: finalPosts.length,
-        // 다음 요청을 위해 마지막으로 탐색한 Key 하나만 전달
         nextCursor: currentKeyString 
       }
-    });
+    };
 
+    res.status(200).json(response);
   } catch (error) {
     logger.error("Error fetching quadtree posts:", error);
     res.status(500).json({ code: "server-error", message: "Internal Error" });
@@ -75,7 +76,7 @@ export const fetchNearbyPostsV3 = async (req: Request, res: Response) => {
 
 async function fetchAndCollect(
   keys: string[], 
-  collection: PostSummaryV3[], 
+  collection: PostDetailV3[], 
   limit: number, 
   userID: string
 ) {
@@ -94,17 +95,7 @@ async function fetchAndCollect(
   for (const snap of snapshots) {
     if (!snap.empty) {
       const details = snap.docs.map(doc => convertToPostDetailV3(doc, userID));
-      const summaries = details.map(post => ({
-        id: post.id,
-        title: post.title,
-        imageUrl: post.imageUrl,
-        thumbnail240Url: post.thumbnail240Url || "",
-        thumbnail540Url: post.thumbnail540Url || "",
-        creatorID: post.creatorID,
-        location: post.location,
-        createdAt: post.createdAt
-      }));
-      collection.push(...summaries);
+      collection.push(...details);
     }
   }
 }

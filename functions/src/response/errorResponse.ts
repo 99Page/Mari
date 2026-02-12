@@ -12,10 +12,10 @@ export interface AppError {
 }
 
 export const ErrorCase = {
-  INVALID_LOCATION: {
+  INVALID_QUERY: {
     status: 400,
-    code: "invalid-location-query",
-    message: "Missing or invalid 'latitude' or 'longitude'"
+    code: "invalid-query",
+    message: "Missing or invalid fields"
   },
 } as const;
 

@@ -48,7 +48,13 @@ struct MapPostState: Equatable, Identifiable, Hashable {
         self.location = CLLocation(latitude: dto.location.latitude, longitude: dto.location.longitude)
         self.fetchedZoom = fetchedZoom
         self.zIndex = Int(dto.createdAt.date.timeIntervalSince1970)
-        self.thumbnailURL = dto.thumbnail240Url.isEmpty ? dto.imageUrl : dto.thumbnail240Url
+        
+        if let thumbnail240Url = dto.thumbnail240Url {
+            self.thumbnailURL = thumbnail240Url.isEmpty ? dto.imageUrl : thumbnail240Url
+        } else {
+            self.thumbnailURL = dto.imageUrl
+        }
+        
     }
     
     init(dto: MapPostDTO, fetchedZoom: Int) {
@@ -60,5 +66,9 @@ struct MapPostState: Equatable, Identifiable, Hashable {
         self.zIndex =  Int(dto.createdAt.date.timeIntervalSince1970)
         self.fetchedZoom = fetchedZoom
         self.thumbnailURL = dto.thumbnail240Url.isEmpty ? dto.imageUrl : dto.thumbnail240Url
+    }
+    
+    static func stub() -> Self {
+        return MapPostState(dto: MapPostDTO.stub(), fetchedZoom: 17)
     }
 }
